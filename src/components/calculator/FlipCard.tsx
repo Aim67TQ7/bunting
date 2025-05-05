@@ -11,6 +11,7 @@ interface FlipCardProps {
   url: string;
   videoUrl?: string | null;
   iconPath?: string | null;
+  icon?: React.ReactNode;
 }
 
 export const FlipCard = ({
@@ -18,7 +19,8 @@ export const FlipCard = ({
   description,
   url,
   videoUrl,
-  iconPath
+  iconPath,
+  icon
 }: FlipCardProps) => {
   const [isFlipped, setIsFlipped] = useState(false);
 
@@ -28,8 +30,7 @@ export const FlipCard = ({
 
   const handleOpenCalculator = (e: React.MouseEvent) => {
     e.stopPropagation();
-    // Use the URL as is, since we'll navigate in the App.tsx router
-    window.location.href = `/iframe?url=${encodeURIComponent(url)}&title=${encodeURIComponent(title)}`;
+    window.location.href = url;
   };
 
   const handleWatchVideo = (e: React.MouseEvent) => {
@@ -53,6 +54,8 @@ export const FlipCard = ({
           <div className="rounded-full bg-muted p-4 mb-4">
             {iconPath ? (
               <img src={iconPath} alt={title} className="h-12 w-12" />
+            ) : icon ? (
+              icon
             ) : (
               <svg className="h-8 w-8 text-muted-foreground" fill="none" height="24" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
                 <rect height="14" rx="2" ry="2" width="14" x="5" y="5"/>

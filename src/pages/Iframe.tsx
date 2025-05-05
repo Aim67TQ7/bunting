@@ -40,16 +40,17 @@ const Iframe = () => {
           <SidebarInset className="flex flex-1 flex-col overflow-hidden">
             <div className="flex items-center justify-between border-b px-4 py-3">
               <div className="flex items-center">
+                <SidebarTrigger className="md:hidden mr-2" />
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  onClick={handleBack} 
+                  onClick={handleBack}
                   className="mr-2"
                 >
                   <ArrowLeft className="h-4 w-4 mr-1" />
                   Back
                 </Button>
-                <h1 className="text-2xl font-semibold">{title}</h1>
+                <h1 className="text-xl font-semibold">{title}</h1>
               </div>
             </div>
             
