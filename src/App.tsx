@@ -10,6 +10,7 @@ import Calculators from "./pages/Calculators";
 import Iframe from "./pages/Iframe";
 import Sales from "./pages/Sales";
 import Apps from "./pages/Apps";
+import Reports from "./pages/Reports";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,6 +28,7 @@ const App = () => (
           <Route path="/iframe" element={<Iframe />} />
           <Route path="/sales" element={<Sales />} />
           <Route path="/apps" element={<Apps />} />
+          <Route path="/reports" element={<Reports />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
