@@ -1,4 +1,3 @@
-
 import { useRef, useState, useEffect } from "react";
 import { ChatInput } from "@/components/chat-input";
 import { ChatMessage, MessageRole } from "@/components/chat-message";
