@@ -71,7 +71,7 @@ export const FlipCard = ({
             className="mt-4" 
             onClick={handleOpenCalculator}
           >
-            Open Calculator <ExternalLink className="ml-2 h-4 w-4" />
+            Open App <ExternalLink className="ml-2 h-4 w-4" />
           </Button>
           <div className="absolute bottom-2 right-2 text-xs text-muted-foreground">
             Click to flip
