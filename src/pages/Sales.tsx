@@ -5,16 +5,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { DollarSign } from "lucide-react";
-import { 
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow 
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
+import { FlipCard } from "@/components/calculator/FlipCard";
 
 interface SalesItem {
   id: string;
@@ -99,10 +90,6 @@ const Sales = () => {
     fetchSalesData();
   }, []);
 
-  const handleOpenTool = (url: string) => {
-    window.location.href = url;
-  };
-
   return (
     <ThemeProvider defaultTheme="light">
       <SidebarProvider>
@@ -113,7 +100,7 @@ const Sales = () => {
             <div className="flex items-center justify-between border-b px-4 py-2">
               <div className="flex gap-2 items-center">
                 <SidebarTrigger className="md:hidden" />
-                <h1 className="text-lg font-semibold">Sales Dashboard</h1>
+                <h1 className="text-lg font-semibold">Sales Tools</h1>
               </div>
             </div>
             
@@ -123,53 +110,28 @@ const Sales = () => {
                   <p>Loading sales data...</p>
                 </div>
               ) : salesItems.length > 0 ? (
-                <div className="w-full">
-                  <Table>
-                    <TableCaption>Available Sales Tools</TableCaption>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-[50px]"></TableHead>
-                        <TableHead>Name</TableHead>
-                        <TableHead className="hidden md:table-cell">Description</TableHead>
-                        <TableHead className="w-[150px]">Coming Soon</TableHead>
-                        <TableHead className="w-[100px]"></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {salesItems.map((item) => (
-                        <TableRow key={item.id}>
-                          <TableCell>
-                            <div className="rounded-full bg-muted p-2 flex items-center justify-center">
-                              <DollarSign className="h-4 w-4" />
-                            </div>
-                          </TableCell>
-                          <TableCell className="font-medium">{item.name}</TableCell>
-                          <TableCell className="hidden md:table-cell text-muted-foreground">{item.description}</TableCell>
-                          <TableCell>
-                            {item.coming_soon ? (
-                              <span className="inline-flex items-center rounded-md bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-800 ring-1 ring-inset ring-yellow-600/20">
-                                Coming Soon
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
-                                Available
-                              </span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              disabled={item.coming_soon}
-                              onClick={() => handleOpenTool(item.url)}
-                            >
-                              Open
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {salesItems.map((item) => (
+                    <div key={item.id} className={item.coming_soon ? "opacity-70" : ""}>
+                      <div className="relative">
+                        {item.coming_soon && (
+                          <div className="absolute -top-3 -right-3 z-10">
+                            <span className="inline-flex items-center rounded-full bg-yellow-50 px-3 py-1 text-xs font-medium text-yellow-800 ring-1 ring-inset ring-yellow-600/20">
+                              Coming Soon
+                            </span>
+                          </div>
+                        )}
+                        <FlipCard 
+                          key={item.id}
+                          title={item.name}
+                          description={item.description}
+                          url={item.coming_soon ? "#" : `/iframe?url=${item.url}&title=${item.name}`}
+                          icon={<DollarSign className="h-6 w-6" />}
+                          videoUrl={item.video_url}
+                        />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center h-full text-center">
