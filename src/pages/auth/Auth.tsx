@@ -74,7 +74,7 @@ export default function Auth() {
   });
 
   // Fetch available employees (those without user_id)
-  const { data: employees = [] } = useQuery<Employee[]>({
+  const { data: employees = [], isError, error } = useQuery<Employee[]>({
     queryKey: ["availableEmployees"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -82,10 +82,18 @@ export default function Auth() {
         .select("employee_id, displayName, userPrincipalName")
         .is("user_id", null);
 
-      if (error) throw error;
-      return data;
+      if (error) {
+        console.error("Error fetching employees:", error);
+        throw error;
+      }
+      return data || [];
     },
   });
+
+  // Log any errors for debugging
+  if (isError) {
+    console.error("Query error fetching employees:", error);
+  }
 
   // Handle login form submission
   const onLoginSubmit = async (data: LoginFormValues) => {

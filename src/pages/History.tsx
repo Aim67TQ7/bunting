@@ -1,16 +1,84 @@
 
+import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeProvider } from "@/components/theme-provider";
-import { History as HistoryIcon } from "lucide-react";
+import { History as HistoryIcon, Loader2 } from "lucide-react";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
+
+interface ChatHistoryItem {
+  id: string;
+  topic: string;
+  created_at: string;
+  last_message_at: string;
+  content: any[];
+}
 
 const History = () => {
-  // Mock chat history data
-  const chatHistory = [
-    { id: 1, title: "Magnetic separator troubleshooting", date: "May 4, 2025", preview: "Discussed issues with the MB-5 separator..." },
-    { id: 2, title: "Product recommendation for food industry", date: "May 3, 2025", preview: "Recommended RE series magnets for..." },
-    { id: 3, title: "Custom design inquiry", date: "May 1, 2025", preview: "Discussed specifications for custom..." },
-  ];
+  const { user } = useAuth();
+  const [chatHistory, setChatHistory] = useState<ChatHistoryItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchChatHistory = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from("conversations")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("last_message_at", { ascending: false });
+        
+        if (error) {
+          throw error;
+        }
+        
+        setChatHistory(data || []);
+      } catch (err) {
+        console.error("Error fetching chat history:", err);
+        toast({
+          title: "Error",
+          description: "Failed to load chat history",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchChatHistory();
+  }, [user, toast]);
+
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    try {
+      return format(new Date(dateString), "MMM d, yyyy");
+    } catch (e) {
+      return "Unknown date";
+    }
+  };
+
+  // Get preview text from conversation content
+  const getPreviewText = (content: any[]) => {
+    if (!content || content.length === 0) return "No preview available";
+    
+    // Find the last user message
+    const lastMessages = content.slice(-3);
+    for (const msg of lastMessages) {
+      if (msg.role === "user") {
+        return msg.content.substring(0, 100) + (msg.content.length > 100 ? "..." : "");
+      }
+    }
+    
+    // If no user message found, return the last message
+    const lastMessage = content[content.length - 1];
+    return lastMessage.content.substring(0, 100) + (lastMessage.content.length > 100 ? "..." : "");
+  };
 
   return (
     <ThemeProvider defaultTheme="light">
@@ -27,7 +95,12 @@ const History = () => {
             </div>
             
             <div className="flex-1 overflow-y-auto p-4">
-              {chatHistory.length > 0 ? (
+              {isLoading ? (
+                <div className="flex h-full flex-col items-center justify-center text-center">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <p className="mt-2 text-muted-foreground">Loading chat history...</p>
+                </div>
+              ) : chatHistory.length > 0 ? (
                 <div className="space-y-4">
                   {chatHistory.map((chat) => (
                     <div
@@ -35,11 +108,11 @@ const History = () => {
                       className="rounded-lg border p-4 hover:bg-accent/50 transition-colors cursor-pointer"
                     >
                       <div className="flex justify-between">
-                        <h3 className="font-medium">{chat.title}</h3>
-                        <span className="text-xs text-muted-foreground">{chat.date}</span>
+                        <h3 className="font-medium">{chat.topic || "Untitled Conversation"}</h3>
+                        <span className="text-xs text-muted-foreground">{formatDate(chat.last_message_at || chat.created_at)}</span>
                       </div>
                       <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
-                        {chat.preview}
+                        {getPreviewText(chat.content || [])}
                       </p>
                     </div>
                   ))}

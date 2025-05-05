@@ -1,5 +1,5 @@
 
-import React, { useEffect } from "react";
+import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -11,7 +11,7 @@ createAvatarBucket().catch(console.error);
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <ThemeProvider defaultTheme="dark" storageKey="bunting-ui-theme">
+    <ThemeProvider defaultTheme="dark">
       <App />
     </ThemeProvider>
   </React.StrictMode>

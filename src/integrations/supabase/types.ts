@@ -385,7 +385,7 @@ export type Database = {
         }
         Relationships: []
       }
-      Employee_id: {
+      employee_id: {
         Row: {
           accountEnabled: boolean | null
           ageGroup: string | null
@@ -414,7 +414,7 @@ export type Database = {
           telephoneNumber: string | null
           usageLocation: string | null
           user_id: string | null
-          userPrincipalName: string | null
+          userPrincipalName: string
           userType: string | null
         }
         Insert: {
@@ -445,7 +445,7 @@ export type Database = {
           telephoneNumber?: string | null
           usageLocation?: string | null
           user_id?: string | null
-          userPrincipalName?: string | null
+          userPrincipalName: string
           userType?: string | null
         }
         Update: {
@@ -476,7 +476,7 @@ export type Database = {
           telephoneNumber?: string | null
           usageLocation?: string | null
           user_id?: string | null
-          userPrincipalName?: string | null
+          userPrincipalName?: string
           userType?: string | null
         }
         Relationships: [
