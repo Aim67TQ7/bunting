@@ -14,7 +14,8 @@ interface ChatHistoryItem {
   topic: string;
   created_at: string;
   last_message_at: string;
-  content: any[];
+  content: any; // Allow any JSON content type
+  user_id: string;
 }
 
 const History = () => {
@@ -38,7 +39,8 @@ const History = () => {
           throw error;
         }
         
-        setChatHistory(data || []);
+        // Safely cast the data to ChatHistoryItem[]
+        setChatHistory(data as ChatHistoryItem[] || []);
       } catch (err) {
         console.error("Error fetching chat history:", err);
         toast({
@@ -64,8 +66,8 @@ const History = () => {
   };
 
   // Get preview text from conversation content
-  const getPreviewText = (content: any[]) => {
-    if (!content || content.length === 0) return "No preview available";
+  const getPreviewText = (content: any) => {
+    if (!content || !Array.isArray(content)) return "No preview available";
     
     // Find the last user message
     const lastMessages = content.slice(-3);
@@ -76,8 +78,15 @@ const History = () => {
     }
     
     // If no user message found, return the last message
-    const lastMessage = content[content.length - 1];
-    return lastMessage.content.substring(0, 100) + (lastMessage.content.length > 100 ? "..." : "");
+    if (content.length > 0) {
+      const lastMessage = content[content.length - 1];
+      if (lastMessage && lastMessage.content) {
+        return String(lastMessage.content).substring(0, 100) + 
+               (String(lastMessage.content).length > 100 ? "..." : "");
+      }
+    }
+    
+    return "No preview available";
   };
 
   return (
@@ -112,7 +121,7 @@ const History = () => {
                         <span className="text-xs text-muted-foreground">{formatDate(chat.last_message_at || chat.created_at)}</span>
                       </div>
                       <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
-                        {getPreviewText(chat.content || [])}
+                        {getPreviewText(chat.content)}
                       </p>
                     </div>
                   ))}

@@ -44,6 +44,31 @@ interface UserProfileData {
   country?: string;
 }
 
+// Interface for Employee_id table data
+interface EmployeeData {
+  employee_id: string;
+  user_id: string | null;
+  displayName?: string;
+  userPrincipalName?: string;
+  department?: string;
+  jobTitle?: string;
+  officeLocation?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+}
+
+// Interface for profile table data
+interface ProfileData {
+  id: string;
+  email?: string;
+  first_name?: string;
+  call_name?: string;
+  avatar_url?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export default function Settings() {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
@@ -85,14 +110,26 @@ export default function Settings() {
         
         // Fetch employee data
         const { data: employeeData, error: employeeError } = await supabase
-          .from("Employee_id")
-          .select("*")
-          .eq("user_id", user.id)
-          .single();
+          .rpc("get_employee_by_user_id", { user_id_param: user.id });
         
-        if (employeeError && employeeError.code !== "PGRST116") {
-          // PGRST116 = "No rows found", don't throw in that case
-          throw employeeError;
+        // If RPC fails, try direct query
+        let employeeInfo: EmployeeData | null = null;
+        if (employeeError) {
+          console.error("Error with RPC:", employeeError);
+          
+          const { data: directData, error: directError } = await supabase
+            .from('Employee_id')
+            .select('*')
+            .eq('user_id', user.id)
+            .single();
+            
+          if (directError && directError.code !== "PGRST116") {
+            console.error("Error fetching employee data directly:", directError);
+          } else if (directData) {
+            employeeInfo = directData;
+          }
+        } else {
+          employeeInfo = employeeData;
         }
         
         // Merge the data
@@ -101,7 +138,7 @@ export default function Settings() {
           first_name: profileData?.first_name || "",
           call_name: profileData?.call_name || "",
           avatar_url: profileData?.avatar_url || null,
-          ...(employeeData || {}),
+          ...(employeeInfo || {}),
         };
         
         setUserData(mergedData);
@@ -112,12 +149,12 @@ export default function Settings() {
           email: user.email,
           first_name: profileData?.first_name || "",
           call_name: profileData?.call_name || "",
-          department: employeeData?.department || "",
-          jobTitle: employeeData?.jobTitle || "",
-          officeLocation: employeeData?.officeLocation || "",
-          city: employeeData?.city || "",
-          state: employeeData?.state || "",
-          country: employeeData?.country || "",
+          department: employeeInfo?.department || "",
+          jobTitle: employeeInfo?.jobTitle || "",
+          officeLocation: employeeInfo?.officeLocation || "",
+          city: employeeInfo?.city || "",
+          state: employeeInfo?.state || "",
+          country: employeeInfo?.country || "",
         });
         
       } catch (err) {
@@ -147,6 +184,7 @@ export default function Settings() {
         .update({
           first_name: data.first_name,
           call_name: data.call_name,
+          avatar_url: avatarUrl, // Make sure to include current avatar url
         })
         .eq("id", user.id);
       
@@ -154,19 +192,35 @@ export default function Settings() {
       
       // Update employee data if available
       const { error: employeeError } = await supabase
-        .from("Employee_id")
-        .update({
-          department: data.department,
-          jobTitle: data.jobTitle,
-          officeLocation: data.officeLocation,
-          city: data.city,
-          state: data.state,
-          country: data.country,
-        })
-        .eq("user_id", user.id);
+        .rpc("update_employee_data", {
+          user_id_param: user.id,
+          department_param: data.department,
+          jobtitle_param: data.jobTitle,
+          officelocation_param: data.officeLocation,
+          city_param: data.city,
+          state_param: data.state,
+          country_param: data.country
+        });
       
-      if (employeeError && employeeError.code !== "PGRST116") {
-        throw employeeError;
+      if (employeeError) {
+        console.error("Error with RPC update:", employeeError);
+        
+        // Fallback to direct update
+        const { error: directError } = await supabase
+          .from('Employee_id')
+          .update({
+            department: data.department,
+            jobTitle: data.jobTitle,
+            officeLocation: data.officeLocation,
+            city: data.city,
+            state: data.state,
+            country: data.country,
+          })
+          .eq("user_id", user.id);
+        
+        if (directError && directError.code !== "PGRST116") {
+          throw directError;
+        }
       }
       
       toast({

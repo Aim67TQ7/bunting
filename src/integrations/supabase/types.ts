@@ -385,7 +385,7 @@ export type Database = {
         }
         Relationships: []
       }
-      employee_id: {
+      Employee_id: {
         Row: {
           accountEnabled: boolean | null
           ageGroup: string | null

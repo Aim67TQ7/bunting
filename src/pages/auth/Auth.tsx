@@ -74,18 +74,34 @@ export default function Auth() {
   });
 
   // Fetch available employees (those without user_id)
-  const { data: employees = [], isError, error } = useQuery<Employee[]>({
+  const { data: employees = [], isError, error } = useQuery({
     queryKey: ["availableEmployees"],
     queryFn: async () => {
+      // Use RPC function or raw SQL query to get data from Employee_id table
       const { data, error } = await supabase
-        .from("Employee_id")
-        .select("employee_id, displayName, userPrincipalName")
-        .is("user_id", null);
+        .rpc("get_available_employees")
+        .select();
 
       if (error) {
         console.error("Error fetching employees:", error);
         throw error;
       }
+      
+      if (!data) {
+        // Fallback to direct query with proper cast
+        const { data: directData, error: directError } = await supabase
+          .from('Employee_id')
+          .select('employee_id, displayName, userPrincipalName')
+          .is('user_id', null);
+          
+        if (directError) {
+          console.error("Error fetching employees directly:", directError);
+          throw directError;
+        }
+        
+        return directData || [];
+      }
+      
       return data || [];
     },
   });
@@ -302,10 +318,10 @@ export default function Auth() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {employees.length === 0 ? (
+                            {employees && employees.length === 0 ? (
                               <SelectItem value="none" disabled>No available employees found</SelectItem>
                             ) : (
-                              employees.map((employee) => (
+                              employees && employees.map((employee) => (
                                 <SelectItem key={employee.employee_id} value={employee.employee_id}>
                                   {employee.displayName} ({employee.userPrincipalName})
                                 </SelectItem>
