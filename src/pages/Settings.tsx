@@ -108,28 +108,15 @@ export default function Settings() {
         
         if (profileError) throw profileError;
         
-        // Fetch employee data
+        // Fetch employee data using direct query instead of RPC
         const { data: employeeData, error: employeeError } = await supabase
-          .rpc("get_employee_by_user_id", { user_id_param: user.id });
-        
-        // If RPC fails, try direct query
-        let employeeInfo: EmployeeData | null = null;
-        if (employeeError) {
-          console.error("Error with RPC:", employeeError);
-          
-          const { data: directData, error: directError } = await supabase
-            .from('Employee_id')
-            .select('*')
-            .eq('user_id', user.id)
-            .single();
+          .from('Employee_id')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
             
-          if (directError && directError.code !== "PGRST116") {
-            console.error("Error fetching employee data directly:", directError);
-          } else if (directData) {
-            employeeInfo = directData;
-          }
-        } else {
-          employeeInfo = employeeData;
+        if (employeeError && employeeError.code !== "PGRST116") {
+          console.error("Error fetching employee data directly:", employeeError);
         }
         
         // Merge the data
@@ -138,7 +125,7 @@ export default function Settings() {
           first_name: profileData?.first_name || "",
           call_name: profileData?.call_name || "",
           avatar_url: profileData?.avatar_url || null,
-          ...(employeeInfo || {}),
+          ...(employeeData || {}),
         };
         
         setUserData(mergedData);
@@ -149,12 +136,12 @@ export default function Settings() {
           email: user.email,
           first_name: profileData?.first_name || "",
           call_name: profileData?.call_name || "",
-          department: employeeInfo?.department || "",
-          jobTitle: employeeInfo?.jobTitle || "",
-          officeLocation: employeeInfo?.officeLocation || "",
-          city: employeeInfo?.city || "",
-          state: employeeInfo?.state || "",
-          country: employeeInfo?.country || "",
+          department: employeeData?.department || "",
+          jobTitle: employeeData?.jobTitle || "",
+          officeLocation: employeeData?.officeLocation || "",
+          city: employeeData?.city || "",
+          state: employeeData?.state || "",
+          country: employeeData?.country || "",
         });
         
       } catch (err) {
@@ -190,37 +177,21 @@ export default function Settings() {
       
       if (profileError) throw profileError;
       
-      // Update employee data if available
+      // Update employee data using direct update instead of RPC
       const { error: employeeError } = await supabase
-        .rpc("update_employee_data", {
-          user_id_param: user.id,
-          department_param: data.department,
-          jobtitle_param: data.jobTitle,
-          officelocation_param: data.officeLocation,
-          city_param: data.city,
-          state_param: data.state,
-          country_param: data.country
-        });
+        .from('Employee_id')
+        .update({
+          department: data.department,
+          jobTitle: data.jobTitle,
+          officeLocation: data.officeLocation,
+          city: data.city,
+          state: data.state,
+          country: data.country,
+        })
+        .eq("user_id", user.id);
       
       if (employeeError) {
-        console.error("Error with RPC update:", employeeError);
-        
-        // Fallback to direct update
-        const { error: directError } = await supabase
-          .from('Employee_id')
-          .update({
-            department: data.department,
-            jobTitle: data.jobTitle,
-            officeLocation: data.officeLocation,
-            city: data.city,
-            state: data.state,
-            country: data.country,
-          })
-          .eq("user_id", user.id);
-        
-        if (directError && directError.code !== "PGRST116") {
-          throw directError;
-        }
+        throw employeeError;
       }
       
       toast({

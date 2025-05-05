@@ -50,8 +50,8 @@ export function AppSidebar({ className }: AppSidebarProps) {
           .single();
 
         setUserProfile({
-          ...profileData,
-          ...(employeeData || {}),
+          ...(profileData || {}),
+          ...(employeeData || {})
         });
       } catch (error) {
         console.error("Error fetching user profile:", error);

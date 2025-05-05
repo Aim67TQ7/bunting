@@ -2,7 +2,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/contexts/AuthContext";
@@ -74,42 +73,39 @@ export default function Auth() {
   });
 
   // Fetch available employees (those without user_id)
-  const { data: employees = [], isError, error } = useQuery({
-    queryKey: ["availableEmployees"],
-    queryFn: async () => {
-      // Use RPC function or raw SQL query to get data from Employee_id table
+  const fetchAvailableEmployees = async () => {
+    try {
+      // Use direct query instead of RPC
       const { data, error } = await supabase
-        .rpc("get_available_employees")
-        .select();
-
+        .from('Employee_id')
+        .select('employee_id, displayName, userPrincipalName')
+        .is('user_id', null);
+        
       if (error) {
-        console.error("Error fetching employees:", error);
+        console.error("Error fetching employees directly:", error);
         throw error;
       }
       
-      if (!data) {
-        // Fallback to direct query with proper cast
-        const { data: directData, error: directError } = await supabase
-          .from('Employee_id')
-          .select('employee_id, displayName, userPrincipalName')
-          .is('user_id', null);
-          
-        if (directError) {
-          console.error("Error fetching employees directly:", directError);
-          throw directError;
-        }
-        
-        return directData || [];
-      }
-      
       return data || [];
-    },
-  });
+    } catch (error) {
+      console.error("Error fetching employees:", error);
+      return [];
+    }
+  };
 
-  // Log any errors for debugging
-  if (isError) {
-    console.error("Query error fetching employees:", error);
-  }
+  // Use state to store employees
+  const [employees, setEmployees] = useState<Employee[]>([]);
+
+  // Fetch employees on tab switch to register
+  const handleTabChange = (value: string) => {
+    setAuthTab(value as AuthTab);
+    
+    if (value === "register") {
+      fetchAvailableEmployees().then(data => {
+        setEmployees(data);
+      });
+    }
+  };
 
   // Handle login form submission
   const onLoginSubmit = async (data: LoginFormValues) => {
@@ -230,7 +226,7 @@ export default function Auth() {
         </CardHeader>
         
         <CardContent>
-          <Tabs value={authTab} onValueChange={(value) => setAuthTab(value as AuthTab)} className="w-full">
+          <Tabs value={authTab} onValueChange={handleTabChange} className="w-full">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="login">Login</TabsTrigger>
               <TabsTrigger value="register">New User</TabsTrigger>
@@ -321,7 +317,7 @@ export default function Auth() {
                             {employees && employees.length === 0 ? (
                               <SelectItem value="none" disabled>No available employees found</SelectItem>
                             ) : (
-                              employees && employees.map((employee) => (
+                              employees.map((employee) => (
                                 <SelectItem key={employee.employee_id} value={employee.employee_id}>
                                   {employee.displayName} ({employee.userPrincipalName})
                                 </SelectItem>
