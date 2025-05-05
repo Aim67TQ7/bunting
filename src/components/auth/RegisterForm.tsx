@@ -43,18 +43,35 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
   useEffect(() => {
     const fetchAvailableEmployees = async () => {
       try {
-        // Use direct query instead of RPC
+        // Use RPC function to get available employees
         const { data, error } = await supabase
-          .from('Employee_id')
-          .select('employee_id, displayName, userPrincipalName')
-          .is('user_id', null);
+          .rpc('get_available_employees');
           
         if (error) {
-          console.error("Error fetching employees directly:", error);
-          throw error;
+          console.error("Error fetching employees via RPC:", error);
+          
+          // Fallback to direct query if RPC fails
+          const directQuery = await supabase
+            .from('Employee_id')
+            .select('employee_id, displayName, userPrincipalName')
+            .is('user_id', null);
+            
+          if (directQuery.error) {
+            throw directQuery.error;
+          }
+          
+          setEmployees(directQuery.data || []);
+        } else {
+          // Format the RPC response to match our Employee interface
+          // The RPC function returns lowercase column names
+          const formattedData = data.map((emp: any) => ({
+            employee_id: emp.employee_id,
+            displayName: emp.displayname,
+            userPrincipalName: emp.userprincipalname
+          }));
+          
+          setEmployees(formattedData || []);
         }
-        
-        setEmployees(data || []);
       } catch (error) {
         console.error("Error fetching employees:", error);
         setEmployees([]);
@@ -130,7 +147,7 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
                     <SelectValue placeholder="Select your name from the list" />
                   </SelectTrigger>
                 </FormControl>
-                <SelectContent>
+                <SelectContent className="max-h-80">
                   {employees && employees.length === 0 ? (
                     <SelectItem value="none" disabled>No available employees found</SelectItem>
                   ) : (
