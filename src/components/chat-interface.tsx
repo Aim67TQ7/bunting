@@ -2,6 +2,8 @@
 import { useRef, useState, useEffect } from "react";
 import { ChatInput } from "@/components/chat-input";
 import { ChatMessage, MessageRole } from "@/components/chat-message";
+import { supabase } from "@/integrations/supabase/client";
+import { v4 as uuidv4 } from "uuid";
 
 interface Message {
   id: string;
@@ -25,7 +27,7 @@ export function ChatInterface() {
   const handleSendMessage = async (content: string) => {
     // Add user message
     const userMessage: Message = {
-      id: `user-${Date.now()}`,
+      id: `user-${uuidv4()}`,
       role: "user",
       content,
       timestamp: new Date(),
@@ -35,21 +37,50 @@ export function ChatInterface() {
     setIsLoading(true);
     
     try {
-      // In a real application, this would be a call to your API using GROQ
-      // For now, we'll simulate a response
-      setTimeout(() => {
-        const assistantMessage: Message = {
-          id: `assistant-${Date.now()}`,
-          role: "assistant",
-          content: `Thank you for your query about "${content}". As this is a demo, I'm providing a placeholder response. In the real application, this would be powered by a GROQ API connection to your Supabase database.`,
-          timestamp: new Date(),
-        };
-        
-        setMessages((prev) => [...prev, assistantMessage]);
-        setIsLoading(false);
-      }, 1500);
+      // Call the GROQ edge function
+      const { data, error } = await supabase.functions.invoke('generate-with-groq', {
+        body: {
+          messages: [
+            { 
+              role: "system", 
+              content: "You are BuntingGPT, an AI assistant specialized in magnetic solutions, products, and applications. You provide helpful, accurate, and concise information about magnetic technologies, products, and their industrial applications. You have extensive knowledge about Bunting's product catalog, magnetic separation, metal detection, material handling, and magnetic assemblies. Always maintain a professional and supportive tone." 
+            },
+            ...messages.map(msg => ({ 
+              role: msg.role, 
+              content: msg.content 
+            })),
+            { role: "user", content }
+          ]
+        }
+      });
+
+      if (error) {
+        throw new Error(`Error calling GROQ: ${error.message}`);
+      }
+
+      // Extract the assistant's response
+      const assistantContent = data.choices[0].message.content;
+      
+      const assistantMessage: Message = {
+        id: `assistant-${uuidv4()}`,
+        role: "assistant",
+        content: assistantContent,
+        timestamp: new Date(),
+      };
+      
+      setMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
       console.error("Error sending message:", error);
+      
+      const errorMessage: Message = {
+        id: `error-${uuidv4()}`,
+        role: "assistant",
+        content: "I'm having trouble connecting to my knowledge base right now. Please try again in a moment.",
+        timestamp: new Date(),
+      };
+      
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
       setIsLoading(false);
     }
   };

@@ -3,9 +3,11 @@ import { cn } from "@/lib/utils";
 import { BrandLogo } from "@/components/brand-logo";
 import { NavItem, NavSection } from "@/components/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { MessageSquare, History, Calculator, LineChart, Grid3X3, Settings, LogOut } from "lucide-react";
+import { MessageSquare, History, Calculator, LineChart, Grid3X3, Settings, LogOut, Menu } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
+import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarFooter, SidebarTrigger } from "@/components/ui/sidebar";
+import { useState } from "react";
 
 interface AppSidebarProps {
   className?: string;
@@ -19,26 +21,25 @@ export function AppSidebar({ className }: AppSidebarProps) {
   };
 
   return (
-    <div className={cn(
-      "flex h-screen flex-col border-r bg-sidebar px-3 py-4",
-      className
-    )}>
-      <div className="flex items-center gap-2 px-2">
-        <BrandLogo size="md" />
-        <div>
-          <h1 className="font-semibold text-lg">BuntingGPT</h1>
-          <p className="text-xs text-sidebar-foreground/60">Magnetic Solutions</p>
+    <Sidebar className={className} variant="sidebar" collapsible="icon">
+      <SidebarHeader className="px-2 py-3">
+        <div className="flex items-center gap-2">
+          <BrandLogo size="md" />
+          <div>
+            <h1 className="font-semibold text-lg">BuntingGPT</h1>
+            <p className="text-xs text-sidebar-foreground/60">Magnetic Solutions</p>
+          </div>
         </div>
-      </div>
-      
-      <div className="mt-3 px-2">
-        <div className="rounded-md bg-sidebar-accent/50 p-2">
-          <div className="font-medium text-sm">{user.name}</div>
-          <div className="text-xs text-sidebar-foreground/70">{user.role}</div>
+        
+        <div className="mt-3">
+          <div className="rounded-md bg-sidebar-accent/50 p-2">
+            <div className="font-medium text-sm">{user.name}</div>
+            <div className="text-xs text-sidebar-foreground/70">{user.role}</div>
+          </div>
         </div>
-      </div>
+      </SidebarHeader>
       
-      <div className="mt-6 flex-1 space-y-4 overflow-y-auto">
+      <SidebarContent className="px-2">
         <NavSection title="Assistant">
           <NavItem icon={MessageSquare} title="Chat" href="/" />
           <NavItem icon={History} title="History" href="/history" />
@@ -49,21 +50,23 @@ export function AppSidebar({ className }: AppSidebarProps) {
           <NavItem icon={LineChart} title="Sales" href="/sales" />
           <NavItem icon={Grid3X3} title="Apps" href="/apps" />
         </NavSection>
-      </div>
+      </SidebarContent>
       
-      <Separator className="my-4" />
-      
-      <div className="flex justify-between items-center px-2">
-        <ThemeToggle />
+      <SidebarFooter className="mt-auto">
+        <Separator className="my-2" />
         
-        <Button variant="ghost" size="icon" className="h-9 w-9" aria-label="Settings">
-          <Settings className="h-4 w-4" />
-        </Button>
-        
-        <Button variant="ghost" size="icon" className="h-9 w-9" aria-label="Log out">
-          <LogOut className="h-4 w-4" />
-        </Button>
-      </div>
-    </div>
+        <div className="flex justify-between items-center px-2 py-1">
+          <ThemeToggle />
+          
+          <Button variant="ghost" size="icon" className="h-9 w-9" aria-label="Settings">
+            <Settings className="h-4 w-4" />
+          </Button>
+          
+          <Button variant="ghost" size="icon" className="h-9 w-9" aria-label="Log out">
+            <LogOut className="h-4 w-4" />
+          </Button>
+        </div>
+      </SidebarFooter>
+    </Sidebar>
   );
 }
