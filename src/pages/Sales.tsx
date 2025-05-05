@@ -6,15 +6,16 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { DollarSign } from "lucide-react";
 import { FlipCard } from "@/components/calculator/FlipCard";
+import { toast } from "sonner";
 
 interface SalesItem {
   id: string;
   name: string;
   description: string;
   url: string;
-  icon_path?: string;
-  video_url?: string;
-  coming_soon?: boolean;
+  icon_path?: string | null;
+  video_url?: string | null;
+  coming_soon?: boolean | null;
 }
 
 const Sales = () => {
@@ -24,64 +25,19 @@ const Sales = () => {
   useEffect(() => {
     async function fetchSalesData() {
       try {
-        // Example - in a real app you'd fetch from Supabase
-        // const { data, error } = await supabase
-        //   .from("sales_tools")
-        //   .select("*")
-        //   .eq("is_active", true);
+        const { data, error } = await supabase
+          .from("sales_tools")
+          .select("*")
+          .eq("is_active", true);
         
-        // For now, we'll use mock data
-        const mockData: SalesItem[] = [
-          {
-            id: "1",
-            name: "Sales Dashboard",
-            description: "View key performance indicators and sales metrics in real-time.",
-            url: "/iframe?url=https://example.com/sales-dashboard&title=Sales%20Dashboard",
-            video_url: "https://example.com/sales-dashboard-tutorial",
-            coming_soon: false
-          },
-          {
-            id: "2",
-            name: "Customer Insights",
-            description: "Analyze customer behavior patterns and purchasing habits.",
-            url: "/iframe?url=https://example.com/customer-insights&title=Customer%20Insights",
-            coming_soon: false
-          },
-          {
-            id: "3",
-            name: "Territory Mapping",
-            description: "Visualize sales territories and distribution channels.",
-            url: "/iframe?url=https://example.com/territory-mapping&title=Territory%20Mapping",
-            video_url: "https://example.com/territory-mapping-tutorial",
-            coming_soon: true
-          },
-          {
-            id: "4",
-            name: "Sales Forecasting",
-            description: "Predict future sales trends based on historical data.",
-            url: "/iframe?url=https://example.com/sales-forecasting&title=Sales%20Forecasting",
-            coming_soon: false
-          },
-          {
-            id: "5",
-            name: "Commission Calculator",
-            description: "Calculate sales commissions based on performance metrics.",
-            url: "/iframe?url=https://example.com/commission-calculator&title=Commission%20Calculator",
-            video_url: "https://example.com/commission-calculator-tutorial",
-            coming_soon: true
-          },
-          {
-            id: "6",
-            name: "Product Performance",
-            description: "Analyze product performance across different markets.",
-            url: "/iframe?url=https://example.com/product-performance&title=Product%20Performance",
-            coming_soon: false
-          }
-        ];
+        if (error) {
+          throw error;
+        }
         
-        setSalesItems(mockData);
+        setSalesItems(data || []);
       } catch (error) {
         console.error("Error fetching sales data:", error);
+        toast.error("Failed to load sales tools. Please try again later.");
       } finally {
         setLoading(false);
       }
@@ -125,9 +81,10 @@ const Sales = () => {
                           key={item.id}
                           title={item.name}
                           description={item.description}
-                          url={item.coming_soon ? "#" : `/iframe?url=${item.url}&title=${item.name}`}
+                          url={item.coming_soon ? "#" : item.url}
                           icon={<DollarSign className="h-6 w-6" />}
                           videoUrl={item.video_url}
+                          iconPath={item.icon_path}
                         />
                       </div>
                     </div>

@@ -473,6 +473,45 @@ export type Database = {
         }
         Relationships: []
       }
+      sales_tools: {
+        Row: {
+          coming_soon: boolean | null
+          created_at: string | null
+          description: string
+          icon_path: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string | null
+          url: string
+          video_url: string | null
+        }
+        Insert: {
+          coming_soon?: boolean | null
+          created_at?: string | null
+          description: string
+          icon_path?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string | null
+          url: string
+          video_url?: string | null
+        }
+        Update: {
+          coming_soon?: boolean | null
+          created_at?: string | null
+          description?: string
+          icon_path?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
+          url?: string
+          video_url?: string | null
+        }
+        Relationships: []
+      }
       training_data: {
         Row: {
           content: Json
