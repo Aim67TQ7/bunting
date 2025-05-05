@@ -4,8 +4,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
-import { FlipCard } from "@/components/calculator/FlipCard";
 import { DollarSign } from "lucide-react";
+import { 
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow 
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
 
 interface SalesItem {
   id: string;
@@ -14,6 +23,7 @@ interface SalesItem {
   url: string;
   icon_path?: string;
   video_url?: string;
+  coming_soon?: boolean;
 }
 
 const Sales = () => {
@@ -36,39 +46,45 @@ const Sales = () => {
             name: "Sales Dashboard",
             description: "View key performance indicators and sales metrics in real-time.",
             url: "/iframe?url=https://example.com/sales-dashboard&title=Sales%20Dashboard",
-            video_url: "https://example.com/sales-dashboard-tutorial"
+            video_url: "https://example.com/sales-dashboard-tutorial",
+            coming_soon: false
           },
           {
             id: "2",
             name: "Customer Insights",
             description: "Analyze customer behavior patterns and purchasing habits.",
             url: "/iframe?url=https://example.com/customer-insights&title=Customer%20Insights",
+            coming_soon: false
           },
           {
             id: "3",
             name: "Territory Mapping",
             description: "Visualize sales territories and distribution channels.",
             url: "/iframe?url=https://example.com/territory-mapping&title=Territory%20Mapping",
-            video_url: "https://example.com/territory-mapping-tutorial"
+            video_url: "https://example.com/territory-mapping-tutorial",
+            coming_soon: true
           },
           {
             id: "4",
             name: "Sales Forecasting",
             description: "Predict future sales trends based on historical data.",
             url: "/iframe?url=https://example.com/sales-forecasting&title=Sales%20Forecasting",
+            coming_soon: false
           },
           {
             id: "5",
             name: "Commission Calculator",
             description: "Calculate sales commissions based on performance metrics.",
             url: "/iframe?url=https://example.com/commission-calculator&title=Commission%20Calculator",
-            video_url: "https://example.com/commission-calculator-tutorial"
+            video_url: "https://example.com/commission-calculator-tutorial",
+            coming_soon: true
           },
           {
             id: "6",
             name: "Product Performance",
             description: "Analyze product performance across different markets.",
             url: "/iframe?url=https://example.com/product-performance&title=Product%20Performance",
+            coming_soon: false
           }
         ];
         
@@ -82,6 +98,10 @@ const Sales = () => {
 
     fetchSalesData();
   }, []);
+
+  const handleOpenTool = (url: string) => {
+    window.location.href = url;
+  };
 
   return (
     <ThemeProvider defaultTheme="light">
@@ -103,18 +123,53 @@ const Sales = () => {
                   <p>Loading sales data...</p>
                 </div>
               ) : salesItems.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {salesItems.map((item) => (
-                    <FlipCard 
-                      key={item.id}
-                      title={item.name}
-                      description={item.description}
-                      url={item.url}
-                      icon={<DollarSign className="h-6 w-6" />}
-                      iconPath={item.icon_path}
-                      videoUrl={item.video_url}
-                    />
-                  ))}
+                <div className="w-full">
+                  <Table>
+                    <TableCaption>Available Sales Tools</TableCaption>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[50px]"></TableHead>
+                        <TableHead>Name</TableHead>
+                        <TableHead className="hidden md:table-cell">Description</TableHead>
+                        <TableHead className="w-[150px]">Coming Soon</TableHead>
+                        <TableHead className="w-[100px]"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {salesItems.map((item) => (
+                        <TableRow key={item.id}>
+                          <TableCell>
+                            <div className="rounded-full bg-muted p-2 flex items-center justify-center">
+                              <DollarSign className="h-4 w-4" />
+                            </div>
+                          </TableCell>
+                          <TableCell className="font-medium">{item.name}</TableCell>
+                          <TableCell className="hidden md:table-cell text-muted-foreground">{item.description}</TableCell>
+                          <TableCell>
+                            {item.coming_soon ? (
+                              <span className="inline-flex items-center rounded-md bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-800 ring-1 ring-inset ring-yellow-600/20">
+                                Coming Soon
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
+                                Available
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={item.coming_soon}
+                              onClick={() => handleOpenTool(item.url)}
+                            >
+                              Open
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center h-full text-center">
