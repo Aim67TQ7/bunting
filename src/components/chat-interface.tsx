@@ -3,7 +3,7 @@ import { useRef, useState, useEffect } from "react";
 import { ChatInput } from "@/components/chat-input";
 import { ChatMessage, MessageRole } from "@/components/chat-message";
 import { supabase } from "@/integrations/supabase/client";
-import { v4 as uuidv4 } from "uuid";
+import { nanoid } from "nanoid";
 
 interface Message {
   id: string;
@@ -27,7 +27,7 @@ export function ChatInterface() {
   const handleSendMessage = async (content: string) => {
     // Add user message
     const userMessage: Message = {
-      id: `user-${uuidv4()}`,
+      id: `user-${nanoid()}`,
       role: "user",
       content,
       timestamp: new Date(),
@@ -62,7 +62,7 @@ export function ChatInterface() {
       const assistantContent = data.choices[0].message.content;
       
       const assistantMessage: Message = {
-        id: `assistant-${uuidv4()}`,
+        id: `assistant-${nanoid()}`,
         role: "assistant",
         content: assistantContent,
         timestamp: new Date(),
@@ -73,7 +73,7 @@ export function ChatInterface() {
       console.error("Error sending message:", error);
       
       const errorMessage: Message = {
-        id: `error-${uuidv4()}`,
+        id: `error-${nanoid()}`,
         role: "assistant",
         content: "I'm having trouble connecting to my knowledge base right now. Please try again in a moment.",
         timestamp: new Date(),
