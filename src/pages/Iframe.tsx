@@ -11,7 +11,7 @@ const Iframe = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [url, setUrl] = useState<string>("");
-  const [title, setTitle] = useState<string>("Calculator");
+  const [title, setTitle] = useState<string>("");
   
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -28,7 +28,7 @@ const Iframe = () => {
   }, [location]);
   
   const handleBack = () => {
-    navigate("/calculators");
+    navigate(-1);
   };
 
   return (
@@ -45,12 +45,10 @@ const Iframe = () => {
                   variant="ghost" 
                   size="sm" 
                   onClick={handleBack}
-                  className="mr-2"
                 >
                   <ArrowLeft className="h-4 w-4 mr-1" />
                   Back
                 </Button>
-                <h1 className="text-xl font-semibold">{title}</h1>
               </div>
             </div>
             
@@ -65,7 +63,7 @@ const Iframe = () => {
                 />
               ) : (
                 <div className="flex items-center justify-center h-full">
-                  <p>No calculator URL provided</p>
+                  <p>No URL provided</p>
                 </div>
               )}
             </div>

@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { ExternalLink, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useNavigate } from 'react-router-dom';
 
 interface FlipCardProps {
   title: string;
@@ -23,14 +24,20 @@ export const FlipCard = ({
   icon
 }: FlipCardProps) => {
   const [isFlipped, setIsFlipped] = useState(false);
+  const navigate = useNavigate();
 
   const handleFlip = () => {
     setIsFlipped(!isFlipped);
   };
 
-  const handleOpenCalculator = (e: React.MouseEvent) => {
+  const handleOpenItem = (e: React.MouseEvent) => {
     e.stopPropagation();
-    window.location.href = url;
+    if (url.startsWith('/iframe')) {
+      navigate(url);
+    } else if (!url.startsWith('#')) {
+      // If it's not an iframe URL and not a placeholder (#), navigate to iframe
+      navigate(`/iframe?url=${encodeURIComponent(url)}&title=${encodeURIComponent(title)}`);
+    }
   };
 
   const handleWatchVideo = (e: React.MouseEvent) => {
@@ -69,7 +76,7 @@ export const FlipCard = ({
           <h3 className="text-xl font-bold mb-2">{title}</h3>
           <Button 
             className="mt-4" 
-            onClick={handleOpenCalculator}
+            onClick={handleOpenItem}
           >
             Open App <ExternalLink className="ml-2 h-4 w-4" />
           </Button>
