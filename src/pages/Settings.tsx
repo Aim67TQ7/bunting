@@ -108,7 +108,7 @@ export default function Settings() {
         
         if (profileError) throw profileError;
         
-        // Fetch employee data using direct query instead of RPC
+        // Fetch employee data using direct query
         const { data: employeeData, error: employeeError } = await supabase
           .from('Employee_id')
           .select('*')
@@ -177,7 +177,7 @@ export default function Settings() {
       
       if (profileError) throw profileError;
       
-      // Update employee data using direct update instead of RPC
+      // Update employee data using direct update
       const { error: employeeError } = await supabase
         .from('Employee_id')
         .update({

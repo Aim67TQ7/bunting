@@ -17,6 +17,29 @@ interface AppSidebarProps {
   className?: string;
 }
 
+interface ProfileData {
+  first_name?: string;
+  call_name?: string;
+  avatar_url?: string;
+  created_at?: string;
+  updated_at?: string;
+  id?: string;
+  email?: string;
+}
+
+interface EmployeeData {
+  employee_id?: string;
+  user_id?: string;
+  displayName?: string;
+  userPrincipalName?: string;
+  department?: string;
+  jobTitle?: string;
+  officeLocation?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+}
+
 interface UserProfile {
   first_name?: string;
   call_name?: string;
@@ -50,8 +73,10 @@ export function AppSidebar({ className }: AppSidebarProps) {
           .single();
 
         setUserProfile({
-          ...(profileData || {}),
-          ...(employeeData || {})
+          first_name: profileData?.first_name,
+          call_name: profileData?.call_name,
+          avatar_url: profileData?.avatar_url,
+          jobTitle: employeeData?.jobTitle
         });
       } catch (error) {
         console.error("Error fetching user profile:", error);

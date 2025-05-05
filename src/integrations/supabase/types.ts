@@ -526,6 +526,8 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_url: string | null
+          call_name: string | null
           created_at: string
           email: string | null
           first_name: string | null
@@ -533,6 +535,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          avatar_url?: string | null
+          call_name?: string | null
           created_at?: string
           email?: string | null
           first_name?: string | null
@@ -540,6 +544,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          avatar_url?: string | null
+          call_name?: string | null
           created_at?: string
           email?: string | null
           first_name?: string | null
@@ -926,6 +932,29 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      get_available_employees: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          employee_id: string
+          displayname: string
+          userprincipalname: string
+        }[]
+      }
+      get_employee_by_user_id: {
+        Args: { user_id_param: string }
+        Returns: {
+          employee_id: string
+          user_id: string
+          displayname: string
+          userprincipalname: string
+          department: string
+          jobtitle: string
+          officelocation: string
+          city: string
+          state: string
+          country: string
+        }[]
+      }
       get_or_create_conversation_id: {
         Args: { user1_id: string; user2_id: string }
         Returns: string
@@ -1028,6 +1057,18 @@ export type Database = {
       sparsevec_typmod_in: {
         Args: { "": unknown[] }
         Returns: number
+      }
+      update_employee_data: {
+        Args: {
+          user_id_param: string
+          department_param: string
+          jobtitle_param: string
+          officelocation_param: string
+          city_param: string
+          state_param: string
+          country_param: string
+        }
+        Returns: undefined
       }
       vector_avg: {
         Args: { "": number[] }
