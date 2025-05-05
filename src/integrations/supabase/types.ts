@@ -310,6 +310,81 @@ export type Database = {
         }
         Relationships: []
       }
+      customers: {
+        Row: {
+          address: string | null
+          city: string | null
+          contact_info: string | null
+          country: string | null
+          customer_name: string
+          customer_number: number | null
+          embedding: string | null
+          Epicor_Primary: string
+          facility_type: string | null
+          lat: string | null
+          lng: string | null
+          narrative_text: string | null
+          prodcode: string | null
+          sales_2022: string | null
+          sales_2023: string | null
+          sales_2024: string | null
+          sales_rep: string | null
+          state: string | null
+          territory: string | null
+          total_sales: number | null
+          uuid: string
+          zip: string | null
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          contact_info?: string | null
+          country?: string | null
+          customer_name: string
+          customer_number?: number | null
+          embedding?: string | null
+          Epicor_Primary: string
+          facility_type?: string | null
+          lat?: string | null
+          lng?: string | null
+          narrative_text?: string | null
+          prodcode?: string | null
+          sales_2022?: string | null
+          sales_2023?: string | null
+          sales_2024?: string | null
+          sales_rep?: string | null
+          state?: string | null
+          territory?: string | null
+          total_sales?: number | null
+          uuid: string
+          zip?: string | null
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          contact_info?: string | null
+          country?: string | null
+          customer_name?: string
+          customer_number?: number | null
+          embedding?: string | null
+          Epicor_Primary?: string
+          facility_type?: string | null
+          lat?: string | null
+          lng?: string | null
+          narrative_text?: string | null
+          prodcode?: string | null
+          sales_2022?: string | null
+          sales_2023?: string | null
+          sales_2024?: string | null
+          sales_rep?: string | null
+          state?: string | null
+          territory?: string | null
+          total_sales?: number | null
+          uuid?: string
+          zip?: string | null
+        }
+        Relationships: []
+      }
       Employee_id: {
         Row: {
           accountEnabled: boolean | null
@@ -470,6 +545,45 @@ export type Database = {
           first_name?: string | null
           id?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      reports: {
+        Row: {
+          coming_soon: boolean | null
+          created_at: string | null
+          description: string
+          icon_path: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string | null
+          url: string
+          video_url: string | null
+        }
+        Insert: {
+          coming_soon?: boolean | null
+          created_at?: string | null
+          description: string
+          icon_path?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string | null
+          url: string
+          video_url?: string | null
+        }
+        Update: {
+          coming_soon?: boolean | null
+          created_at?: string | null
+          description?: string
+          icon_path?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
+          url?: string
+          video_url?: string | null
         }
         Relationships: []
       }
@@ -790,81 +904,6 @@ export type Database = {
           status?: string
           submitted_at?: string
           user_id?: string
-        }
-        Relationships: []
-      }
-      Vectorized: {
-        Row: {
-          address: string | null
-          city: string | null
-          contact_info: string | null
-          country: string | null
-          customer_name: string
-          customer_number: number | null
-          embedding: string | null
-          Epicor_Primary: string
-          facility_type: string | null
-          lat: string | null
-          lng: string | null
-          narrative_text: string | null
-          prodcode: string | null
-          sales_2022: string | null
-          sales_2023: string | null
-          sales_2024: string | null
-          sales_rep: string | null
-          state: string | null
-          territory: string | null
-          total_sales: number | null
-          uuid: string
-          zip: string | null
-        }
-        Insert: {
-          address?: string | null
-          city?: string | null
-          contact_info?: string | null
-          country?: string | null
-          customer_name: string
-          customer_number?: number | null
-          embedding?: string | null
-          Epicor_Primary: string
-          facility_type?: string | null
-          lat?: string | null
-          lng?: string | null
-          narrative_text?: string | null
-          prodcode?: string | null
-          sales_2022?: string | null
-          sales_2023?: string | null
-          sales_2024?: string | null
-          sales_rep?: string | null
-          state?: string | null
-          territory?: string | null
-          total_sales?: number | null
-          uuid: string
-          zip?: string | null
-        }
-        Update: {
-          address?: string | null
-          city?: string | null
-          contact_info?: string | null
-          country?: string | null
-          customer_name?: string
-          customer_number?: number | null
-          embedding?: string | null
-          Epicor_Primary?: string
-          facility_type?: string | null
-          lat?: string | null
-          lng?: string | null
-          narrative_text?: string | null
-          prodcode?: string | null
-          sales_2022?: string | null
-          sales_2023?: string | null
-          sales_2024?: string | null
-          sales_rep?: string | null
-          state?: string | null
-          territory?: string | null
-          total_sales?: number | null
-          uuid?: string
-          zip?: string | null
         }
         Relationships: []
       }
