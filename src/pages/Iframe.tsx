@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeProvider } from "@/components/theme-provider";
+import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 
@@ -32,41 +33,44 @@ const Iframe = () => {
 
   return (
     <ThemeProvider defaultTheme="light">
-      <div className="flex h-screen w-full overflow-hidden">
-        <AppSidebar className="w-64 flex-shrink-0" />
-        <main className="flex flex-1 flex-col overflow-hidden">
-          <div className="flex items-center justify-between border-b px-4 py-3">
-            <div className="flex items-center">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={handleBack} 
-                className="mr-2"
-              >
-                <ArrowLeft className="h-4 w-4 mr-1" />
-                Back
-              </Button>
-              <h1 className="text-2xl font-semibold">{title}</h1>
-            </div>
-          </div>
+      <SidebarProvider>
+        <div className="flex h-screen w-full overflow-hidden">
+          <AppSidebar className="w-64 flex-shrink-0" />
           
-          <div className="flex-1 overflow-hidden">
-            {url ? (
-              <iframe
-                src={url}
-                className="w-full h-full border-none"
-                title={title}
-                sandbox="allow-same-origin allow-scripts allow-forms"
-                loading="lazy"
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full">
-                <p>No calculator URL provided</p>
+          <SidebarInset className="flex flex-1 flex-col overflow-hidden">
+            <div className="flex items-center justify-between border-b px-4 py-3">
+              <div className="flex items-center">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={handleBack} 
+                  className="mr-2"
+                >
+                  <ArrowLeft className="h-4 w-4 mr-1" />
+                  Back
+                </Button>
+                <h1 className="text-2xl font-semibold">{title}</h1>
               </div>
-            )}
-          </div>
-        </main>
-      </div>
+            </div>
+            
+            <div className="flex-1 overflow-hidden">
+              {url ? (
+                <iframe
+                  src={url}
+                  className="w-full h-full border-none"
+                  title={title}
+                  sandbox="allow-same-origin allow-scripts allow-forms"
+                  loading="lazy"
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <p>No calculator URL provided</p>
+                </div>
+              )}
+            </div>
+          </SidebarInset>
+        </div>
+      </SidebarProvider>
     </ThemeProvider>
   );
 };
