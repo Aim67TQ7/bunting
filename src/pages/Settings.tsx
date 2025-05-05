@@ -1,78 +1,18 @@
 
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { AppSidebar } from "@/components/app-sidebar";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Loader2, Upload } from "lucide-react";
-
-// Form schema for profile update
-const profileSchema = z.object({
-  email: z.string().email().optional(),
-  first_name: z.string().min(1, "First name is required"),
-  call_name: z.string().min(1, "Call name is required"),
-  department: z.string().optional(),
-  jobTitle: z.string().optional(),
-  officeLocation: z.string().optional(),
-  city: z.string().optional(),
-  state: z.string().optional(),
-  country: z.string().optional(),
-});
-
-type ProfileFormValues = z.infer<typeof profileSchema>;
-
-// Interface for employee and profile data
-interface UserProfileData {
-  email?: string;
-  first_name?: string;
-  call_name?: string;
-  avatar_url?: string;
-  department?: string;
-  jobTitle?: string;
-  officeLocation?: string;
-  city?: string;
-  state?: string;
-  country?: string;
-}
-
-// Interface for Employee_id table data
-interface EmployeeData {
-  employee_id: string;
-  user_id: string | null;
-  displayName?: string;
-  userPrincipalName?: string;
-  department?: string;
-  jobTitle?: string;
-  officeLocation?: string;
-  city?: string;
-  state?: string;
-  country?: string;
-}
-
-// Interface for profile table data
-interface ProfileData {
-  id: string;
-  email?: string;
-  first_name?: string;
-  call_name?: string;
-  avatar_url?: string;
-  created_at: string;
-  updated_at: string;
-}
+import { ProfilePicture } from "@/components/settings/ProfilePicture";
+import { ProfileForm } from "@/components/settings/ProfileForm";
+import { profileSchema, ProfileFormValues, UserProfileData } from "@/types/profile";
 
 export default function Settings() {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
   const [userData, setUserData] = useState<UserProfileData | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const { toast } = useToast();
@@ -211,55 +151,8 @@ export default function Settings() {
     }
   };
 
-  // Handle avatar upload
-  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!user || !event.target.files || event.target.files.length === 0) return;
-    
-    setIsUploading(true);
-    try {
-      const file = event.target.files[0];
-      const fileExt = file.name.split('.').pop();
-      const filePath = `${user.id}/avatar.${fileExt}`;
-      
-      // Upload image to Supabase Storage
-      const { error: uploadError } = await supabase.storage
-        .from("avatars")
-        .upload(filePath, file, { upsert: true });
-      
-      if (uploadError) throw uploadError;
-      
-      // Get public URL
-      const { data } = supabase.storage
-        .from("avatars")
-        .getPublicUrl(filePath);
-      
-      const avatarUrl = data.publicUrl;
-      
-      // Update profile with avatar URL
-      const { error: updateError } = await supabase
-        .from("profiles")
-        .update({ avatar_url: avatarUrl })
-        .eq("id", user.id);
-      
-      if (updateError) throw updateError;
-      
-      // Update UI
-      setAvatarUrl(avatarUrl);
-      toast({
-        title: "Avatar updated",
-        description: "Your profile picture has been updated successfully",
-      });
-      
-    } catch (err) {
-      console.error("Error uploading avatar:", err);
-      toast({
-        title: "Error",
-        description: "Failed to upload profile picture",
-        variant: "destructive",
-      });
-    } finally {
-      setIsUploading(false);
-    }
+  const handleAvatarUpdate = (url: string) => {
+    setAvatarUrl(url);
   };
   
   return (
@@ -270,225 +163,19 @@ export default function Settings() {
         <div className="mx-auto max-w-2xl">
           <h1 className="text-3xl font-bold mb-6">Profile Settings</h1>
           
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle>Profile Picture</CardTitle>
-              <CardDescription>
-                Update your profile picture
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col items-center space-y-4">
-              <Avatar className="h-24 w-24">
-                <AvatarImage src={avatarUrl || ""} alt={userData?.first_name || "User"} />
-                <AvatarFallback>
-                  {userData?.first_name?.charAt(0) || user?.email?.charAt(0) || "U"}
-                </AvatarFallback>
-              </Avatar>
-              
-              <div>
-                <label htmlFor="avatar-upload" className="cursor-pointer">
-                  <div className="flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 rounded-md">
-                    {isUploading ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>Uploading...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="h-4 w-4" />
-                        <span>Upload new picture</span>
-                      </>
-                    )}
-                  </div>
-                  <input
-                    id="avatar-upload"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleAvatarUpload}
-                    className="hidden"
-                    disabled={isUploading}
-                  />
-                </label>
-              </div>
-            </CardContent>
-          </Card>
+          <ProfilePicture 
+            userId={user?.id}
+            avatarUrl={avatarUrl}
+            firstName={userData?.first_name}
+            email={user?.email}
+            onAvatarUpdate={handleAvatarUpdate}
+          />
           
-          <Card>
-            <CardHeader>
-              <CardTitle>Profile Information</CardTitle>
-              <CardDescription>
-                Update your profile information
-              </CardDescription>
-            </CardHeader>
-            
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)}>
-                <CardContent className="space-y-6">
-                  {/* Basic Information */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Basic Information</h3>
-                    <Separator />
-                    
-                    <FormField
-                      control={form.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email</FormLabel>
-                          <FormControl>
-                            <Input {...field} disabled />
-                          </FormControl>
-                          <FormDescription>
-                            Your email address cannot be changed
-                          </FormDescription>
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <FormField
-                        control={form.control}
-                        name="first_name"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Full Name</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name="call_name"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>@call name</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                            <FormDescription>
-                              This will be used in communications
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </div>
-                  
-                  {/* Work Information */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Work Information</h3>
-                    <Separator />
-                    
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <FormField
-                        control={form.control}
-                        name="department"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Department</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name="jobTitle"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Job Title</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name="officeLocation"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Office Location</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </div>
-                  
-                  {/* Location Information */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Location</h3>
-                    <Separator />
-                    
-                    <div className="grid gap-4 md:grid-cols-3">
-                      <FormField
-                        control={form.control}
-                        name="city"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>City</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name="state"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>State/Province</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name="country"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Country</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-                
-                <CardFooter>
-                  <Button type="submit" className="ml-auto" disabled={isLoading}>
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      "Save Changes"
-                    )}
-                  </Button>
-                </CardFooter>
-              </form>
-            </Form>
-          </Card>
+          <ProfileForm 
+            form={form} 
+            onSubmit={onSubmit} 
+            isLoading={isLoading} 
+          />
         </div>
       </main>
     </div>
