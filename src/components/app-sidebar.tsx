@@ -3,11 +3,10 @@ import { cn } from "@/lib/utils";
 import { BrandLogo } from "@/components/brand-logo";
 import { NavItem, NavSection } from "@/components/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { MessageSquare, History, Calculator, LineChart, Grid3X3, Settings, LogOut, Menu } from "lucide-react";
+import { MessageSquare, History, Calculator, LineChart, Grid3X3, FileChartLine, Settings, LogOut } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarFooter, SidebarTrigger } from "@/components/ui/sidebar";
-import { useState } from "react";
+import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
 
 interface AppSidebarProps {
   className?: string;
@@ -49,6 +48,7 @@ export function AppSidebar({ className }: AppSidebarProps) {
           <NavItem icon={Calculator} title="Calculators" href="/calculators" />
           <NavItem icon={LineChart} title="Sales" href="/sales" />
           <NavItem icon={Grid3X3} title="Apps" href="/apps" />
+          <NavItem icon={FileChartLine} title="Reports" href="/reports" />
         </NavSection>
       </SidebarContent>
       
