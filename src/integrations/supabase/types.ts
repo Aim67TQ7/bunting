@@ -244,6 +244,42 @@ export type Database = {
           },
         ]
       }
+      calculators: {
+        Row: {
+          created_at: string | null
+          description: string
+          icon_path: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string | null
+          url: string
+          video_url: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description: string
+          icon_path?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string | null
+          url: string
+          video_url?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string
+          icon_path?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
+          url?: string
+          video_url?: string | null
+        }
+        Relationships: []
+      }
       conversations: {
         Row: {
           content: Json | null
@@ -550,13 +586,6 @@ export type Database = {
             columns: ["bridger_id"]
             isOneToOne: false
             referencedRelation: "bridgers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_favorites_user_id_fkey1"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
