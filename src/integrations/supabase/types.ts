@@ -9,50 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      app_usage_logs: {
-        Row: {
-          action: string
-          application_id: string | null
-          created_at: string | null
-          duration_seconds: number | null
-          end_time: string | null
-          id: string
-          session_id: string | null
-          start_time: string | null
-          user_id: string | null
-        }
-        Insert: {
-          action: string
-          application_id?: string | null
-          created_at?: string | null
-          duration_seconds?: number | null
-          end_time?: string | null
-          id?: string
-          session_id?: string | null
-          start_time?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          action?: string
-          application_id?: string | null
-          created_at?: string | null
-          duration_seconds?: number | null
-          end_time?: string | null
-          id?: string
-          session_id?: string | null
-          start_time?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "app_usage_logs_application_id_fkey"
-            columns: ["application_id"]
-            isOneToOne: false
-            referencedRelation: "applications"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       applications: {
         Row: {
           auth_passcode: string | null
@@ -205,44 +161,6 @@ export type Database = {
           url?: string
         }
         Relationships: []
-      }
-      briefs: {
-        Row: {
-          content_type: string
-          file_path: string
-          id: string
-          size: number
-          title: string
-          uploaded_at: string
-          uploaded_by: string | null
-        }
-        Insert: {
-          content_type: string
-          file_path: string
-          id?: string
-          size: number
-          title: string
-          uploaded_at?: string
-          uploaded_by?: string | null
-        }
-        Update: {
-          content_type?: string
-          file_path?: string
-          id?: string
-          size?: number
-          title?: string
-          uploaded_at?: string
-          uploaded_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "briefs_uploaded_by_fkey1"
-            columns: ["uploaded_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       calculators: {
         Row: {
@@ -814,45 +732,6 @@ export type Database = {
           message_type?: string
           recipient_id?: string
           sender_id?: string
-        }
-        Relationships: []
-      }
-      user_preferences: {
-        Row: {
-          created_at: string
-          enabled_functions:
-            | Database["public"]["Enums"]["function_type"][]
-            | null
-          id: string
-          license: string | null
-          selected_model: string | null
-          theme: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          enabled_functions?:
-            | Database["public"]["Enums"]["function_type"][]
-            | null
-          id?: string
-          license?: string | null
-          selected_model?: string | null
-          theme?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          enabled_functions?:
-            | Database["public"]["Enums"]["function_type"][]
-            | null
-          id?: string
-          license?: string | null
-          selected_model?: string | null
-          theme?: string
-          updated_at?: string
-          user_id?: string
         }
         Relationships: []
       }

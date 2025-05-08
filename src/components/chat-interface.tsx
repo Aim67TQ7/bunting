@@ -1,4 +1,3 @@
-
 import { useRef, useState, useEffect } from "react";
 import { ChatInput } from "@/components/chat-input";
 import { ChatMessage, MessageRole } from "@/components/chat-message";
@@ -6,6 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { nanoid } from "nanoid";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Sparkle, Lightbulb, Star } from "lucide-react";
 
 interface Message {
   id: string;
@@ -17,14 +18,7 @@ interface Message {
 export function ChatInterface() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "welcome-message",
-      role: "assistant",
-      content: "Hello! I'm BuntingGPT, your magnetic solutions assistant. How can I help you with your magnetic needs today?",
-      timestamp: new Date(),
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -173,6 +167,10 @@ export function ChatInterface() {
     }
   };
 
+  const handleStarterClick = (question: string) => {
+    handleSendMessage(question);
+  };
+
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
@@ -202,27 +200,87 @@ export function ChatInterface() {
   return (
     <div className="flex h-full flex-col">
       <div className="flex-1 overflow-y-auto p-4">
-        <div className="space-y-4">
-          {messages.map((message) => (
-            <ChatMessage
-              key={message.id}
-              role={message.role}
-              content={message.content}
-              timestamp={message.timestamp}
-            />
-          ))}
-          
-          {isLoading && (
-            <ChatMessage
-              role="assistant"
-              content=""
-              timestamp={new Date()}
-              isLoading={true}
-            />
-          )}
-          
-          <div ref={messagesEndRef} />
-        </div>
+        {messages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full">
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-semibold mb-2">Welcome to BuntingGPT</h2>
+              <p className="text-muted-foreground mb-4">
+                Your magnetic solutions assistant is ready to help you
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-2xl">
+              <Button 
+                variant="outline" 
+                className="flex items-center justify-start h-auto p-4 text-left"
+                onClick={() => handleStarterClick("What magnetic separator is best for removing fine iron from a dry process?")}
+              >
+                <Sparkle className="mr-2 h-5 w-5 text-primary" />
+                <div>
+                  <p className="font-medium">Magnetic separators</p>
+                  <p className="text-sm text-muted-foreground">For removing fine iron from dry processes</p>
+                </div>
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                className="flex items-center justify-start h-auto p-4 text-left"
+                onClick={() => handleStarterClick("Can you explain the difference between electromagnets and permanent magnets?")}
+              >
+                <Lightbulb className="mr-2 h-5 w-5 text-primary" />
+                <div>
+                  <p className="font-medium">Electromagnetic basics</p>
+                  <p className="text-sm text-muted-foreground">Electromagnets vs. permanent magnets</p>
+                </div>
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                className="flex items-center justify-start h-auto p-4 text-left"
+                onClick={() => handleStarterClick("What Bunting products are suitable for food industry applications?")}
+              >
+                <Star className="mr-2 h-5 w-5 text-primary" />
+                <div>
+                  <p className="font-medium">Food industry solutions</p>
+                  <p className="text-sm text-muted-foreground">Magnetic products for food safety</p>
+                </div>
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                className="flex items-center justify-start h-auto p-4 text-left"
+                onClick={() => handleStarterClick("How do I choose the right metal detector for my conveyor belt?")}
+              >
+                <Sparkle className="mr-2 h-5 w-5 text-primary" />
+                <div>
+                  <p className="font-medium">Metal detection</p>
+                  <p className="text-sm text-muted-foreground">Selecting the right detector for conveyor belts</p>
+                </div>
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {messages.map((message) => (
+              <ChatMessage
+                key={message.id}
+                role={message.role}
+                content={message.content}
+                timestamp={message.timestamp}
+              />
+            ))}
+            
+            {isLoading && (
+              <ChatMessage
+                role="assistant"
+                content=""
+                timestamp={new Date()}
+                isLoading={true}
+              />
+            )}
+          </div>
+        )}
+        <div ref={messagesEndRef} />
       </div>
       
       <div className="border-t">
