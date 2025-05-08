@@ -54,7 +54,8 @@ export function useChatMessages() {
             id: msg.id,
             role: msg.role,
             content: msg.content,
-            timestamp: msg.timestamp.toISOString()
+            timestamp: msg.timestamp.toISOString(),
+            autoSummarize: msg.autoSummarize
           })),
           last_message_at: new Date().toISOString()
         })
@@ -73,13 +74,47 @@ export function useChatMessages() {
     }
   };
 
-  const sendMessage = async (content: string) => {
+  // Handle auto-summarization of messages
+  const handleAutoSummarize = async (message: Message, assistantResponse: Message) => {
+    try {
+      // Call the summarization function to add this to the knowledge base
+      const { data, error } = await supabase.functions.invoke('summarize-conversations', {
+        body: {
+          messages: [
+            { role: message.role, content: message.content },
+            { role: assistantResponse.role, content: assistantResponse.content }
+          ],
+          immediate: true
+        }
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      toast({
+        title: "Message Summarized",
+        description: "This conversation has been added to the knowledge base",
+        variant: "default",
+      });
+    } catch (error) {
+      console.error("Error summarizing message:", error);
+      toast({
+        title: "Summarization Failed",
+        description: "Failed to add to knowledge base. Try again later.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const sendMessage = async (content: string, autoSummarize = false) => {
     // Add user message
     const userMessage: Message = {
       id: `user-${nanoid()}`,
       role: "user",
       content,
       timestamp: new Date(),
+      autoSummarize
     };
     
     const newMessages = [...messages, userMessage];
@@ -124,6 +159,11 @@ export function useChatMessages() {
       
       const updatedMessages = [...newMessages, assistantMessage];
       setMessages(updatedMessages);
+      
+      // Handle auto-summarization if requested
+      if (autoSummarize) {
+        handleAutoSummarize(userMessage, assistantMessage);
+      }
       
       // Update the conversation in the database
       if (conversationId) {

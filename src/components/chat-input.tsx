@@ -6,7 +6,7 @@ import { useState, FormEvent } from "react";
 import { cn } from "@/lib/utils";
 
 interface ChatInputProps {
-  onSubmit: (message: string) => void;
+  onSubmit: (message: string, autoSummarize: boolean) => void;
   isDisabled?: boolean;
   className?: string;
 }
@@ -18,7 +18,14 @@ export function ChatInput({ onSubmit, isDisabled, className }: ChatInputProps) {
     e.preventDefault();
     if (!message.trim() || isDisabled) return;
     
-    onSubmit(message.trim());
+    // Check if message starts with "&" for auto-summarization
+    const trimmedMessage = message.trim();
+    const autoSummarize = trimmedMessage.startsWith("&");
+    const finalMessage = autoSummarize ? trimmedMessage.substring(1).trim() : trimmedMessage;
+    
+    if (!finalMessage) return; // If message is just "&" don't submit
+    
+    onSubmit(finalMessage, autoSummarize);
     setMessage("");
   };
   
@@ -35,7 +42,7 @@ export function ChatInput({ onSubmit, isDisabled, className }: ChatInputProps) {
       className={cn("relative flex w-full items-end gap-2 p-4", className)}
     >
       <Textarea
-        placeholder="Send a message..."
+        placeholder="Send a message... (Start with & to auto-summarize)"
         className="min-h-12 resize-none"
         value={message}
         onChange={(e) => setMessage(e.target.value)}

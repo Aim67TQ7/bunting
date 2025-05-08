@@ -22,12 +22,18 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
   return (
     <div className="space-y-4">
       {messages.map((message) => (
-        <ChatMessage
-          key={message.id}
-          role={message.role}
-          content={message.content}
-          timestamp={message.timestamp}
-        />
+        <div key={message.id}>
+          {message.autoSummarize && (
+            <div className="px-4 py-1 bg-amber-100 dark:bg-amber-900/30 text-xs text-amber-800 dark:text-amber-300 rounded-t-md mx-12">
+              This message will be auto-summarized and added to knowledge base
+            </div>
+          )}
+          <ChatMessage
+            role={message.role}
+            content={message.content}
+            timestamp={message.timestamp}
+          />
+        </div>
       ))}
       
       {isLoading && (

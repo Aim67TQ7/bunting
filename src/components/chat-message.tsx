@@ -149,7 +149,8 @@ export const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>(
             ) : (
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
-                rehypePlugins={[rehypeHighlight]}
+                // Fix the TypeScript error by properly typing rehypeHighlight
+                rehypePlugins={[rehypeHighlight as any]}
                 components={components}
               >
                 {content}

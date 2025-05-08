@@ -25,8 +25,101 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL") || "https://qzwxisdfwswsrbzvpzlo.supabase.co";
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 
-    // Get date parameters
-    const { days = 7 } = await req.json();
+    // Get request parameters
+    const requestData = await req.json();
+    
+    // Handle immediate summarization of a specific conversation
+    if (requestData.immediate && requestData.messages) {
+      // Process the immediate messages
+      const messages = requestData.messages;
+      
+      // Format conversation for the AI
+      // Prepare system prompt for summarization
+      const systemPrompt = `You are an AI specialized in creating anonymized knowledge summaries. 
+        Review the conversation and extract key factual information, technical concepts, 
+        and industry knowledge. IMPORTANT: Remove any personal information, identifiers, 
+        company names, specific projects, or anything that could identify individuals or organizations. 
+        Format the output as concise, factual bullet points about magnetic technology, industry knowledge, 
+        or technical concepts that could be useful for future reference.`;
+
+      try {
+        if (!GROQ_API_KEY) {
+          console.error("GROQ_API_KEY is not set");
+          throw new Error("GROQ_API_KEY is not configured");
+        }
+
+        // Call GROQ API to summarize
+        const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${GROQ_API_KEY}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            model: "llama3-70b-8192",
+            messages: [
+              { role: "system", content: systemPrompt },
+              ...messages
+            ],
+            temperature: 0.5,
+            max_tokens: 1024
+          })
+        });
+
+        if (!groqResponse.ok) {
+          const error = await groqResponse.json();
+          console.error(`GROQ API error:`, error);
+          throw new Error("Failed to generate summary");
+        }
+
+        const data = await groqResponse.json();
+        const summary = data.choices[0].message.content;
+
+        if (!summary.trim()) {
+          throw new Error("No summary generated");
+        }
+
+        // Store the summary
+        const insertResponse = await fetch(`${supabaseUrl}/rest/v1/training_data`, {
+          method: "POST",
+          headers: {
+            "apikey": supabaseKey,
+            "Authorization": `Bearer ${supabaseKey}`,
+            "Content-Type": "application/json",
+            "Prefer": "return=minimal"
+          },
+          body: JSON.stringify({
+            content: {
+              title: `Auto-Summarized: ${new Date().toISOString().split('T')[0]}`,
+              summary: summary,
+              source: "direct-summarization",
+              original_content: messages.map(m => `${m.role}: ${m.content}`).join("\n\n")
+            },
+            document_type: "company",
+            scope: "global",
+            user_id: "00000000-0000-0000-0000-000000000000" // System user ID
+          })
+        });
+
+        if (!insertResponse.ok) {
+          console.error(`Error storing summary:`, await insertResponse.text());
+          throw new Error("Failed to store summary");
+        }
+
+        return new Response(JSON.stringify({ 
+          success: true,
+          message: "Conversation summarized and added to knowledge base"
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      } catch (error) {
+        console.error(`Error processing immediate summarization:`, error);
+        throw error;
+      }
+    }
+
+    // Regular batch summarization process
+    const { days = 7 } = requestData;
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
     const formattedStartDate = startDate.toISOString();

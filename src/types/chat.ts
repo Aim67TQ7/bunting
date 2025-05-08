@@ -6,6 +6,7 @@ export interface Message {
   role: MessageRole;
   content: string;
   timestamp: Date;
+  autoSummarize?: boolean;
 }
 
 export interface StarterQuestion {

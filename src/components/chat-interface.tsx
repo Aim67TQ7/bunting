@@ -12,12 +12,12 @@ export function ChatInterface() {
   const { messages, isLoading, sendMessage } = useChatMessages();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
-  const handleSendMessage = (content: string) => {
-    sendMessage(content);
+  const handleSendMessage = (content: string, autoSummarize = false) => {
+    sendMessage(content, autoSummarize);
   };
 
   const handleStarterClick = (question: string) => {
-    handleSendMessage(question);
+    handleSendMessage(question, false);
   };
 
   // Show login message for unauthenticated users
