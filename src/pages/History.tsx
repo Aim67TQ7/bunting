@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +8,7 @@ import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useNavigate } from "react-router-dom";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 interface ChatHistoryItem {
@@ -26,6 +26,7 @@ const History = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isDeletingId, setIsDeletingId] = useState<string | null>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const fetchChatHistory = async () => {
     if (!user) {
@@ -111,6 +112,10 @@ const History = () => {
     } finally {
       setIsDeletingId(null);
     }
+  };
+
+  const handleViewConversation = (id: string) => {
+    navigate(`/?conversation=${id}`);
   };
 
   // Format date for display
@@ -221,7 +226,13 @@ const History = () => {
                 {chatHistory.map((chat) => (
                   <div
                     key={chat.id}
-                    className="rounded-lg border p-4 hover:bg-accent/50 transition-colors"
+                    className="rounded-lg border p-4 hover:bg-accent/50 transition-colors cursor-pointer"
+                    onClick={(e) => {
+                      // Only navigate if we didn't click on the delete button
+                      if (!(e.target as HTMLElement).closest('.delete-btn')) {
+                        handleViewConversation(chat.id);
+                      }
+                    }}
                   >
                     <div className="flex justify-between flex-wrap items-center gap-2">
                       <h3 className="font-medium truncate flex-1">
@@ -237,12 +248,13 @@ const History = () => {
                             <Button 
                               variant="ghost" 
                               size="icon" 
-                              className="h-6 w-6 text-destructive hover:bg-destructive/10"
+                              className="h-6 w-6 text-destructive hover:bg-destructive/10 delete-btn"
+                              onClick={(e) => e.stopPropagation()} // Prevent triggering the parent onClick
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </AlertDialogTrigger>
-                          <AlertDialogContent>
+                          <AlertDialogContent onClick={(e) => e.stopPropagation()}>
                             <AlertDialogHeader>
                               <AlertDialogTitle>Delete conversation history?</AlertDialogTitle>
                               <AlertDialogDescription>

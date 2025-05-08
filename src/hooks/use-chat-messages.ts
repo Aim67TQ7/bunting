@@ -13,9 +13,60 @@ export function useChatMessages() {
   const { user } = useAuth();
   const { toast } = useToast();
 
+  // Load an existing conversation by ID
+  const loadConversation = async (id: string) => {
+    if (!user) return;
+    
+    try {
+      setIsLoading(true);
+      
+      const { data, error } = await supabase
+        .from("conversations")
+        .select("content, topic")
+        .eq("id", id)
+        .eq("user_id", user.id)
+        .single();
+      
+      if (error) {
+        throw error;
+      }
+      
+      if (data && Array.isArray(data.content)) {
+        // Convert stored dates back to Date objects
+        const loadedMessages = data.content.map((msg: any) => ({
+          ...msg,
+          timestamp: new Date(msg.timestamp)
+        }));
+        
+        setMessages(loadedMessages);
+        setConversationId(id);
+      } else {
+        toast({
+          title: "Conversation not found",
+          description: "Unable to load the conversation",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error loading conversation:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load conversation",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Create a new conversation or get the existing one
   const getOrCreateConversation = async (firstMessageContent: string) => {
     if (!user) return null;
+    
+    // If we're already in a conversation, return that ID
+    if (conversationId) {
+      return conversationId;
+    }
     
     try {
       // Create a new conversation
@@ -30,6 +81,8 @@ export function useChatMessages() {
         throw error;
       }
       
+      // Store the conversation ID for future messages
+      setConversationId(data.id);
       return data.id;
     } catch (error) {
       console.error("Error creating conversation:", error);
@@ -304,5 +357,7 @@ export function useChatMessages() {
     messages,
     isLoading,
     sendMessage,
+    loadConversation,
+    conversationId
   };
 }
