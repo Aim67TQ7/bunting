@@ -29,3 +29,6 @@ verify_jwt = true
 
 [functions.save-ai-summary]
 verify_jwt = true
+
+[functions.manage-conversations]
+verify_jwt = true

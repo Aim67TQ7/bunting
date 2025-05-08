@@ -20,20 +20,20 @@ export function useChatMessages() {
     try {
       setIsLoading(true);
       
-      const { data, error } = await supabase
-        .from("conversations")
-        .select("content, topic")
-        .eq("id", id)
-        .eq("user_id", user.id)
-        .single();
+      const { data, error } = await supabase.functions.invoke('manage-conversations', {
+        body: {
+          action: 'loadConversation',
+          data: { id }
+        }
+      });
       
       if (error) {
-        throw error;
+        throw new Error(`Error loading conversation: ${error.message}`);
       }
       
-      if (data && Array.isArray(data.content)) {
+      if (data && data.messages) {
         // Convert stored dates back to Date objects
-        const loadedMessages = data.content.map((msg: any) => ({
+        const loadedMessages = data.messages.map((msg: any) => ({
           ...msg,
           timestamp: new Date(msg.timestamp)
         }));
@@ -51,7 +51,7 @@ export function useChatMessages() {
       console.error("Error loading conversation:", error);
       toast({
         title: "Error",
-        description: "Failed to load conversation",
+        description: `Failed to load conversation: ${error.message || "Unknown error"}`,
         variant: "destructive",
       });
     } finally {
@@ -69,26 +69,14 @@ export function useChatMessages() {
     }
     
     try {
-      // Create a new conversation
-      const { data, error } = await supabase.from("conversations").insert({
-        user_id: user.id,
-        topic: firstMessageContent.slice(0, 100), // Use first part of message as topic
-        content: [],
-        last_message_at: new Date().toISOString()
-      }).select("id").single();
-      
-      if (error) {
-        throw error;
-      }
-      
-      // Store the conversation ID for future messages
-      setConversationId(data.id);
-      return data.id;
+      const newId = nanoid();
+      setConversationId(newId);
+      return newId;
     } catch (error) {
       console.error("Error creating conversation:", error);
       toast({
         title: "Error",
-        description: "Failed to save conversation",
+        description: "Failed to create new conversation",
         variant: "destructive",
       });
       return null;
@@ -100,31 +88,31 @@ export function useChatMessages() {
     if (!user) return;
     
     try {
-      const { error } = await supabase
-        .from("conversations")
-        .update({
-          content: updatedMessages.map(msg => ({
-            id: msg.id,
-            role: msg.role,
-            content: msg.content,
-            timestamp: msg.timestamp.toISOString(),
-            autoSummarize: msg.autoSummarize,
-            queryType: msg.queryType
-          })),
-          last_message_at: new Date().toISOString()
-        })
-        .eq("id", convoId);
+      const { error } = await supabase.functions.invoke('manage-conversations', {
+        body: {
+          action: 'saveConversation',
+          data: {
+            id: convoId,
+            messages: updatedMessages,
+            topic: updatedMessages[0]?.content?.slice(0, 100) || "New Conversation"
+          }
+        }
+      });
         
       if (error) {
-        throw error;
+        throw new Error(`Error saving conversation: ${error.message}`);
       }
     } catch (error) {
       console.error("Error updating conversation:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update conversation history",
-        variant: "destructive",
-      });
+      
+      // Don't show toast for every autosave - only show on critical errors
+      if (error.message?.includes('network') || error.message?.includes('timeout')) {
+        toast({
+          title: "Connection Issue",
+          description: "Having trouble saving your conversation. Please check your network connection.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -137,7 +125,7 @@ export function useChatMessages() {
       
       console.log("Starting auto-summarization for messages:", relevantMessages.length);
       
-      // Call our new dedicated summarization function
+      // Call our dedicated summarization function
       const { data, error } = await supabase.functions.invoke('save-ai-summary', {
         body: {
           messages: relevantMessages.map(msg => ({
@@ -251,9 +239,22 @@ export function useChatMessages() {
       const updatedMessages = [...newMessages, assistantMessage];
       setMessages(updatedMessages);
       
-      // Update the conversation in the database
+      // Update the conversation in the database with retry logic
       if (conversationId) {
-        await updateConversation(conversationId, updatedMessages);
+        let retries = 3;
+        let saved = false;
+        
+        while (retries > 0 && !saved) {
+          try {
+            await updateConversation(conversationId, updatedMessages);
+            saved = true;
+          } catch (e) {
+            console.log(`Save attempt failed, retries left: ${retries - 1}`);
+            retries--;
+            if (retries === 0) throw e; // Re-throw if all retries failed
+            await new Promise(r => setTimeout(r, 1000)); // Wait 1 second before retry
+          }
+        }
       }
       
       // Handle auto-summarization if requested
@@ -279,7 +280,11 @@ export function useChatMessages() {
       
       // Still update the conversation with the error message
       if (conversationId) {
-        await updateConversation(conversationId, updatedMessages);
+        try {
+          await updateConversation(conversationId, updatedMessages);
+        } catch (e) {
+          console.error("Failed to save error message:", e);
+        }
       }
       
       toast({

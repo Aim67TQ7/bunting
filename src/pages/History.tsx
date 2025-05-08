@@ -1,8 +1,9 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { AppSidebar } from "@/components/app-sidebar";
-import { History as HistoryIcon, Loader2, Trash2 } from "lucide-react";
+import { History as HistoryIcon, Loader2, Trash2, RefreshCw } from "lucide-react";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -25,6 +26,7 @@ const History = () => {
   const [chatHistory, setChatHistory] = useState<ChatHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeletingId, setIsDeletingId] = useState<string | null>(null);
+  const [isRetrying, setIsRetrying] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -38,12 +40,12 @@ const History = () => {
     try {
       setIsLoading(true);
       
-      // The RLS policy ensures we only get the current user's conversations
-      // No need to filter by user_id in the query as RLS handles this
-      const { data, error } = await supabase
-        .from("conversations")
-        .select("*")
-        .order("last_message_at", { ascending: false });
+      // Use the edge function to get conversations
+      const { data, error } = await supabase.functions.invoke('manage-conversations', {
+        body: {
+          action: 'listConversations'
+        }
+      });
       
       if (error) {
         throw error;
@@ -53,7 +55,7 @@ const History = () => {
       const uniqueConversations: ChatHistoryItem[] = [];
       const topics = new Set<string>();
       
-      data?.forEach((conversation: ChatHistoryItem) => {
+      data?.conversations?.forEach((conversation: ChatHistoryItem) => {
         // Normalize topic for comparison (lowercase and trim)
         const normalizedTopic = conversation.topic?.toLowerCase().trim() || "";
         
@@ -68,7 +70,7 @@ const History = () => {
       console.error("Error fetching chat history:", err);
       toast({
         title: "Error",
-        description: "Failed to load chat history",
+        description: "Failed to load chat history. Please try refreshing.",
         variant: "destructive",
       });
     } finally {
@@ -86,11 +88,13 @@ const History = () => {
     try {
       setIsDeletingId(id);
       
-      // RLS ensures users can only delete their own conversations
-      const { error } = await supabase
-        .from("conversations")
-        .delete()
-        .eq("id", id);
+      // Use the edge function to delete the conversation
+      const { error } = await supabase.functions.invoke('manage-conversations', {
+        body: {
+          action: 'deleteConversation',
+          data: { id }
+        }
+      });
       
       if (error) {
         throw error;
@@ -106,7 +110,7 @@ const History = () => {
       console.error("Error deleting conversation:", err);
       toast({
         title: "Error",
-        description: "Failed to delete conversation",
+        description: "Failed to delete conversation. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -116,6 +120,13 @@ const History = () => {
 
   const handleViewConversation = (id: string) => {
     navigate(`/?conversation=${id}`);
+  };
+
+  // Handle retrying a conversation load if it failed
+  const handleRetry = async () => {
+    setIsRetrying(true);
+    await fetchChatHistory();
+    setIsRetrying(false);
   };
 
   // Format date for display
@@ -196,13 +207,13 @@ const History = () => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={fetchChatHistory}
-              disabled={isLoading}
+              onClick={handleRetry}
+              disabled={isLoading || isRetrying}
             >
-              {isLoading ? (
+              {(isLoading || isRetrying) ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
               ) : (
-                <HistoryIcon className="h-4 w-4 mr-2" />
+                <RefreshCw className="h-4 w-4 mr-2" />
               )}
               Refresh
             </Button>
@@ -294,6 +305,21 @@ const History = () => {
                 <p className="mt-2 text-sm text-muted-foreground">
                   When you chat with BuntingGPT, your conversations will appear here
                 </p>
+                {!isLoading && (
+                  <Button 
+                    variant="outline" 
+                    className="mt-4"
+                    onClick={handleRetry}
+                    disabled={isRetrying}
+                  >
+                    {isRetrying ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                    )}
+                    Retry Loading History
+                  </Button>
+                )}
               </div>
             )}
           </div>
