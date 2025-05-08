@@ -135,6 +135,54 @@ export type Database = {
         }
         Relationships: []
       }
+      baq_stoplight: {
+        Row: {
+          Asm: number | null
+          Department: string | null
+          Description: string | null
+          "Due Date": string | null
+          EstProdHours: number | null
+          Job: string | null
+          JobNum: string | null
+          Name: string | null
+          Opr: number | null
+          Part: string | null
+          "Prod. Qty": number | null
+          "Start Date": string | null
+          uuid: string
+        }
+        Insert: {
+          Asm?: number | null
+          Department?: string | null
+          Description?: string | null
+          "Due Date"?: string | null
+          EstProdHours?: number | null
+          Job?: string | null
+          JobNum?: string | null
+          Name?: string | null
+          Opr?: number | null
+          Part?: string | null
+          "Prod. Qty"?: number | null
+          "Start Date"?: string | null
+          uuid?: string
+        }
+        Update: {
+          Asm?: number | null
+          Department?: string | null
+          Description?: string | null
+          "Due Date"?: string | null
+          EstProdHours?: number | null
+          Job?: string | null
+          JobNum?: string | null
+          Name?: string | null
+          Opr?: number | null
+          Part?: string | null
+          "Prod. Qty"?: number | null
+          "Start Date"?: string | null
+          uuid?: string
+        }
+        Relationships: []
+      }
       bridgers: {
         Row: {
           created_at: string

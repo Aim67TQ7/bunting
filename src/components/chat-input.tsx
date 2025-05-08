@@ -6,7 +6,7 @@ import { useState, FormEvent } from "react";
 import { cn } from "@/lib/utils";
 
 interface ChatInputProps {
-  onSubmit: (message: string, autoSummarize: boolean) => void;
+  onSubmit: (message: string, autoSummarize: boolean, queryType?: string) => void;
   isDisabled?: boolean;
   className?: string;
 }
@@ -21,11 +21,22 @@ export function ChatInput({ onSubmit, isDisabled, className }: ChatInputProps) {
     // Check if message starts with "&" for auto-summarization
     const trimmedMessage = message.trim();
     const autoSummarize = trimmedMessage.startsWith("&");
-    const finalMessage = autoSummarize ? trimmedMessage.substring(1).trim() : trimmedMessage;
+    const isCompanyQuery = trimmedMessage.startsWith("^");
+    
+    let queryType = null;
+    let finalMessage = trimmedMessage;
+    
+    if (autoSummarize) {
+      finalMessage = trimmedMessage.substring(1).trim();
+      queryType = "summarize";
+    } else if (isCompanyQuery) {
+      finalMessage = trimmedMessage.substring(1).trim();
+      queryType = "company";
+    }
     
     if (!finalMessage) return; // If message is just "&" don't submit
     
-    onSubmit(finalMessage, autoSummarize);
+    onSubmit(finalMessage, autoSummarize, queryType);
     setMessage("");
   };
   
@@ -42,7 +53,7 @@ export function ChatInput({ onSubmit, isDisabled, className }: ChatInputProps) {
       className={cn("relative flex w-full items-end gap-2 p-4", className)}
     >
       <Textarea
-        placeholder="Send a message... (Start with & to auto-summarize)"
+        placeholder="Send a message... (Start with & to auto-summarize, ^ for company data)"
         className="min-h-12 resize-none"
         value={message}
         onChange={(e) => setMessage(e.target.value)}

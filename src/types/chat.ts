@@ -7,6 +7,7 @@ export interface Message {
   content: string;
   timestamp: Date;
   autoSummarize?: boolean;
+  queryType?: string;
 }
 
 export interface StarterQuestion {
