@@ -16,8 +16,16 @@ export function ChatInterface() {
   const conversationId = searchParams.get('conversation');
   const [loadAttempts, setLoadAttempts] = useState(0);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   
-  const { messages, isLoading, sendMessage, loadConversation, conversationId: activeConversationId } = useChatMessages();
+  const { 
+    messages, 
+    isLoading: isResponseLoading,  // Renamed for clarity - this is waiting for AI response
+    sendMessage, 
+    loadConversation, 
+    conversationId: activeConversationId 
+  } = useChatMessages();
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Load conversation if ID is provided in URL
@@ -26,10 +34,13 @@ export function ChatInterface() {
       if (conversationId && user) {
         try {
           setLoadError(null);
+          setIsHistoryLoading(true);
           await loadConversation(conversationId);
         } catch (err) {
           console.error("Error loading conversation:", err);
           setLoadError(err.message || "Failed to load conversation");
+        } finally {
+          setIsHistoryLoading(false);
         }
       }
     };
@@ -59,12 +70,19 @@ export function ChatInterface() {
     return <LoginPrompt />;
   }
 
+  // Determine what to display based on loading and conversation state
+  const showWelcomeScreen = messages.length === 0 && !isResponseLoading && !isHistoryLoading && !conversationId;
+  const showLoadingError = messages.length === 0 && !isResponseLoading && conversationId && loadError;
+  const showHistoryLoadingIndicator = isHistoryLoading && messages.length === 0;
+
   return (
     <div className="flex h-full flex-col">
       <div className="flex-1 overflow-y-auto p-4">
-        {messages.length === 0 && !isLoading && !conversationId ? (
+        {showWelcomeScreen && (
           <WelcomeScreen onStarterClick={handleStarterClick} />
-        ) : messages.length === 0 && conversationId && loadError ? (
+        )}
+        
+        {showLoadingError && (
           <div className="flex h-full flex-col items-center justify-center text-center p-4">
             <div className="rounded-full bg-red-100 dark:bg-red-900/20 p-4">
               <Loader2 className="h-6 w-6 text-red-500" />
@@ -81,16 +99,31 @@ export function ChatInterface() {
               Retry
             </Button>
           </div>
-        ) : (
-          <MessageList messages={messages} isLoading={isLoading} />
         )}
+        
+        {showHistoryLoadingIndicator && (
+          <div className="flex h-full flex-col items-center justify-center text-center p-4">
+            <div className="rounded-full bg-muted p-4">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+            <h3 className="mt-4 text-lg font-medium">Loading Conversation</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Please wait while we retrieve your conversation history...
+            </p>
+          </div>
+        )}
+        
+        {!showWelcomeScreen && !showLoadingError && !showHistoryLoadingIndicator && (
+          <MessageList messages={messages} isAiResponding={isResponseLoading} />
+        )}
+        
         <div ref={messagesEndRef} />
       </div>
       
       <div className="border-t">
         <ChatInputEnhanced 
           onSubmit={handleSendMessage} 
-          isDisabled={isLoading} 
+          isDisabled={isResponseLoading || isHistoryLoading} 
           conversationId={activeConversationId}
         />
       </div>

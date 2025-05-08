@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect } from "react";
 import { ChatMessage } from "@/components/chat-message";
 import { Message } from "@/types/chat";
@@ -6,10 +5,10 @@ import { Database, File, Search } from "lucide-react";
 
 interface MessageListProps {
   messages: Message[];
-  isLoading: boolean;
+  isAiResponding: boolean; // Renamed from isLoading to be more descriptive
 }
 
-export function MessageList({ messages, isLoading }: MessageListProps) {
+export function MessageList({ messages, isAiResponding }: MessageListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -87,7 +86,7 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
         </div>
       ))}
       
-      {isLoading && (
+      {isAiResponding && (
         <ChatMessage
           role="assistant"
           content=""
