@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { BrandLogo } from "@/components/brand-logo";
 import { NavItem, NavSection } from "@/components/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { MessageSquare, History, Calculator, LineChart, Grid3X3, FileChartLine, Settings, LogOut, User } from "lucide-react";
+import { MessageSquare, History, Calculator, LineChart, Grid3X3, FileChartLine, Menu, User, LogOut } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
@@ -12,32 +12,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface AppSidebarProps {
   className?: string;
-}
-
-interface ProfileData {
-  first_name?: string;
-  call_name?: string;
-  avatar_url?: string;
-  created_at?: string;
-  updated_at?: string;
-  id?: string;
-  email?: string;
-}
-
-interface EmployeeData {
-  employee_id?: string;
-  user_id?: string;
-  displayName?: string;
-  userPrincipalName?: string;
-  department?: string;
-  jobTitle?: string;
-  officeLocation?: string;
-  city?: string;
-  state?: string;
-  country?: string;
 }
 
 interface UserProfile {
@@ -51,6 +29,7 @@ export function AppSidebar({ className }: AppSidebarProps) {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [userProfile, setUserProfile] = useState<UserProfile>({});
+  const isMobile = useIsMobile();
 
   // Fetch user profile data
   useEffect(() => {
@@ -95,8 +74,15 @@ export function AppSidebar({ className }: AppSidebarProps) {
     navigate("/settings");
   };
 
+  // Use collapsible="icon" on desktop and collapsible="offcanvas" on mobile
+  const collapsibleMode = isMobile ? "offcanvas" : "icon";
+
   return (
-    <Sidebar className={className} variant="sidebar" collapsible="icon">
+    <Sidebar 
+      className={className} 
+      variant="sidebar" 
+      collapsible={collapsibleMode}
+    >
       <SidebarHeader className="px-2 py-3">
         <div className="flex items-center gap-2">
           <BrandLogo size="md" />

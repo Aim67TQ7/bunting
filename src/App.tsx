@@ -27,31 +27,29 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <ThemeProvider defaultTheme="dark">
-        <SidebarProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <Routes>
-                {/* Public routes */}
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/auth/callback" element={<AuthCallback />} />
-                <Route path="/auth/reset-password" element={<ResetPassword />} />
-                
-                {/* Protected routes */}
-                <Route path="/" element={<PrivateRoute><Index /></PrivateRoute>} />
-                <Route path="/history" element={<PrivateRoute><History /></PrivateRoute>} />
-                <Route path="/calculators" element={<PrivateRoute><Calculators /></PrivateRoute>} />
-                <Route path="/iframe" element={<PrivateRoute><Iframe /></PrivateRoute>} />
-                <Route path="/sales" element={<PrivateRoute><Sales /></PrivateRoute>} />
-                <Route path="/apps" element={<PrivateRoute><Apps /></PrivateRoute>} />
-                <Route path="/reports" element={<PrivateRoute><Reports /></PrivateRoute>} />
-                <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
-          </TooltipProvider>
-        </SidebarProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              {/* Public routes */}
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/auth/callback" element={<AuthCallback />} />
+              <Route path="/auth/reset-password" element={<ResetPassword />} />
+              
+              {/* Protected routes */}
+              <Route path="/" element={<PrivateRoute><Index /></PrivateRoute>} />
+              <Route path="/history" element={<PrivateRoute><History /></PrivateRoute>} />
+              <Route path="/calculators" element={<PrivateRoute><Calculators /></PrivateRoute>} />
+              <Route path="/iframe" element={<PrivateRoute><Iframe /></PrivateRoute>} />
+              <Route path="/sales" element={<PrivateRoute><Sales /></PrivateRoute>} />
+              <Route path="/apps" element={<PrivateRoute><Apps /></PrivateRoute>} />
+              <Route path="/reports" element={<PrivateRoute><Reports /></PrivateRoute>} />
+              <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
       </ThemeProvider>
     </AuthProvider>
   </QueryClientProvider>
