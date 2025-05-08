@@ -11,9 +11,10 @@ interface ChatInputEnhancedProps {
   onSubmit: (message: string, autoSummarize: boolean, queryType?: string, file?: File) => void;
   isDisabled?: boolean;
   className?: string;
+  conversationId?: string | null;
 }
 
-export function ChatInputEnhanced({ onSubmit, isDisabled, className }: ChatInputEnhancedProps) {
+export function ChatInputEnhanced({ onSubmit, isDisabled, className, conversationId }: ChatInputEnhancedProps) {
   const [message, setMessage] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
