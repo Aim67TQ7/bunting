@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Search, Send, Upload, Database } from "lucide-react";
+import { Send, Upload } from "lucide-react";
 import { useState, FormEvent, useRef, ChangeEvent } from "react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -26,8 +26,6 @@ export function ChatInputEnhanced({ onSubmit, isDisabled, className }: ChatInput
     // Check message prefixes
     const trimmedMessage = message.trim();
     const autoSummarize = trimmedMessage.startsWith("&");
-    const isCompanyQuery = trimmedMessage.startsWith("^");
-    const isWebSearch = trimmedMessage.startsWith("?");
     
     let queryType = null;
     let finalMessage = trimmedMessage;
@@ -35,12 +33,6 @@ export function ChatInputEnhanced({ onSubmit, isDisabled, className }: ChatInput
     if (autoSummarize) {
       finalMessage = trimmedMessage.substring(1).trim();
       queryType = "summarize";
-    } else if (isCompanyQuery) {
-      finalMessage = trimmedMessage.substring(1).trim();
-      queryType = "company";
-    } else if (isWebSearch) {
-      finalMessage = trimmedMessage.substring(1).trim();
-      queryType = "search";
     }
     
     if (!finalMessage) return; // If message is just a prefix don't submit
@@ -88,28 +80,8 @@ export function ChatInputEnhanced({ onSubmit, isDisabled, className }: ChatInput
     setIsUploading(false);
   };
   
-  const handleSearch = () => {
-    const searchPrefix = "? ";
-    setMessage(prevMessage => {
-      if (prevMessage.startsWith(searchPrefix)) {
-        return prevMessage;
-      }
-      return searchPrefix + prevMessage;
-    });
-  };
-
-  const handleCompanyDataQuery = () => {
-    const companyPrefix = "^ ";
-    setMessage(prevMessage => {
-      if (prevMessage.startsWith(companyPrefix)) {
-        return prevMessage;
-      }
-      return companyPrefix + prevMessage;
-    });
-  };
-
   const placeholderText = 
-    "Send a message... (& to auto-summarize, ^ for company data, ? for web search)";
+    "Send a message... (& to auto-summarize)";
   
   return (
     <form
@@ -117,30 +89,6 @@ export function ChatInputEnhanced({ onSubmit, isDisabled, className }: ChatInput
       className={cn("relative flex w-full items-center gap-2 p-4", className)}
     >
       <div className="flex items-center gap-2 absolute left-6 z-10">
-        <Button 
-          type="button" 
-          variant="ghost" 
-          size="icon"
-          onClick={handleSearch}
-          className="h-8 w-8"
-          title="Search the web"
-        >
-          <Search className="h-4 w-4" />
-          <span className="sr-only">Search</span>
-        </Button>
-        
-        <Button 
-          type="button" 
-          variant="ghost" 
-          size="icon"
-          onClick={handleCompanyDataQuery}
-          className="h-8 w-8"
-          title="Query company data"
-        >
-          <Database className="h-4 w-4" />
-          <span className="sr-only">Company Data</span>
-        </Button>
-        
         <Button 
           type="button" 
           variant="ghost" 
@@ -165,7 +113,7 @@ export function ChatInputEnhanced({ onSubmit, isDisabled, className }: ChatInput
       
       <Textarea
         placeholder={placeholderText}
-        className="min-h-12 resize-none pl-24" // Adjusted padding for the additional button
+        className="min-h-12 resize-none pl-16" // Adjusted padding for fewer buttons
         value={message}
         onChange={(e) => setMessage(e.target.value)}
         onKeyDown={handleKeyDown}

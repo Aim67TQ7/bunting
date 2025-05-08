@@ -21,7 +21,6 @@ export function ChatInput({ onSubmit, isDisabled, className }: ChatInputProps) {
     // Check if message starts with "&" for auto-summarization
     const trimmedMessage = message.trim();
     const autoSummarize = trimmedMessage.startsWith("&");
-    const isCompanyQuery = trimmedMessage.startsWith("^");
     
     let queryType = null;
     let finalMessage = trimmedMessage;
@@ -29,9 +28,6 @@ export function ChatInput({ onSubmit, isDisabled, className }: ChatInputProps) {
     if (autoSummarize) {
       finalMessage = trimmedMessage.substring(1).trim();
       queryType = "summarize";
-    } else if (isCompanyQuery) {
-      finalMessage = trimmedMessage.substring(1).trim();
-      queryType = "company";
     }
     
     if (!finalMessage) return; // If message is just "&" don't submit
@@ -53,7 +49,7 @@ export function ChatInput({ onSubmit, isDisabled, className }: ChatInputProps) {
       className={cn("relative flex w-full items-end gap-2 p-4", className)}
     >
       <Textarea
-        placeholder="Send a message... (Start with & to auto-summarize, ^ for company data)"
+        placeholder="Send a message... (Start with & to auto-summarize)"
         className="min-h-12 resize-none"
         value={message}
         onChange={(e) => setMessage(e.target.value)}
