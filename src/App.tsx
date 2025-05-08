@@ -15,6 +15,7 @@ import Sales from "./pages/Sales";
 import Apps from "./pages/Apps";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
+import BaqMto from "./pages/BaqMto";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/auth/Auth";
 import AuthCallback from "./pages/auth/AuthCallback";
@@ -47,6 +48,7 @@ const App = () => (
                 <Route path="/apps" element={<PrivateRoute><Apps /></PrivateRoute>} />
                 <Route path="/reports" element={<PrivateRoute><Reports /></PrivateRoute>} />
                 <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
+                <Route path="/baq-mto" element={<PrivateRoute><BaqMto /></PrivateRoute>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </SidebarProvider>
