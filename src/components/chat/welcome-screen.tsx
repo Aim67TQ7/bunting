@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Sparkle, Lightbulb, Star, Calculator, Users } from "lucide-react";
+import { Sparkle, Lightbulb, Calculator, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface WelcomeScreenProps {
@@ -56,7 +56,7 @@ export function WelcomeScreen({ onStarterClick }: WelcomeScreenProps) {
         <Button 
           variant="outline" 
           className="flex items-center justify-start h-auto p-4 text-left"
-          onClick={() => handleAppLaunch("How do I calculate minimum stock levels?", "/calculators")}
+          onClick={() => handleAppLaunch("How do I calculate minimum stock levels?", "/iframe?url=https://stock-calculator.bunting.com&title=Stock Levels Calculator")}
         >
           <Calculator className="mr-2 h-5 w-5 text-primary" />
           <div>
@@ -68,7 +68,7 @@ export function WelcomeScreen({ onStarterClick }: WelcomeScreenProps) {
         <Button 
           variant="outline" 
           className="flex items-center justify-start h-auto p-4 text-left"
-          onClick={() => handleAppLaunch("Do we have customers in Denver, Colorado?", "/apps")}
+          onClick={() => handleAppLaunch("Do we have customers in Denver, Colorado?", "/sales")}
         >
           <Users className="mr-2 h-5 w-5 text-primary" />
           <div>
