@@ -13,7 +13,7 @@ const Index = () => {
           <div className="flex items-center justify-between border-b px-4 py-2">
             <div className="flex gap-2 items-center">
               <SidebarTrigger className="md:hidden" />
-              <h1 className="text-lg font-semibold">Chat</h1>
+              <h1 className="text-lg font-semibold">Executive Assistant</h1>
             </div>
           </div>
           <ChatInterface />

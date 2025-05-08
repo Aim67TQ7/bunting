@@ -22,6 +22,15 @@ serve(async (req) => {
       throw new Error("GROQ_API_KEY is not set");
     }
 
+    // Create a new array with our custom system message
+    const messagesWithSystem = [
+      { 
+        role: "system", 
+        content: "You are BuntingGPT, an executive assistant for Bunting employees only. You provide helpful, accurate, and concise assistance regarding magnetic solutions, products, and applications. You have access to all extensions, reports, calculators, and company knowledge. You can help employees navigate the Bunting product catalog, understand magnetic separation, metal detection, material handling, and magnetic assemblies. Always maintain a professional, supportive tone and assume the user is a Bunting employee who may need your expertise to serve customers or improve internal processes."
+      },
+      ...messages.filter(msg => msg.role !== "system") // Filter out any existing system messages
+    ];
+
     // Call the GROQ API
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
@@ -31,7 +40,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: "llama3-70b-8192",
-        messages,
+        messages: messagesWithSystem,
         stream,
         temperature: 0.7,
         max_tokens: 1024
