@@ -4,6 +4,8 @@ import { ChatInput } from "@/components/chat-input";
 import { ChatMessage, MessageRole } from "@/components/chat-message";
 import { supabase } from "@/integrations/supabase/client";
 import { nanoid } from "nanoid";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 interface Message {
   id: string;
@@ -13,6 +15,8 @@ interface Message {
 }
 
 export function ChatInterface() {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome-message",
@@ -22,7 +26,69 @@ export function ChatInterface() {
     },
   ]);
   const [isLoading, setIsLoading] = useState(false);
+  const [conversationId, setConversationId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Create a new conversation or get the existing one
+  const getOrCreateConversation = async (firstMessageContent: string) => {
+    if (!user) return null;
+    
+    try {
+      // Create a new conversation
+      const { data, error } = await supabase.from("conversations").insert({
+        user_id: user.id,
+        topic: firstMessageContent.slice(0, 100), // Use first part of message as topic
+        content: [],
+        last_message_at: new Date().toISOString()
+      }).select("id").single();
+      
+      if (error) {
+        throw error;
+      }
+      
+      return data.id;
+    } catch (error) {
+      console.error("Error creating conversation:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save conversation",
+        variant: "destructive",
+      });
+      return null;
+    }
+  };
+  
+  // Update existing conversation with new messages
+  const updateConversation = async (convoId: string, updatedMessages: Message[]) => {
+    if (!user) return;
+    
+    try {
+      const { error } = await supabase
+        .from("conversations")
+        .update({
+          content: updatedMessages.map(msg => ({
+            id: msg.id,
+            role: msg.role,
+            content: msg.content,
+            timestamp: msg.timestamp.toISOString()
+          })),
+          last_message_at: new Date().toISOString()
+        })
+        .eq("id", convoId)
+        .eq("user_id", user.id);
+        
+      if (error) {
+        throw error;
+      }
+    } catch (error) {
+      console.error("Error updating conversation:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update conversation history",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleSendMessage = async (content: string) => {
     // Add user message
@@ -33,8 +99,17 @@ export function ChatInterface() {
       timestamp: new Date(),
     };
     
-    setMessages((prev) => [...prev, userMessage]);
+    const newMessages = [...messages, userMessage];
+    setMessages(newMessages);
     setIsLoading(true);
+    
+    // Create a new conversation if this is the first user message
+    if (!conversationId && user) {
+      const newConvoId = await getOrCreateConversation(content);
+      if (newConvoId) {
+        setConversationId(newConvoId);
+      }
+    }
     
     try {
       // Call the GROQ edge function
@@ -68,7 +143,14 @@ export function ChatInterface() {
         timestamp: new Date(),
       };
       
-      setMessages((prev) => [...prev, assistantMessage]);
+      const updatedMessages = [...newMessages, assistantMessage];
+      setMessages(updatedMessages);
+      
+      // Update the conversation in the database
+      if (conversationId) {
+        await updateConversation(conversationId, updatedMessages);
+      }
+      
     } catch (error) {
       console.error("Error sending message:", error);
       
@@ -79,7 +161,14 @@ export function ChatInterface() {
         timestamp: new Date(),
       };
       
-      setMessages((prev) => [...prev, errorMessage]);
+      const updatedMessages = [...newMessages, errorMessage];
+      setMessages(updatedMessages);
+      
+      // Still update the conversation with the error message
+      if (conversationId) {
+        await updateConversation(conversationId, updatedMessages);
+      }
+      
     } finally {
       setIsLoading(false);
     }
