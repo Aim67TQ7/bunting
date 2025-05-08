@@ -28,27 +28,36 @@ const History = () => {
   const { toast } = useToast();
 
   const fetchChatHistory = async () => {
-    if (!user) return;
+    if (!user) {
+      setChatHistory([]);
+      setIsLoading(false);
+      return;
+    }
     
     try {
       setIsLoading(true);
+      
+      // The RLS policy ensures we only get the current user's conversations
+      // No need to filter by user_id in the query as RLS handles this
       const { data, error } = await supabase
         .from("conversations")
         .select("*")
-        .eq("user_id", user.id)
         .order("last_message_at", { ascending: false });
       
       if (error) {
         throw error;
       }
       
-      // Remove duplicates based on content similarity
+      // Process to remove duplicate topics
       const uniqueConversations: ChatHistoryItem[] = [];
       const topics = new Set<string>();
       
       data?.forEach((conversation: ChatHistoryItem) => {
-        if (!topics.has(conversation.topic)) {
-          topics.add(conversation.topic);
+        // Normalize topic for comparison (lowercase and trim)
+        const normalizedTopic = conversation.topic?.toLowerCase().trim() || "";
+        
+        if (!topics.has(normalizedTopic)) {
+          topics.add(normalizedTopic);
           uniqueConversations.push(conversation);
         }
       });
@@ -76,11 +85,11 @@ const History = () => {
     try {
       setIsDeletingId(id);
       
+      // RLS ensures users can only delete their own conversations
       const { error } = await supabase
         .from("conversations")
         .delete()
-        .eq("id", id)
-        .eq("user_id", user.id);
+        .eq("id", id);
       
       if (error) {
         throw error;
@@ -136,6 +145,36 @@ const History = () => {
     
     return "No preview available";
   };
+
+  // Show message if user is not authenticated
+  if (!user) {
+    return (
+      <SidebarProvider>
+        <div className="flex h-screen w-full overflow-hidden">
+          <AppSidebar className="w-64 flex-shrink-0" />
+          
+          <SidebarInset className="flex flex-1 flex-col overflow-hidden">
+            <div className="flex items-center justify-between border-b px-4 py-2">
+              <div className="flex gap-2 items-center">
+                <SidebarTrigger className="md:hidden" />
+                <h1 className="text-lg font-semibold">Chat History</h1>
+              </div>
+            </div>
+            
+            <div className="flex h-full flex-col items-center justify-center text-center p-4">
+              <div className="rounded-full bg-muted p-4">
+                <HistoryIcon className="h-6 w-6 text-muted-foreground" />
+              </div>
+              <h3 className="mt-4 text-lg font-medium">You need to sign in</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Please sign in to view your chat history
+              </p>
+            </div>
+          </SidebarInset>
+        </div>
+      </SidebarProvider>
+    );
+  }
 
   return (
     <SidebarProvider>
