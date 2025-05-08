@@ -91,8 +91,24 @@ export function AppSidebar({ className }: AppSidebarProps) {
             <p className="text-xs text-sidebar-foreground/60">Magnetic Solutions</p>
           </div>
         </div>
+      </SidebarHeader>
+      
+      <SidebarContent className="px-2">
+        <NavSection title="Assistant">
+          <NavItem icon={MessageSquare} title="Chat" href="/" />
+          <NavItem icon={History} title="History" href="/history" />
+        </NavSection>
         
-        <div className="mt-3">
+        <NavSection title="Tools">
+          <NavItem icon={Calculator} title="Calculators" href="/calculators" />
+          <NavItem icon={LineChart} title="Sales" href="/sales" />
+          <NavItem icon={Grid3X3} title="Apps" href="/apps" />
+          <NavItem icon={FileChartLine} title="Reports" href="/reports" />
+        </NavSection>
+      </SidebarContent>
+      
+      <SidebarFooter className="mt-auto">
+        <div className="mt-3 px-2">
           <div className="rounded-md bg-sidebar-accent/50 p-2">
             <div className="flex items-center gap-2">
               <Avatar className="h-8 w-8">
@@ -112,23 +128,7 @@ export function AppSidebar({ className }: AppSidebarProps) {
             </div>
           </div>
         </div>
-      </SidebarHeader>
-      
-      <SidebarContent className="px-2">
-        <NavSection title="Assistant">
-          <NavItem icon={MessageSquare} title="Chat" href="/" />
-          <NavItem icon={History} title="History" href="/history" />
-        </NavSection>
         
-        <NavSection title="Tools">
-          <NavItem icon={Calculator} title="Calculators" href="/calculators" />
-          <NavItem icon={LineChart} title="Sales" href="/sales" />
-          <NavItem icon={Grid3X3} title="Apps" href="/apps" />
-          <NavItem icon={FileChartLine} title="Reports" href="/reports" />
-        </NavSection>
-      </SidebarContent>
-      
-      <SidebarFooter className="mt-auto">
         <Separator className="my-2" />
         
         <div className="flex justify-between items-center px-2 py-1">
