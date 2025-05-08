@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -8,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ProfilePicture } from "@/components/settings/ProfilePicture";
 import { ProfileForm } from "@/components/settings/ProfileForm";
 import { profileSchema, ProfileFormValues, UserProfileData } from "@/types/profile";
-import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 
 export default function Settings() {
   const { user } = useAuth();
@@ -156,37 +157,35 @@ export default function Settings() {
   };
   
   return (
-    <SidebarProvider>
-      <div className="flex h-screen w-full overflow-hidden">
-        <AppSidebar className="w-64 flex-shrink-0" />
+    <div className="flex h-screen w-full overflow-hidden">
+      <AppSidebar className="w-64 flex-shrink-0" />
+      
+      <SidebarInset className="flex flex-1 flex-col overflow-hidden">
+        <div className="flex items-center justify-between border-b px-4 py-2">
+          <div className="flex gap-2 items-center">
+            <SidebarTrigger className="md:hidden" />
+            <h1 className="text-lg font-semibold">Profile Settings</h1>
+          </div>
+        </div>
         
-        <SidebarInset className="flex flex-1 flex-col overflow-hidden">
-          <div className="flex items-center justify-between border-b px-4 py-2">
-            <div className="flex gap-2 items-center">
-              <SidebarTrigger className="md:hidden" />
-              <h1 className="text-lg font-semibold">Profile Settings</h1>
-            </div>
+        <div className="flex-1 overflow-y-auto p-4 md:p-6">
+          <div className="mx-auto max-w-2xl">
+            <ProfilePicture 
+              userId={user?.id}
+              avatarUrl={avatarUrl}
+              firstName={userData?.first_name}
+              email={user?.email}
+              onAvatarUpdate={handleAvatarUpdate}
+            />
+            
+            <ProfileForm 
+              form={form} 
+              onSubmit={onSubmit} 
+              isLoading={isLoading} 
+            />
           </div>
-          
-          <div className="flex-1 overflow-y-auto p-4 md:p-6">
-            <div className="mx-auto max-w-2xl">
-              <ProfilePicture 
-                userId={user?.id}
-                avatarUrl={avatarUrl}
-                firstName={userData?.first_name}
-                email={user?.email}
-                onAvatarUpdate={handleAvatarUpdate}
-              />
-              
-              <ProfileForm 
-                form={form} 
-                onSubmit={onSubmit} 
-                isLoading={isLoading} 
-              />
-            </div>
-          </div>
-        </SidebarInset>
-      </div>
-    </SidebarProvider>
+        </div>
+      </SidebarInset>
+    </div>
   );
 }
