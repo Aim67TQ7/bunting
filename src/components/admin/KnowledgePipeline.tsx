@@ -26,7 +26,7 @@ export function KnowledgePipeline() {
       toast({
         title: "Summary Generated",
         description: `Processed ${data.processed} conversations, created ${data.successful_summaries} summaries.`,
-        variant: "success",
+        variant: "default",
       });
     } catch (error) {
       console.error('Error triggering summary:', error);
