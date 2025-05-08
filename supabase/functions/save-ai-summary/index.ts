@@ -67,9 +67,9 @@ serve(async (req) => {
     });
 
     if (!groqResponse.ok) {
-      const error = await groqResponse.json();
-      console.error(`GROQ API error:`, error);
-      throw new Error(`Failed to generate summary: ${error.message || 'Unknown error'}`);
+      const errorText = await groqResponse.text();
+      console.error(`GROQ API error: ${errorText}`);
+      throw new Error(`Failed to generate summary: ${errorText}`);
     }
 
     const data = await groqResponse.json();
@@ -95,6 +95,24 @@ serve(async (req) => {
       messages[0].content.slice(0, 50).replace(/[^\w\s]/gi, '')
     }`;
 
+    // Ensure document_type is valid
+    const documentType = "company"; // Keep this consistent to avoid validation errors
+
+    const insertBody = {
+      content: {
+        title: title,
+        summary: summary,
+        source: "direct-summarization",
+        original_content: messages.map(m => `${m.role}: ${m.content}`).join("\n\n")
+      },
+      document_type: documentType,
+      scope: "global",
+      // Use the passed userId or a default system ID
+      user_id: userId || "00000000-0000-0000-0000-000000000000"
+    };
+
+    console.log("Attempting to insert with body:", JSON.stringify(insertBody));
+
     const insertResponse = await fetch(`${supabaseUrl}/rest/v1/training_data`, {
       method: "POST",
       headers: {
@@ -103,18 +121,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
         "Prefer": "return=minimal"
       },
-      body: JSON.stringify({
-        content: {
-          title: title,
-          summary: summary,
-          source: "direct-summarization",
-          original_content: messages.map(m => `${m.role}: ${m.content}`).join("\n\n")
-        },
-        document_type: "company",
-        scope: "global",
-        // Use the passed userId or a default system ID
-        user_id: userId || "00000000-0000-0000-0000-000000000000"
-      })
+      body: JSON.stringify(insertBody)
     });
 
     if (!insertResponse.ok) {

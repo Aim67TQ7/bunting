@@ -1,9 +1,8 @@
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import { Send, Upload } from "lucide-react";
-import { useState, FormEvent, useRef, ChangeEvent } from "react";
+import { Info, Send, Upload } from "lucide-react";
+import { useState, FormEvent, useRef, ChangeEvent, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
@@ -17,8 +16,15 @@ interface ChatInputEnhancedProps {
 export function ChatInputEnhanced({ onSubmit, isDisabled, className, conversationId }: ChatInputEnhancedProps) {
   const [message, setMessage] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [willAutoSummarize, setWillAutoSummarize] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  
+  // Check for auto-summarize prefix whenever message changes
+  useEffect(() => {
+    const trimmedMessage = message.trim();
+    setWillAutoSummarize(trimmedMessage.startsWith("&"));
+  }, [message]);
   
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -85,51 +91,68 @@ export function ChatInputEnhanced({ onSubmit, isDisabled, className, conversatio
     "Send a message... (& to auto-summarize)";
   
   return (
-    <form
-      onSubmit={handleSubmit}
-      className={cn("relative flex w-full items-center gap-2 p-4", className)}
-    >
-      <div className="flex items-center gap-2 absolute left-6 z-10">
-        <Button 
-          type="button" 
-          variant="ghost" 
-          size="icon"
-          onClick={handleFileUpload}
-          className="h-8 w-8"
-          title="Upload file"
-          disabled={isUploading}
-        >
-          <Upload className="h-4 w-4" />
-          <span className="sr-only">Upload file</span>
-        </Button>
-        
-        <input
-          type="file"
-          ref={fileInputRef}
-          onChange={handleFileChange}
-          className="hidden"
-          accept=".pdf,.doc,.docx,.txt,.csv,.xlsx,.json,.md"
-        />
-      </div>
+    <div className="flex flex-col w-full">
+      {willAutoSummarize && (
+        <div className="flex items-center px-4 py-2 text-xs bg-secondary/40 text-secondary-foreground rounded-t-md mx-4 mb-0 mt-2">
+          <Info className="h-3 w-3 mr-1.5" />
+          <span>This message will be anonymized and added to the knowledge base</span>
+        </div>
+      )}
       
-      <Textarea
-        placeholder={placeholderText}
-        className="min-h-12 resize-none pl-16" // Adjusted padding for fewer buttons
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-        onKeyDown={handleKeyDown}
-        disabled={isDisabled || isUploading}
-        rows={1}
-      />
-      
-      <Button 
-        type="submit" 
-        size="icon" 
-        disabled={!message.trim() || isDisabled || isUploading}
+      <form
+        onSubmit={handleSubmit}
+        className={cn(
+          "relative flex w-full items-center gap-2 p-4", 
+          willAutoSummarize ? "pt-2" : "",
+          className
+        )}
       >
-        <Send className="h-4 w-4" />
-        <span className="sr-only">Send message</span>
-      </Button>
-    </form>
+        <div className="flex items-center gap-2 absolute left-6 z-10">
+          <Button 
+            type="button" 
+            variant="ghost" 
+            size="icon"
+            onClick={handleFileUpload}
+            className="h-8 w-8"
+            title="Upload file"
+            disabled={isUploading}
+          >
+            <Upload className="h-4 w-4" />
+            <span className="sr-only">Upload file</span>
+          </Button>
+          
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            className="hidden"
+            accept=".pdf,.doc,.docx,.txt,.csv,.xlsx,.json,.md"
+          />
+        </div>
+        
+        <Textarea
+          placeholder={placeholderText}
+          className={cn(
+            "min-h-12 resize-none pl-16",
+            willAutoSummarize ? "border-secondary focus-visible:ring-secondary" : ""
+          )}
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          onKeyDown={handleKeyDown}
+          disabled={isDisabled || isUploading}
+          rows={1}
+        />
+        
+        <Button 
+          type="submit" 
+          size="icon" 
+          disabled={!message.trim() || isDisabled || isUploading}
+          variant={willAutoSummarize ? "secondary" : "default"}
+        >
+          <Send className="h-4 w-4" />
+          <span className="sr-only">Send message</span>
+        </Button>
+      </form>
+    </div>
   );
 }

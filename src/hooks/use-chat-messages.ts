@@ -134,6 +134,9 @@ export function useChatMessages() {
     
     try {
       setIsLoading(true);
+      
+      console.log("Starting auto-summarization for messages:", relevantMessages.length);
+      
       // Call our new dedicated summarization function
       const { data, error } = await supabase.functions.invoke('save-ai-summary', {
         body: {
@@ -146,23 +149,28 @@ export function useChatMessages() {
       });
       
       if (error) {
-        throw error;
+        console.error("Error from save-ai-summary function:", error);
+        throw new Error(`Summarization API error: ${error.message}`);
       }
       
-      if (data.success) {
-        toast({
-          title: "Message Summarized",
-          description: "This conversation has been added to the knowledge base",
-          variant: "default",
-        });
-      } else {
-        throw new Error(data.error || "Summarization failed");
+      if (!data || data.success === false) {
+        throw new Error(data?.error || "Summarization failed with no specific error");
       }
+      
+      toast({
+        title: "Message Summarized",
+        description: "This conversation has been added to the knowledge base",
+        variant: "default",
+      });
+      
+      console.log("Summarization completed successfully");
     } catch (error) {
       console.error("Error summarizing message:", error);
+      
+      // Show more specific error toast
       toast({
         title: "Summarization Failed",
-        description: "Failed to add to knowledge base. Try again later.",
+        description: `Failed to add to knowledge base. ${error.message || "Try again later."}`,
         variant: "destructive",
       });
     } finally {
@@ -243,16 +251,17 @@ export function useChatMessages() {
       const updatedMessages = [...newMessages, assistantMessage];
       setMessages(updatedMessages);
       
-      // Handle auto-summarization if requested
-      if (autoSummarize) {
-        // Get all relevant messages for this summarization (current exchange)
-        const relevantMessages = [userMessage, assistantMessage];
-        await handleAutoSummarize(relevantMessages);
-      }
-      
       // Update the conversation in the database
       if (conversationId) {
         await updateConversation(conversationId, updatedMessages);
+      }
+      
+      // Handle auto-summarization if requested
+      if (autoSummarize) {
+        console.log("Auto-summarize flag detected, processing...");
+        // Get all relevant messages for this summarization (current exchange)
+        const relevantMessages = [userMessage, assistantMessage];
+        await handleAutoSummarize(relevantMessages);
       }
       
     } catch (error) {
@@ -272,6 +281,12 @@ export function useChatMessages() {
       if (conversationId) {
         await updateConversation(conversationId, updatedMessages);
       }
+      
+      toast({
+        title: "Error",
+        description: error.message || "Failed to process your message",
+        variant: "destructive",
+      });
       
     } finally {
       setIsLoading(false);
