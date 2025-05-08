@@ -24,7 +24,7 @@ export function WelcomeScreen({ onStarterClick }: WelcomeScreenProps) {
       <div className="text-center mb-8">
         <h2 className="text-2xl font-semibold mb-2">Welcome to BuntingGPT</h2>
         <p className="text-muted-foreground mb-4">
-          Your magnetic solutions assistant is ready to help you
+          Assistant is now smarter and faster
         </p>
       </div>
       
