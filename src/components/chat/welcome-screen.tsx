@@ -1,13 +1,24 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Sparkle, Lightbulb, Star } from "lucide-react";
+import { Sparkle, Lightbulb, Star, Calculator, Users } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface WelcomeScreenProps {
   onStarterClick: (question: string) => void;
 }
 
 export function WelcomeScreen({ onStarterClick }: WelcomeScreenProps) {
+  const navigate = useNavigate();
+
+  const handleAppLaunch = (question: string, appPath: string) => {
+    onStarterClick(question);
+    // Navigate to the application after a short delay to allow the message to be displayed
+    setTimeout(() => {
+      navigate(appPath);
+    }, 500);
+  };
+  
   return (
     <div className="flex flex-col items-center justify-center h-full">
       <div className="text-center mb-8">
@@ -45,24 +56,24 @@ export function WelcomeScreen({ onStarterClick }: WelcomeScreenProps) {
         <Button 
           variant="outline" 
           className="flex items-center justify-start h-auto p-4 text-left"
-          onClick={() => onStarterClick("What Bunting products are suitable for food industry applications?")}
+          onClick={() => handleAppLaunch("How do I calculate minimum stock levels?", "/calculators")}
         >
-          <Star className="mr-2 h-5 w-5 text-primary" />
+          <Calculator className="mr-2 h-5 w-5 text-primary" />
           <div>
-            <p className="font-medium">Food industry solutions</p>
-            <p className="text-sm text-muted-foreground">Magnetic products for food safety</p>
+            <p className="font-medium">Inventory management</p>
+            <p className="text-sm text-muted-foreground">Calculate minimum stock levels</p>
           </div>
         </Button>
         
         <Button 
           variant="outline" 
           className="flex items-center justify-start h-auto p-4 text-left"
-          onClick={() => onStarterClick("How do I choose the right metal detector for my conveyor belt?")}
+          onClick={() => handleAppLaunch("Do we have customers in Denver, Colorado?", "/apps")}
         >
-          <Sparkle className="mr-2 h-5 w-5 text-primary" />
+          <Users className="mr-2 h-5 w-5 text-primary" />
           <div>
-            <p className="font-medium">Metal detection</p>
-            <p className="text-sm text-muted-foreground">Selecting the right detector for conveyor belts</p>
+            <p className="font-medium">Customer prospecting</p>
+            <p className="text-sm text-muted-foreground">Find customers by location</p>
           </div>
         </Button>
       </div>
