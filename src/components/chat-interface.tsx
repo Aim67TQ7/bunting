@@ -44,7 +44,7 @@ export function ChatInterface() {
   return (
     <div className="flex h-full flex-col">
       <div className="flex-1 overflow-y-auto p-4">
-        {messages.length === 0 && !isLoading ? (
+        {messages.length === 0 && !isLoading && !conversationId ? (
           <WelcomeScreen onStarterClick={handleStarterClick} />
         ) : (
           <MessageList messages={messages} isLoading={isLoading} />
