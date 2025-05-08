@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Search, Send, Upload } from "lucide-react";
+import { Search, Send, Upload, Database } from "lucide-react";
 import { useState, FormEvent, useRef, ChangeEvent } from "react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -98,6 +98,16 @@ export function ChatInputEnhanced({ onSubmit, isDisabled, className }: ChatInput
     });
   };
 
+  const handleCompanyDataQuery = () => {
+    const companyPrefix = "^ ";
+    setMessage(prevMessage => {
+      if (prevMessage.startsWith(companyPrefix)) {
+        return prevMessage;
+      }
+      return companyPrefix + prevMessage;
+    });
+  };
+
   const placeholderText = 
     "Send a message... (& to auto-summarize, ^ for company data, ? for web search)";
   
@@ -117,6 +127,18 @@ export function ChatInputEnhanced({ onSubmit, isDisabled, className }: ChatInput
         >
           <Search className="h-4 w-4" />
           <span className="sr-only">Search</span>
+        </Button>
+        
+        <Button 
+          type="button" 
+          variant="ghost" 
+          size="icon"
+          onClick={handleCompanyDataQuery}
+          className="h-8 w-8"
+          title="Query company data"
+        >
+          <Database className="h-4 w-4" />
+          <span className="sr-only">Company Data</span>
         </Button>
         
         <Button 
@@ -143,7 +165,7 @@ export function ChatInputEnhanced({ onSubmit, isDisabled, className }: ChatInput
       
       <Textarea
         placeholder={placeholderText}
-        className="min-h-12 resize-none pl-20"
+        className="min-h-12 resize-none pl-24" // Adjusted padding for the additional button
         value={message}
         onChange={(e) => setMessage(e.target.value)}
         onKeyDown={handleKeyDown}

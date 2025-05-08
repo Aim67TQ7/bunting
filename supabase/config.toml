@@ -4,7 +4,7 @@ project_id = "qzwxisdfwswsrbzvpzlo"
 [api]
 enabled = true
 port = 54321
-schemas = ["public", "storage", "graphql_public"]
+schemas = ["public", "storage"]
 
 [db]
 port = 54322
@@ -15,9 +15,14 @@ enabled = true
 [storage]
 enabled = true
 
-[auth]
-enabled = true
+[functions.whereisit]
+verify_jwt = true
 
-[functions]
+[functions.generate-with-groq]
+verify_jwt = true
+
+[functions.query-company-data]
+verify_jwt = true
+
 [functions.summarize-conversations]
-verify_jwt = false
+verify_jwt = true

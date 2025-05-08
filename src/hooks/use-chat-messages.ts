@@ -111,7 +111,8 @@ export function useChatMessages() {
   // Handle company data queries
   const handleCompanyQuery = async (query: string) => {
     try {
-      const { data, error } = await supabase.functions.invoke('query-company-data', {
+      // Call the new whereisit edge function instead of query-company-data
+      const { data, error } = await supabase.functions.invoke('whereisit', {
         body: { query }
       });
 
@@ -119,36 +120,41 @@ export function useChatMessages() {
         throw error;
       }
 
-      if (!data.results || data.results.length === 0) {
+      if (!data) {
         return "No matching records found in company data.";
       }
-
-      // Format the results nicely
+      
+      // If the response contains a summary field, use that as the response
+      if (data.summary) {
+        return data.summary;
+      }
+      
+      // Format the results nicely if no summary is provided
       let formattedResponse = "Here are the results from company data:\n\n";
       
-      data.results.forEach(tableResult => {
-        formattedResponse += `## ${tableResult.table}\n\n`;
+      if (data.jobs && Array.isArray(data.jobs)) {
+        formattedResponse += `## Jobs for ${data.customer || 'Search'}\n\n`;
         
-        // Get all unique keys across all records
-        const allKeys = new Set<string>();
-        tableResult.data.forEach(record => {
-          Object.keys(record).forEach(key => allKeys.add(key));
+        data.jobs.forEach(job => {
+          formattedResponse += `### Job ${job.jobNumber || 'Unknown'}\n`;
+          formattedResponse += `- Part: ${job.partNumber || 'N/A'}\n`;
+          formattedResponse += `- Description: ${job.description || 'N/A'}\n`;
+          formattedResponse += `- Location: ${job.currentLocation || 'Unknown'}\n`;
+          formattedResponse += `- Status: ${job.status || 'N/A'}\n`;
+          if (job.dueDate) formattedResponse += `- Due: ${job.dueDate}\n`;
+          formattedResponse += '\n';
         });
-        
-        // Create formatted table
-        formattedResponse += '| ' + Array.from(allKeys).join(' | ') + ' |\n';
-        formattedResponse += '| ' + Array.from(allKeys).map(() => '---').join(' | ') + ' |\n';
-        
-        tableResult.data.forEach(record => {
-          const row = Array.from(allKeys).map(key => {
-            const value = record[key];
-            return value !== null && value !== undefined ? String(value) : '';
-          });
-          formattedResponse += '| ' + row.join(' | ') + ' |\n';
+      } else {
+        // Generic object formatting if structure is unknown
+        Object.entries(data).forEach(([key, value]) => {
+          if (typeof value === 'object' && value !== null) {
+            formattedResponse += `## ${key}\n\n`;
+            formattedResponse += `\`\`\`json\n${JSON.stringify(value, null, 2)}\n\`\`\`\n\n`;
+          } else {
+            formattedResponse += `**${key}**: ${value}\n\n`;
+          }
         });
-        
-        formattedResponse += '\n\n';
-      });
+      }
 
       return formattedResponse;
     } catch (error) {
