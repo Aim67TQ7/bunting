@@ -129,16 +129,19 @@ export function useChatMessages() {
   };
 
   // Handle auto-summarization of messages
-  const handleAutoSummarize = async (message: Message, assistantResponse: Message) => {
+  const handleAutoSummarize = async (relevantMessages: Message[]) => {
+    if (!user) return;
+    
     try {
-      // Call the summarization function to add this to the knowledge base
-      const { data, error } = await supabase.functions.invoke('summarize-conversations', {
+      setIsLoading(true);
+      // Call our new dedicated summarization function
+      const { data, error } = await supabase.functions.invoke('save-ai-summary', {
         body: {
-          messages: [
-            { role: message.role, content: message.content },
-            { role: assistantResponse.role, content: assistantResponse.content }
-          ],
-          immediate: true
+          messages: relevantMessages.map(msg => ({
+            role: msg.role,
+            content: msg.content
+          })),
+          userId: user.id
         }
       });
       
@@ -146,11 +149,15 @@ export function useChatMessages() {
         throw error;
       }
       
-      toast({
-        title: "Message Summarized",
-        description: "This conversation has been added to the knowledge base",
-        variant: "default",
-      });
+      if (data.success) {
+        toast({
+          title: "Message Summarized",
+          description: "This conversation has been added to the knowledge base",
+          variant: "default",
+        });
+      } else {
+        throw new Error(data.error || "Summarization failed");
+      }
     } catch (error) {
       console.error("Error summarizing message:", error);
       toast({
@@ -158,6 +165,8 @@ export function useChatMessages() {
         description: "Failed to add to knowledge base. Try again later.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -236,7 +245,9 @@ export function useChatMessages() {
       
       // Handle auto-summarization if requested
       if (autoSummarize) {
-        handleAutoSummarize(userMessage, assistantMessage);
+        // Get all relevant messages for this summarization (current exchange)
+        const relevantMessages = [userMessage, assistantMessage];
+        await handleAutoSummarize(relevantMessages);
       }
       
       // Update the conversation in the database
