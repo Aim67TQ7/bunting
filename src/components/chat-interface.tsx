@@ -13,7 +13,7 @@ export function ChatInterface() {
   const [searchParams] = useSearchParams();
   const conversationId = searchParams.get('conversation');
   
-  const { messages, isLoading, sendMessage, loadConversation } = useChatMessages();
+  const { messages, isLoading, sendMessage, loadConversation, conversationId: activeConversationId } = useChatMessages();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Load conversation if ID is provided in URL
@@ -53,7 +53,11 @@ export function ChatInterface() {
       </div>
       
       <div className="border-t">
-        <ChatInputEnhanced onSubmit={handleSendMessage} isDisabled={isLoading} />
+        <ChatInputEnhanced 
+          onSubmit={handleSendMessage} 
+          isDisabled={isLoading} 
+          conversationId={activeConversationId}
+        />
       </div>
     </div>
   );

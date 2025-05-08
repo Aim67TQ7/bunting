@@ -161,88 +161,6 @@ export function useChatMessages() {
     }
   };
 
-  // Handle company data queries
-  const handleCompanyQuery = async (query: string) => {
-    try {
-      // Call the new whereisit edge function instead of query-company-data
-      const { data, error } = await supabase.functions.invoke('whereisit', {
-        body: { query }
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      if (!data) {
-        return "No matching records found in company data.";
-      }
-      
-      // If the response contains a summary field, use that as the response
-      if (data.summary) {
-        return data.summary;
-      }
-      
-      // Format the results nicely if no summary is provided
-      let formattedResponse = "Here are the results from company data:\n\n";
-      
-      if (data.jobs && Array.isArray(data.jobs)) {
-        formattedResponse += `## Jobs for ${data.customer || 'Search'}\n\n`;
-        
-        data.jobs.forEach(job => {
-          formattedResponse += `### Job ${job.jobNumber || 'Unknown'}\n`;
-          formattedResponse += `- Part: ${job.partNumber || 'N/A'}\n`;
-          formattedResponse += `- Description: ${job.description || 'N/A'}\n`;
-          formattedResponse += `- Location: ${job.currentLocation || 'Unknown'}\n`;
-          formattedResponse += `- Status: ${job.status || 'N/A'}\n`;
-          if (job.dueDate) formattedResponse += `- Due: ${job.dueDate}\n`;
-          formattedResponse += '\n';
-        });
-      } else {
-        // Generic object formatting if structure is unknown
-        Object.entries(data).forEach(([key, value]) => {
-          if (typeof value === 'object' && value !== null) {
-            formattedResponse += `## ${key}\n\n`;
-            formattedResponse += `\`\`\`json\n${JSON.stringify(value, null, 2)}\n\`\`\`\n\n`;
-          } else {
-            formattedResponse += `**${key}**: ${value}\n\n`;
-          }
-        });
-      }
-
-      return formattedResponse;
-    } catch (error) {
-      console.error("Error querying company data:", error);
-      return "Error querying company data: " + error.message;
-    }
-  };
-
-  // Handle web search
-  const handleWebSearch = async (query: string) => {
-    try {
-      // Generate search results with GROQ
-      const { data, error } = await supabase.functions.invoke('generate-with-groq', {
-        body: {
-          messages: [
-            { 
-              role: "system", 
-              content: "You are BuntingGPT equipped with web search capabilities. Please search the web for information about: " + query + " and provide a comprehensive, well-sourced response."
-            },
-            { role: "user", content: query }
-          ]
-        }
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      return data.choices[0].message.content;
-    } catch (error) {
-      console.error("Error performing web search:", error);
-      return "Error performing web search: " + error.message;
-    }
-  };
-
   // Handle file uploads and analysis
   const handleFileUpload = async (file: File) => {
     try {
@@ -282,11 +200,7 @@ export function useChatMessages() {
       let assistantContent = "";
       
       // Handle special query types
-      if (queryType === "company") {
-        assistantContent = await handleCompanyQuery(content);
-      } else if (queryType === "search") {
-        assistantContent = await handleWebSearch(content);
-      } else if (queryType === "file" && file) {
+      if (queryType === "file" && file) {
         assistantContent = await handleFileUpload(file);
       } else {
         // Regular GROQ query
