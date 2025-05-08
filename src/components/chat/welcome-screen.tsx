@@ -56,7 +56,7 @@ export function WelcomeScreen({ onStarterClick }: WelcomeScreenProps) {
         <Button 
           variant="outline" 
           className="flex items-center justify-start h-auto p-4 text-left"
-          onClick={() => handleAppLaunch("How do I calculate minimum stock levels?", "/iframe?url=https://stock-calculator.bunting.com&title=Stock Levels Calculator")}
+          onClick={() => handleAppLaunch("How do I calculate minimum stock levels?", "/iframe?url=https://stock.buntinggpt.com&title=Stock Levels Calculator")}
         >
           <Calculator className="mr-2 h-5 w-5 text-primary" />
           <div>
