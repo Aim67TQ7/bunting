@@ -18,7 +18,8 @@ export function useChatMessages() {
     if (!user) return;
     
     try {
-      setIsLoading(true);
+      // Don't set isLoading here as it's used for AI responses
+      // The parent component should track history loading separately
       
       const { data, error } = await supabase.functions.invoke('manage-conversations', {
         body: {
@@ -54,8 +55,7 @@ export function useChatMessages() {
         description: `Failed to load conversation: ${error.message || "Unknown error"}`,
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
+      throw error; // Re-throw so parent can handle it
     }
   };
 
