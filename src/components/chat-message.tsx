@@ -1,9 +1,13 @@
 
 import { cn } from "@/lib/utils";
-import { User, Bot } from "lucide-react";
+import { User, Bot, Copy, Check } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { BrandLogo } from "@/components/brand-logo";
-import { forwardRef } from "react";
+import { forwardRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeHighlight from "rehype-highlight";
+import { Button } from "./ui/button";
 
 export type MessageRole = "user" | "assistant";
 
@@ -16,6 +20,99 @@ interface ChatMessageProps {
 
 export const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>(
   ({ role, content, timestamp, isLoading }, ref) => {
+    const [copiedCode, setCopiedCode] = useState<string | null>(null);
+    
+    const copyToClipboard = (text: string) => {
+      navigator.clipboard.writeText(text);
+      setCopiedCode(text);
+      setTimeout(() => setCopiedCode(null), 2000);
+    };
+    
+    // Custom components for markdown rendering
+    const components = {
+      code({ node, inline, className, children, ...props }: any) {
+        const match = /language-(\w+)/.exec(className || "");
+        const codeContent = String(children).replace(/\n$/, "");
+        
+        if (inline) {
+          return <code className="bg-muted px-1 py-0.5 rounded text-sm" {...props}>{children}</code>;
+        }
+        
+        return (
+          <div className="relative group">
+            <div className="absolute right-2 top-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 opacity-70 hover:opacity-100"
+                onClick={() => copyToClipboard(codeContent)}
+                title="Copy code"
+              >
+                {copiedCode === codeContent ? (
+                  <Check className="h-4 w-4 text-green-500" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+            <pre className={cn(
+              "p-4 rounded-md bg-muted/50 overflow-x-auto text-sm",
+              match && "language-" + match[1]
+            )}>
+              <code className={cn(className)} {...props}>
+                {children}
+              </code>
+            </pre>
+          </div>
+        );
+      },
+      p({ children }: any) {
+        return <p className="mb-2 last:mb-0">{children}</p>;
+      },
+      ul({ children }: any) {
+        return <ul className="list-disc pl-6 mb-4">{children}</ul>;
+      },
+      ol({ children }: any) {
+        return <ol className="list-decimal pl-6 mb-4">{children}</ol>;
+      },
+      li({ children }: any) {
+        return <li className="mb-1">{children}</li>;
+      },
+      h1({ children }: any) {
+        return <h1 className="text-2xl font-bold mb-4">{children}</h1>;
+      },
+      h2({ children }: any) {
+        return <h2 className="text-xl font-bold mb-3">{children}</h2>;
+      },
+      h3({ children }: any) {
+        return <h3 className="text-lg font-bold mb-2">{children}</h3>;
+      },
+      a({ href, children }: any) {
+        return <a href={href} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">{children}</a>;
+      },
+      blockquote({ children }: any) {
+        return <blockquote className="border-l-4 border-muted-foreground/30 pl-4 italic my-4">{children}</blockquote>;
+      },
+      table({ children }: any) {
+        return <div className="overflow-x-auto mb-4"><table className="min-w-full border-collapse">{children}</table></div>;
+      },
+      thead({ children }: any) {
+        return <thead className="bg-muted/50">{children}</thead>;
+      },
+      tbody({ children }: any) {
+        return <tbody>{children}</tbody>;
+      },
+      tr({ children }: any) {
+        return <tr>{children}</tr>;
+      },
+      th({ children }: any) {
+        return <th className="border border-border p-2 text-left font-bold">{children}</th>;
+      },
+      td({ children }: any) {
+        return <td className="border border-border p-2">{children}</td>;
+      },
+    };
+    
     return (
       <div
         ref={ref}
@@ -50,7 +147,13 @@ export const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>(
                 <span className="inline-block h-2 w-2 animate-bounce rounded-full bg-muted-foreground"></span>
               </div>
             ) : (
-              <p>{content}</p>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                rehypePlugins={[rehypeHighlight]}
+                components={components}
+              >
+                {content}
+              </ReactMarkdown>
             )}
           </div>
         </div>
