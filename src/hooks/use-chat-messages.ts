@@ -6,6 +6,18 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from './use-toast';
 
+// Helper function to prepare message for JSON storage
+const prepareMessagesForStorage = (messages: Message[]) => {
+  return messages.map(msg => ({
+    id: msg.id,
+    role: msg.role,
+    content: msg.content,
+    timestamp: msg.timestamp instanceof Date ? msg.timestamp.toISOString() : msg.timestamp,
+    autoSummarize: msg.autoSummarize || false,
+    queryType: msg.queryType || null
+  }));
+};
+
 export function useChatMessages() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -20,12 +32,13 @@ export function useChatMessages() {
       try {
         // Create conversation entry or update
         let convoId = conversationId;
+        const preparedMessages = prepareMessagesForStorage(messages);
         
         if (isNew || !convoId) {
           const { data, error } = await supabase.from('conversations').insert({
             user_id: user.id,
             topic: topic,
-            content: messages,
+            content: preparedMessages, // Use prepared messages
             last_message_at: new Date().toISOString()
           }).select('id').single();
           
@@ -37,7 +50,7 @@ export function useChatMessages() {
           const { error } = await supabase
             .from('conversations')
             .update({ 
-              content: messages, 
+              content: preparedMessages, // Use prepared messages
               last_message_at: new Date().toISOString(),
               topic: topic 
             })
@@ -75,7 +88,13 @@ export function useChatMessages() {
         if (error) throw error;
         
         if (data) {
-          setMessages(data.content || []);
+          // Transform ISO date strings back to Date objects
+          const loadedMessages = data.content ? data.content.map((msg: any) => ({
+            ...msg,
+            timestamp: new Date(msg.timestamp)
+          })) : [];
+          
+          setMessages(loadedMessages);
           setConversationId(data.id);
         }
       } catch (error) {
@@ -103,7 +122,7 @@ export function useChatMessages() {
       try {
         const { data, error } = await supabase.functions.invoke('save-ai-summary', {
           body: { 
-            messages: relevantMessages,
+            messages: prepareMessagesForStorage(relevantMessages), // Use prepared messages
             userId: user.id
           }
         });
