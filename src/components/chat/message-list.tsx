@@ -55,9 +55,6 @@ export function MessageList({ messages, isAiResponding }: MessageListProps) {
     }
   };
 
-  // Show typing indicator when AI is responding
-  const showTypingIndicator = isAiResponding;
-
   return (
     <div className="space-y-4">
       {messages.map((message) => (
@@ -90,7 +87,8 @@ export function MessageList({ messages, isAiResponding }: MessageListProps) {
         </div>
       ))}
       
-      {showTypingIndicator && (
+      {/* Only show typing indicator when the AI is actually responding to a new message */}
+      {isAiResponding && (
         <ChatMessage
           role="assistant"
           content=""

@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+
+import { useState, useEffect, useCallback } from "react";
 import { Message } from "@/types/chat";
 import { nanoid } from "nanoid";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,6 +15,10 @@ export function useChatMessages() {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
+  const [loadingState, setLoadingState] = useState({
+    isLoading: false,
+    lastLoadedId: null as string | null
+  });
 
   // Load messages from local storage on component mount
   useEffect(() => {
@@ -49,18 +54,24 @@ export function useChatMessages() {
   }, [messages, conversationId]);
 
   // Clear local storage when creating a new conversation
-  const clearCurrentConversation = () => {
+  const clearCurrentConversation = useCallback(() => {
     localStorage.removeItem(LOCAL_STORAGE_KEY);
     setMessages([]);
     setConversationId(null);
-  };
+  }, []);
 
-  // Load an existing conversation by ID
-  const loadConversation = async (id: string) => {
+  // Load an existing conversation by ID - memoized to prevent unnecessary rerenders
+  const loadConversation = useCallback(async (id: string) => {
     if (!user) return;
     
+    // Skip if we're already loading this conversation or it's already loaded
+    if (loadingState.isLoading && loadingState.lastLoadedId === id) {
+      console.log(`Already loading conversation: ${id}`);
+      return;
+    }
+    
     try {
-      setIsLoading(true);
+      setLoadingState({ isLoading: true, lastLoadedId: id });
       
       console.log(`Loading conversation: ${id}`);
       
@@ -89,6 +100,7 @@ export function useChatMessages() {
           conversationId: id
         }));
         
+        // Update state with loaded conversation
         setMessages(loadedMessages);
         setConversationId(id);
         console.log(`Loaded conversation with ${loadedMessages.length} messages`);
@@ -108,12 +120,12 @@ export function useChatMessages() {
       });
       throw error; // Re-throw so parent can handle it
     } finally {
-      setIsLoading(false);
+      setLoadingState({ isLoading: false, lastLoadedId: id });
     }
-  };
+  }, [user, toast, loadingState]);
 
   // Create a new conversation or get the existing one
-  const getOrCreateConversation = async () => {
+  const getOrCreateConversation = useCallback(async () => {
     if (!user) return null;
     
     // If we're already in a conversation, return that ID
@@ -136,10 +148,10 @@ export function useChatMessages() {
       });
       return null;
     }
-  };
+  }, [user, conversationId, toast]);
   
   // Update existing conversation with new messages
-  const updateConversation = async (convoId: string, updatedMessages: Message[]) => {
+  const updateConversation = useCallback(async (convoId: string, updatedMessages: Message[]) => {
     if (!user) return;
     
     try {
@@ -185,10 +197,10 @@ export function useChatMessages() {
         });
       }
     }
-  };
+  }, [user, toast]);
 
   // Handle auto-summarization of messages
-  const handleAutoSummarize = async (relevantMessages: Message[]) => {
+  const handleAutoSummarize = useCallback(async (relevantMessages: Message[]) => {
     if (!user) return;
     
     try {
@@ -235,10 +247,10 @@ export function useChatMessages() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user, toast]);
 
   // Handle file uploads and analysis
-  const handleFileUpload = async (file: File) => {
+  const handleFileUpload = useCallback(async (file: File) => {
     try {
       // For simplicity, we'll just acknowledge the file was received
       // In a real implementation, you would upload to storage or process the file
@@ -247,9 +259,9 @@ export function useChatMessages() {
       console.error("Error handling file upload:", error);
       return "Error handling file: " + error.message;
     }
-  };
+  }, []);
 
-  const sendMessage = async (content: string, autoSummarize = false, queryType?: string, file?: File) => {
+  const sendMessage = useCallback(async (content: string, autoSummarize = false, queryType?: string, file?: File) => {
     // Add user message
     const userMessage: Message = {
       id: `user-${nanoid()}`,
@@ -362,7 +374,7 @@ export function useChatMessages() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [messages, conversationId, user, getOrCreateConversation, handleFileUpload, updateConversation, handleAutoSummarize, toast]);
 
   return {
     messages,

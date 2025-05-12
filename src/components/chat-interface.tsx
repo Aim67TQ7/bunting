@@ -30,7 +30,7 @@ export function ChatInterface() {
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
-  // Load conversation if ID is provided in URL
+  // Load conversation if ID is provided in URL - but only once
   useEffect(() => {
     const loadConvo = async () => {
       if (!conversationId || !user) return;
@@ -49,7 +49,12 @@ export function ChatInterface() {
       }
     };
     
-    loadConvo();
+    // Only load if we have a conversation ID and user
+    if (conversationId && user) {
+      loadConvo();
+    }
+    
+    // This effect should only run when conversationId, user, or loadAttempts change
   }, [conversationId, user, loadConversation, loadAttempts]);
   
   // Scroll to bottom when messages change
