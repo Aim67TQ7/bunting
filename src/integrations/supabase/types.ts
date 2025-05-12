@@ -490,6 +490,109 @@ export type Database = {
           },
         ]
       }
+      meeting_recordings: {
+        Row: {
+          audio_url: string | null
+          created_at: string | null
+          duration_seconds: number | null
+          id: string
+          is_processed: boolean | null
+          title: string | null
+          token: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          audio_url?: string | null
+          created_at?: string | null
+          duration_seconds?: number | null
+          id?: string
+          is_processed?: boolean | null
+          title?: string | null
+          token?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          audio_url?: string | null
+          created_at?: string | null
+          duration_seconds?: number | null
+          id?: string
+          is_processed?: boolean | null
+          title?: string | null
+          token?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      meeting_summaries: {
+        Row: {
+          created_at: string | null
+          id: string
+          key_points: Json | null
+          recording_id: string | null
+          summary: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          key_points?: Json | null
+          recording_id?: string | null
+          summary: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          key_points?: Json | null
+          recording_id?: string | null
+          summary?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_summaries_recording_id_fkey"
+            columns: ["recording_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_recordings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_tasks: {
+        Row: {
+          assigned_to: string | null
+          created_at: string | null
+          description: string
+          due_date: string | null
+          id: string
+          is_completed: boolean | null
+          recording_id: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string | null
+          description: string
+          due_date?: string | null
+          id?: string
+          is_completed?: boolean | null
+          recording_id?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string | null
+          description?: string
+          due_date?: string | null
+          id?: string
+          is_completed?: boolean | null
+          recording_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_tasks_recording_id_fkey"
+            columns: ["recording_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_recordings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -638,6 +741,38 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transcriptions: {
+        Row: {
+          confidence: number | null
+          created_at: string | null
+          id: string
+          recording_id: string | null
+          text: string
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string | null
+          id?: string
+          recording_id?: string | null
+          text: string
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string | null
+          id?: string
+          recording_id?: string | null
+          text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transcriptions_recording_id_fkey"
+            columns: ["recording_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_recordings"
             referencedColumns: ["id"]
           },
         ]

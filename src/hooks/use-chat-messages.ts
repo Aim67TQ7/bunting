@@ -18,8 +18,9 @@ export function useChatMessages() {
     if (!user) return;
     
     try {
-      // Don't set isLoading here as it's used for AI responses
-      // The parent component should track history loading separately
+      setIsLoading(true); // We DO need to set loading state here for UI feedback
+      
+      console.log(`Loading conversation: ${id}`);
       
       const { data, error } = await supabase.functions.invoke('manage-conversations', {
         body: {
@@ -41,6 +42,7 @@ export function useChatMessages() {
         
         setMessages(loadedMessages);
         setConversationId(id);
+        console.log(`Loaded conversation with ${loadedMessages.length} messages`);
       } else {
         toast({
           title: "Conversation not found",
@@ -56,6 +58,8 @@ export function useChatMessages() {
         variant: "destructive",
       });
       throw error; // Re-throw so parent can handle it
+    } finally {
+      setIsLoading(false); // Always clear loading state
     }
   };
 
@@ -70,6 +74,7 @@ export function useChatMessages() {
     
     try {
       const newId = nanoid();
+      console.log(`Creating new conversation with ID: ${newId}`);
       setConversationId(newId);
       return newId;
     } catch (error) {
@@ -88,6 +93,8 @@ export function useChatMessages() {
     if (!user) return;
     
     try {
+      console.log(`Saving conversation ${convoId} with ${updatedMessages.length} messages`);
+      
       const { error } = await supabase.functions.invoke('manage-conversations', {
         body: {
           action: 'saveConversation',
@@ -102,6 +109,8 @@ export function useChatMessages() {
       if (error) {
         throw new Error(`Error saving conversation: ${error.message}`);
       }
+      
+      console.log("Conversation saved successfully");
     } catch (error) {
       console.error("Error updating conversation:", error);
       
@@ -198,6 +207,7 @@ export function useChatMessages() {
       const newConvoId = await getOrCreateConversation(content);
       if (newConvoId) {
         setConversationId(newConvoId);
+        console.log(`Set new conversation ID: ${newConvoId}`);
       }
     }
     
@@ -251,10 +261,12 @@ export function useChatMessages() {
           } catch (e) {
             console.log(`Save attempt failed, retries left: ${retries - 1}`);
             retries--;
-            if (retries === 0) throw e; // Re-throw if all retries failed
+            if (retries === 0) console.error("All save attempts failed");
             await new Promise(r => setTimeout(r, 1000)); // Wait 1 second before retry
           }
         }
+      } else {
+        console.error("No conversation ID available for saving");
       }
       
       // Handle auto-summarization if requested

@@ -106,6 +106,11 @@ async function saveConversation(supabase, conversationData, userId) {
   const { id, messages, topic } = conversationData;
   console.log(`Saving conversation ${id} for user ${userId} with ${messages.length} messages`);
   
+  if (!id || !messages || !Array.isArray(messages) || messages.length === 0) {
+    console.error("Invalid conversation data:", { id, messagesLength: messages?.length });
+    throw new Error("Invalid conversation data provided");
+  }
+  
   // Prepare messages for storage (convert Date objects to ISO strings)
   const processedMessages = messages.map(msg => ({
     id: msg.id,
@@ -116,27 +121,32 @@ async function saveConversation(supabase, conversationData, userId) {
     queryType: msg.queryType || null
   }));
 
-  // Use upsert to handle both new and existing conversations
-  const { data, error } = await supabase
-    .from("conversations")
-    .upsert({
-      id: id,
-      user_id: userId,
-      topic: topic || processedMessages[0]?.content?.slice(0, 100) || "New Conversation",
-      content: processedMessages,
-      last_message_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    }, {
-      onConflict: 'id',
-      returning: 'minimal'
-    });
-  
-  if (error) {
-    console.error("Database error saving conversation:", error);
+  try {
+    // Use upsert to handle both new and existing conversations
+    const { data, error } = await supabase
+      .from("conversations")
+      .upsert({
+        id: id,
+        user_id: userId,
+        topic: topic || processedMessages[0]?.content?.slice(0, 100) || "New Conversation",
+        content: processedMessages,
+        last_message_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'id',
+        returning: 'minimal'
+      });
+    
+    if (error) {
+      console.error("Database error saving conversation:", error);
+      throw error;
+    }
+    
+    return { success: true, id };
+  } catch (error) {
+    console.error("Error in saveConversation:", error);
     throw error;
   }
-  
-  return { success: true, id };
 }
 
 async function listConversations(supabase, userId) {

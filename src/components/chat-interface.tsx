@@ -20,7 +20,7 @@ export function ChatInterface() {
   
   const { 
     messages, 
-    isLoading: isResponseLoading,  // Renamed for clarity - this is waiting for AI response
+    isLoading: isResponseLoading,
     sendMessage, 
     loadConversation, 
     conversationId: activeConversationId 
@@ -31,17 +31,19 @@ export function ChatInterface() {
   // Load conversation if ID is provided in URL
   useEffect(() => {
     const loadConvo = async () => {
-      if (conversationId && user) {
-        try {
-          setLoadError(null);
-          setIsHistoryLoading(true);
-          await loadConversation(conversationId);
-        } catch (err) {
-          console.error("Error loading conversation:", err);
-          setLoadError(err.message || "Failed to load conversation");
-        } finally {
-          setIsHistoryLoading(false);
-        }
+      if (!conversationId || !user) return;
+      
+      try {
+        console.log(`Attempting to load conversation: ${conversationId}`);
+        setLoadError(null);
+        setIsHistoryLoading(true);
+        await loadConversation(conversationId);
+        console.log("Conversation loaded successfully");
+      } catch (err) {
+        console.error("Error loading conversation:", err);
+        setLoadError(err.message || "Failed to load conversation");
+      } finally {
+        setIsHistoryLoading(false);
       }
     };
     
@@ -74,6 +76,16 @@ export function ChatInterface() {
   const showWelcomeScreen = messages.length === 0 && !isResponseLoading && !isHistoryLoading && !conversationId;
   const showLoadingError = messages.length === 0 && !isResponseLoading && conversationId && loadError;
   const showHistoryLoadingIndicator = isHistoryLoading && messages.length === 0;
+
+  console.log({
+    messagesLength: messages.length,
+    isResponseLoading,
+    isHistoryLoading,
+    conversationId,
+    showWelcomeScreen,
+    showLoadingError,
+    showHistoryLoadingIndicator
+  });
 
   return (
     <div className="flex h-full flex-col">

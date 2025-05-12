@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect } from "react";
 import { ChatMessage } from "@/components/chat-message";
 import { Message } from "@/types/chat";
@@ -6,7 +5,7 @@ import { Database, File, Search } from "lucide-react";
 
 interface MessageListProps {
   messages: Message[];
-  isAiResponding: boolean; // Renamed from isLoading to be more descriptive
+  isAiResponding: boolean; 
 }
 
 export function MessageList({ messages, isAiResponding }: MessageListProps) {
@@ -55,8 +54,16 @@ export function MessageList({ messages, isAiResponding }: MessageListProps) {
     }
   };
 
-  // Check if the last message is from the assistant - if it is, we shouldn't show a loading indicator
+  // Check if the last message is from the assistant (to avoid showing loading indicator when there's already an assistant response)
   const lastMessageIsFromAssistant = messages.length > 0 && messages[messages.length - 1].role === "assistant";
+
+  // For debugging
+  console.log({
+    messageCount: messages.length,
+    isAiResponding,
+    lastMessageIsFromAssistant,
+    shouldShowLoadingIndicator: isAiResponding && !lastMessageIsFromAssistant
+  });
 
   return (
     <div className="space-y-4">
