@@ -89,7 +89,7 @@ export function useChatMessages() {
         
         if (data) {
           // Transform ISO date strings back to Date objects
-          const loadedMessages = data.content ? data.content.map((msg: any) => ({
+          const loadedMessages = Array.isArray(data.content) ? data.content.map((msg: any) => ({
             ...msg,
             timestamp: new Date(msg.timestamp)
           })) : [];
