@@ -35,26 +35,33 @@ export function useChatMessages() {
         const preparedMessages = prepareMessagesForStorage(messages);
         
         if (isNew || !convoId) {
-          const { data, error } = await supabase.from('conversations').insert({
-            user_id: user.id,
-            topic: topic,
-            content: preparedMessages, // Use prepared messages
-            last_message_at: new Date().toISOString()
-          }).select('id').single();
+          // Use the manage-conversations edge function to save the conversation
+          const { data, error } = await supabase.functions.invoke('manage-conversations', {
+            body: {
+              action: 'saveConversation',
+              data: {
+                id: uuidv4(), // This will be a new conversation
+                messages: preparedMessages,
+                topic: topic
+              }
+            }
+          });
           
           if (error) throw error;
           convoId = data.id;
           setConversationId(convoId);
         } else {
           // Update existing conversation
-          const { error } = await supabase
-            .from('conversations')
-            .update({ 
-              content: preparedMessages, // Use prepared messages
-              last_message_at: new Date().toISOString(),
-              topic: topic 
-            })
-            .eq('id', convoId);
+          const { data, error } = await supabase.functions.invoke('manage-conversations', {
+            body: {
+              action: 'saveConversation',
+              data: {
+                id: convoId,
+                messages: preparedMessages,
+                topic: topic
+              }
+            }
+          });
             
           if (error) throw error;
         }
@@ -78,18 +85,18 @@ export function useChatMessages() {
       if (!user) return;
       
       try {
-        const { data, error } = await supabase
-          .from('conversations')
-          .select('*')
-          .eq('id', id)
-          .eq('user_id', user.id)
-          .single();
+        const { data, error } = await supabase.functions.invoke('manage-conversations', {
+          body: {
+            action: 'loadConversation',
+            data: { id }
+          }
+        });
           
         if (error) throw error;
         
         if (data) {
           // Transform ISO date strings back to Date objects
-          const loadedMessages = Array.isArray(data.content) ? data.content.map((msg: any) => ({
+          const loadedMessages = Array.isArray(data.messages) ? data.messages.map((msg: any) => ({
             ...msg,
             timestamp: new Date(msg.timestamp)
           })) : [];
@@ -122,7 +129,7 @@ export function useChatMessages() {
       try {
         const { data, error } = await supabase.functions.invoke('save-ai-summary', {
           body: { 
-            messages: prepareMessagesForStorage(relevantMessages), // Use prepared messages
+            messages: prepareMessagesForStorage(relevantMessages),
             userId: user.id
           }
         });

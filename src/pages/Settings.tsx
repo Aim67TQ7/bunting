@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ProfilePicture } from "@/components/settings/ProfilePicture";
 import { ProfileForm } from "@/components/settings/ProfileForm";
 import { profileSchema, ProfileFormValues, UserProfileData } from "@/types/profile";
-import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 
 export default function Settings() {
   const { user } = useAuth();
@@ -113,31 +113,77 @@ export default function Settings() {
           first_name: data.first_name,
           call_name: data.call_name,
           avatar_url: avatarUrl, // Make sure to include current avatar url
+          email: user.email,     // Update email field to match user's email
         })
         .eq("id", user.id);
       
       if (profileError) throw profileError;
       
-      // Update employee data using direct update
-      const { error: employeeError } = await supabase
+      // Check if employee record exists
+      const { data: existingEmployee, error: checkError } = await supabase
         .from('Employee_id')
-        .update({
-          department: data.department,
-          jobTitle: data.jobTitle,
-          officeLocation: data.officeLocation,
-          city: data.city,
-          state: data.state,
-          country: data.country,
-        })
-        .eq("user_id", user.id);
+        .select('user_id')
+        .eq("user_id", user.id)
+        .single();
+        
+      if (checkError && checkError.code !== "PGRST116") {
+        throw checkError;
+      }
       
-      if (employeeError) {
-        throw employeeError;
+      if (existingEmployee) {
+        // Update existing employee record
+        const { error: employeeError } = await supabase
+          .from('Employee_id')
+          .update({
+            department: data.department,
+            jobTitle: data.jobTitle,
+            officeLocation: data.officeLocation,
+            city: data.city,
+            state: data.state,
+            country: data.country,
+          })
+          .eq("user_id", user.id);
+        
+        if (employeeError) {
+          throw employeeError;
+        }
+      } else {
+        // Create new employee record if it doesn't exist yet
+        const { error: insertError } = await supabase
+          .from('Employee_id')
+          .insert({
+            user_id: user.id,
+            department: data.department,
+            jobTitle: data.jobTitle,
+            officeLocation: data.officeLocation,
+            city: data.city,
+            state: data.state,
+            country: data.country,
+            // Required field for Employee_id table
+            userPrincipalName: user.email 
+          });
+          
+        if (insertError) {
+          throw insertError;
+        }
       }
       
       toast({
         title: "Profile updated",
         description: "Your profile has been updated successfully",
+      });
+      
+      // Refresh user data
+      setUserData({
+        ...userData,
+        first_name: data.first_name,
+        call_name: data.call_name,
+        department: data.department,
+        jobTitle: data.jobTitle,
+        officeLocation: data.officeLocation,
+        city: data.city,
+        state: data.state,
+        country: data.country,
       });
       
     } catch (err) {
@@ -157,35 +203,37 @@ export default function Settings() {
   };
   
   return (
-    <div className="flex h-screen w-full overflow-hidden">
-      <AppSidebar className="w-64 flex-shrink-0" />
-      
-      <SidebarInset className="flex flex-1 flex-col overflow-hidden">
-        <div className="flex items-center justify-between border-b px-4 py-2">
-          <div className="flex gap-2 items-center">
-            <SidebarTrigger className="md:hidden" />
-            <h1 className="text-lg font-semibold">Profile Settings</h1>
-          </div>
-        </div>
+    <SidebarProvider>
+      <div className="flex h-screen w-full overflow-hidden">
+        <AppSidebar className="w-64 flex-shrink-0" />
         
-        <div className="flex-1 overflow-y-auto p-4 md:p-6">
-          <div className="mx-auto max-w-2xl">
-            <ProfilePicture 
-              userId={user?.id}
-              avatarUrl={avatarUrl}
-              firstName={userData?.first_name}
-              email={user?.email}
-              onAvatarUpdate={handleAvatarUpdate}
-            />
-            
-            <ProfileForm 
-              form={form} 
-              onSubmit={onSubmit} 
-              isLoading={isLoading} 
-            />
+        <SidebarInset className="flex flex-1 flex-col overflow-hidden">
+          <div className="flex items-center justify-between border-b px-4 py-2">
+            <div className="flex gap-2 items-center">
+              <SidebarTrigger className="md:hidden" />
+              <h1 className="text-lg font-semibold">Profile Settings</h1>
+            </div>
           </div>
-        </div>
-      </SidebarInset>
-    </div>
+          
+          <div className="flex-1 overflow-y-auto p-4 md:p-6">
+            <div className="mx-auto max-w-2xl">
+              <ProfilePicture 
+                userId={user?.id}
+                avatarUrl={avatarUrl}
+                firstName={userData?.first_name}
+                email={user?.email}
+                onAvatarUpdate={handleAvatarUpdate}
+              />
+              
+              <ProfileForm 
+                form={form} 
+                onSubmit={onSubmit} 
+                isLoading={isLoading} 
+              />
+            </div>
+          </div>
+        </SidebarInset>
+      </div>
+    </SidebarProvider>
   );
 }

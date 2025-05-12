@@ -46,8 +46,32 @@ serve(async (req) => {
         if (!data.id) {
           throw new Error("Missing conversation ID");
         }
-        // Ensure we have a valid UUID to work with
-        const conversationId = !uuidValidate(data.id) ? uuidv4() : data.id;
+        
+        // Check if this conversation already exists before creating a new UUID
+        let conversationId = data.id;
+        if (!uuidValidate(conversationId)) {
+          // Only generate a new UUID if this is a brand new conversation
+          conversationId = uuidv4();
+        } else {
+          // Check if the conversation exists
+          const { data: existingConvo, error: convoError } = await supabase
+            .from("conversations")
+            .select("id")
+            .eq("id", conversationId)
+            .eq("user_id", user.id)
+            .single();
+            
+          if (convoError && convoError.code !== "PGRST116") { // PGRST116 is "no rows returned" error
+            throw convoError;
+          }
+          
+          // If conversation doesn't exist (even though UUID format is valid), generate a new UUID
+          if (!existingConvo) {
+            conversationId = uuidv4();
+            console.log(`Valid UUID format but conversation not found. Creating new conversation with ID: ${conversationId}`);
+          }
+        }
+        
         result = await saveConversation(supabase, { ...data, id: conversationId }, user.id);
         break;
       case "listConversations":
@@ -55,6 +79,9 @@ serve(async (req) => {
         break;
       case "deleteConversation":
         result = await deleteConversation(supabase, data.id, user.id);
+        break;
+      case "searchConversations":
+        result = await searchConversations(supabase, data.query, user.id);
         break;
       default:
         throw new Error(`Unknown action: ${action}`);
@@ -193,4 +220,59 @@ async function deleteConversation(supabase, conversationId, userId) {
   }
   
   return { success: true };
+}
+
+async function searchConversations(supabase, query, userId) {
+  console.log(`Searching conversations for "${query}" (user: ${userId})`);
+  
+  if (!query || typeof query !== 'string') {
+    throw new Error("Invalid search query");
+  }
+  
+  // First, search by topic
+  const { data: topicResults, error: topicError } = await supabase
+    .from("conversations")
+    .select("*")
+    .eq("user_id", userId)
+    .ilike("topic", `%${query}%`)
+    .order("last_message_at", { ascending: false });
+    
+  if (topicError) {
+    console.error("Error searching by topic:", topicError);
+    throw topicError;
+  }
+
+  // Use a simple text search through the content
+  // This is not as efficient as a proper full-text search but works for this purpose
+  const { data: allConversations, error: contentError } = await supabase
+    .from("conversations")
+    .select("*")
+    .eq("user_id", userId)
+    .order("last_message_at", { ascending: false });
+    
+  if (contentError) {
+    console.error("Error fetching all conversations for content search:", contentError);
+    throw contentError;
+  }
+  
+  // Manual search through the content JSON for the query
+  // This approach has limitations for large datasets
+  const contentMatches = (allConversations || []).filter(convo => {
+    if (!convo.content || !Array.isArray(convo.content)) return false;
+    
+    return convo.content.some(message => 
+      message.content && 
+      typeof message.content === 'string' && 
+      message.content.toLowerCase().includes(query.toLowerCase())
+    );
+  });
+  
+  // Combine results, removing duplicates
+  const topicIds = new Set(topicResults?.map(c => c.id) || []);
+  const allResults = [
+    ...(topicResults || []),
+    ...(contentMatches || []).filter(c => !topicIds.has(c.id))
+  ];
+  
+  return { conversations: allResults };
 }

@@ -28,6 +28,24 @@ export function ProfilePicture({ userId, avatarUrl, firstName, email, onAvatarUp
       const fileExt = file.name.split('.').pop();
       const filePath = `${userId}/avatar.${fileExt}`;
       
+      // Check if avatars bucket exists, create if not
+      const { data: buckets, error: bucketsError } = await supabase.storage
+        .listBuckets();
+      
+      if (bucketsError) throw bucketsError;
+      
+      const avatarsBucketExists = buckets.some(bucket => bucket.name === 'avatars');
+      
+      if (!avatarsBucketExists) {
+        const { error: createBucketError } = await supabase.storage
+          .createBucket('avatars', {
+            public: true,
+            fileSizeLimit: 1024 * 1024 * 2 // 2MB
+          });
+        
+        if (createBucketError) throw createBucketError;
+      }
+      
       // Upload image to Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from("avatars")

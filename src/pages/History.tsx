@@ -3,12 +3,13 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { AppSidebar } from "@/components/app-sidebar";
-import { History as HistoryIcon, Loader2, Trash2, RefreshCw } from "lucide-react";
+import { History as HistoryIcon, Loader2, Trash2, RefreshCw, Search } from "lucide-react";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input"; 
 import { useNavigate } from "react-router-dom";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
@@ -24,7 +25,10 @@ interface ChatHistoryItem {
 const History = () => {
   const { user } = useAuth();
   const [chatHistory, setChatHistory] = useState<ChatHistoryItem[]>([]);
+  const [filteredChatHistory, setFilteredChatHistory] = useState<ChatHistoryItem[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [isSearching, setIsSearching] = useState(false);
   const [isDeletingId, setIsDeletingId] = useState<string | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
   const { toast } = useToast();
@@ -67,6 +71,7 @@ const History = () => {
       });
       
       setChatHistory(uniqueConversations || []);
+      setFilteredChatHistory(uniqueConversations || []);
     } catch (err) {
       console.error("Error fetching chat history:", err);
       toast({
@@ -78,6 +83,63 @@ const History = () => {
       setIsLoading(false);
     }
   }, [user, toast]);
+  
+  // Search conversations
+  const searchConversations = useCallback(async (query: string) => {
+    if (!user || !query.trim()) {
+      setFilteredChatHistory(chatHistory);
+      return;
+    }
+    
+    try {
+      setIsSearching(true);
+      
+      const { data, error } = await supabase.functions.invoke('manage-conversations', {
+        body: {
+          action: 'searchConversations',
+          data: { query: query.trim() }
+        }
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      setFilteredChatHistory(data.conversations || []);
+    } catch (err) {
+      console.error("Error searching conversations:", err);
+      toast({
+        title: "Error",
+        description: "Failed to search conversations. Please try again.",
+        variant: "destructive",
+      });
+      // Fall back to client-side filtering
+      const filtered = chatHistory.filter(chat => 
+        chat.topic.toLowerCase().includes(query.toLowerCase())
+      );
+      setFilteredChatHistory(filtered);
+    } finally {
+      setIsSearching(false);
+    }
+  }, [user, chatHistory, toast]);
+  
+  // Handle search input change
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+    
+    if (!query.trim()) {
+      setFilteredChatHistory(chatHistory);
+      return;
+    }
+    
+    // Debounce search for better performance
+    const timeoutId = setTimeout(() => {
+      searchConversations(query);
+    }, 300);
+    
+    return () => clearTimeout(timeoutId);
+  };
   
   // Only fetch chat history once when component mounts
   useEffect(() => {
@@ -103,6 +165,7 @@ const History = () => {
       }
       
       setChatHistory(prev => prev.filter(item => item.id !== id));
+      setFilteredChatHistory(prev => prev.filter(item => item.id !== id));
       
       toast({
         title: "Conversation deleted",
@@ -224,6 +287,22 @@ const History = () => {
             </Button>
           </div>
           
+          <div className="p-4 border-b">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Search conversations..."
+                className="pl-8 w-full"
+                value={searchQuery}
+                onChange={handleSearchChange}
+              />
+              {isSearching && (
+                <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />
+              )}
+            </div>
+          </div>
+          
           <div className="flex-1 overflow-y-auto p-4">
             {isLoading ? (
               <div className="space-y-4">
@@ -237,9 +316,9 @@ const History = () => {
                   </div>
                 ))}
               </div>
-            ) : chatHistory.length > 0 ? (
+            ) : filteredChatHistory.length > 0 ? (
               <div className="space-y-4">
-                {chatHistory.map((chat) => (
+                {filteredChatHistory.map((chat) => (
                   <div
                     key={chat.id}
                     className="rounded-lg border p-4 hover:bg-accent/50 transition-colors cursor-pointer"
@@ -300,6 +379,26 @@ const History = () => {
                     </p>
                   </div>
                 ))}
+              </div>
+            ) : searchQuery ? (
+              <div className="flex h-full flex-col items-center justify-center text-center">
+                <div className="rounded-full bg-muted p-4">
+                  <Search className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <h3 className="mt-4 text-lg font-medium">No results found</h3>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  No conversations match your search query
+                </p>
+                <Button 
+                  variant="outline" 
+                  className="mt-4"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setFilteredChatHistory(chatHistory);
+                  }}
+                >
+                  Clear Search
+                </Button>
               </div>
             ) : (
               <div className="flex h-full flex-col items-center justify-center text-center">
