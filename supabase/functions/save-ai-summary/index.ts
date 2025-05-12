@@ -32,13 +32,11 @@ serve(async (req) => {
     console.log(`Processing summarization for ${messages.length} messages`);
     
     // Format conversation for the AI
-    // Prepare system prompt for summarization
-    const systemPrompt = `You are an AI specialized in creating anonymized knowledge summaries. 
-      Review the conversation and extract key factual information, technical concepts, 
-      and industry knowledge. IMPORTANT: Remove any personal information, identifiers, 
-      company names, specific projects, or anything that could identify individuals or organizations. 
+    // Prepare system prompt for summarization with more direct tone
+    const systemPrompt = `Extract key factual information, technical concepts, and industry knowledge from the conversation. 
+      Remove any personal information, identifiers, company names, specific projects, or identifying details. 
       Format the output as concise, factual bullet points about magnetic technology, industry knowledge, 
-      or technical concepts that could be useful for future reference.`;
+      or technical concepts that will be useful for future reference. Be direct and matter-of-fact.`;
 
     if (!GROQ_API_KEY) {
       console.error("GROQ_API_KEY is not set");
