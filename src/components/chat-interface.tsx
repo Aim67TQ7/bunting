@@ -68,7 +68,16 @@ export function ChatInterface() {
   }, [messages]);
   
   const handleSendMessage = (content: string, autoSummarize = false, queryType?: string, file?: File) => {
-    sendMessage(content, autoSummarize, queryType, file);
+    // Check if message starts with "&" and mark for auto-summarization
+    let finalContent = content;
+    let shouldAutoSummarize = autoSummarize;
+    
+    if (content.startsWith('&')) {
+      finalContent = content.substring(1).trim();
+      shouldAutoSummarize = true;
+    }
+    
+    sendMessage(finalContent, shouldAutoSummarize, queryType, file);
   };
 
   const handleStarterClick = (question: string) => {
