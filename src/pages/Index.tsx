@@ -13,11 +13,12 @@ const Index = () => {
   const [conversationTitle, setConversationTitle] = useState<string | null>(null);
   const { user } = useAuth();
   const [isTitleLoading, setIsTitleLoading] = useState(false);
+  const [hasAttemptedLoad, setHasAttemptedLoad] = useState(false);
   
-  // Memoize the fetchConversationTitle function to prevent unnecessary rerenders
+  // Memoize the fetchConversationTitle function with proper debouncing
   const fetchConversationTitle = useCallback(async () => {
-    if (!conversationId || !user) {
-      setConversationTitle(null);
+    // Skip fetching if we already tried for this conversation or if missing required data
+    if (!conversationId || !user || hasAttemptedLoad) {
       return;
     }
     
@@ -26,6 +27,8 @@ const Index = () => {
     
     try {
       setIsTitleLoading(true);
+      console.log(`Fetching title for conversation: ${conversationId}`);
+      
       const { data, error } = await supabase
         .from("conversations")
         .select("topic")
@@ -39,17 +42,30 @@ const Index = () => {
         console.error("Error fetching conversation title:", error);
         setConversationTitle("Conversation");
       }
+      
+      // Mark that we've attempted to load the title for this conversation
+      setHasAttemptedLoad(true);
     } catch (err) {
       console.error("Error in fetchConversationTitle:", err);
       setConversationTitle("Conversation");
+      setHasAttemptedLoad(true);
     } finally {
       setIsTitleLoading(false);
     }
-  }, [conversationId, user, isTitleLoading]);
+  }, [conversationId, user, isTitleLoading, hasAttemptedLoad]);
   
+  // Reset state when conversation changes
   useEffect(() => {
-    fetchConversationTitle();
-  }, [fetchConversationTitle]);
+    setHasAttemptedLoad(false);
+    setConversationTitle(null);
+  }, [conversationId]);
+  
+  // Fetch title when needed
+  useEffect(() => {
+    if (conversationId && !hasAttemptedLoad) {
+      fetchConversationTitle();
+    }
+  }, [fetchConversationTitle, conversationId, hasAttemptedLoad]);
 
   return (
     <div className="flex h-screen w-full overflow-hidden">
@@ -60,7 +76,7 @@ const Index = () => {
           <div className="flex gap-2 items-center">
             <SidebarTrigger className="md:hidden" />
             <h1 className="text-lg font-semibold">
-              {conversationTitle ? conversationTitle : "New Chat"}
+              {conversationTitle ? conversationTitle : conversationId ? "Loading..." : "New Chat"}
             </h1>
           </div>
         </div>

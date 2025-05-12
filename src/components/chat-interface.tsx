@@ -1,5 +1,5 @@
 
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useChatMessages } from "@/hooks/use-chat-messages";
 import { WelcomeScreen } from "@/components/chat/welcome-screen";
@@ -18,6 +18,7 @@ export function ChatInterface() {
   const [loadAttempts, setLoadAttempts] = useState(0);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+  const [hasAttemptedLoad, setHasAttemptedLoad] = useState(false);
   
   const { 
     messages, 
@@ -31,31 +32,35 @@ export function ChatInterface() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Load conversation if ID is provided in URL - but only once
-  useEffect(() => {
-    const loadConvo = async () => {
-      if (!conversationId || !user) return;
-      
-      try {
-        console.log(`Attempting to load conversation: ${conversationId}`);
-        setLoadError(null);
-        setIsHistoryLoading(true);
-        await loadConversation(conversationId);
-        console.log("Conversation loaded successfully");
-      } catch (err) {
-        console.error("Error loading conversation:", err);
-        setLoadError(err.message || "Failed to load conversation");
-      } finally {
-        setIsHistoryLoading(false);
-      }
-    };
+  const loadConvo = useCallback(async () => {
+    if (!conversationId || !user || hasAttemptedLoad) return;
     
-    // Only load if we have a conversation ID and user
-    if (conversationId && user) {
+    try {
+      console.log(`Attempting to load conversation: ${conversationId}`);
+      setLoadError(null);
+      setIsHistoryLoading(true);
+      await loadConversation(conversationId);
+      console.log("Conversation loaded successfully");
+    } catch (err) {
+      console.error("Error loading conversation:", err);
+      setLoadError(err.message || "Failed to load conversation");
+    } finally {
+      setIsHistoryLoading(false);
+      setHasAttemptedLoad(true); // Mark that we've attempted to load
+    }
+  }, [conversationId, user, loadConversation, hasAttemptedLoad]);
+  
+  // Reset state when conversation changes
+  useEffect(() => {
+    setHasAttemptedLoad(false);
+  }, [conversationId]);
+  
+  // Trigger load conversation when needed
+  useEffect(() => {
+    if (conversationId && !hasAttemptedLoad) {
       loadConvo();
     }
-    
-    // This effect should only run when conversationId, user, or loadAttempts change
-  }, [conversationId, user, loadConversation, loadAttempts]);
+  }, [conversationId, loadConvo, hasAttemptedLoad]);
   
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -71,6 +76,7 @@ export function ChatInterface() {
   };
 
   const handleRetryLoad = () => {
+    setHasAttemptedLoad(false);
     setLoadAttempts(prev => prev + 1);
   };
   
@@ -144,7 +150,10 @@ export function ChatInterface() {
         )}
         
         {!showWelcomeScreen && !showLoadingError && !showHistoryLoadingIndicator && (
-          <MessageList messages={messages} isAiResponding={isAiResponding} />
+          <MessageList 
+            messages={messages} 
+            isAiResponding={isAiResponding && !hasAttemptedLoad} // Only show typing indicator for new messages, not loaded conversations
+          />
         )}
         
         <div ref={messagesEndRef} />

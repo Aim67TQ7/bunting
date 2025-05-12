@@ -17,10 +17,11 @@ export function useChatMessages() {
   const { toast } = useToast();
   const [loadingState, setLoadingState] = useState({
     isLoading: false,
-    lastLoadedId: null as string | null
+    lastLoadedId: null as string | null,
+    attempt: 0
   });
 
-  // Load messages from local storage on component mount
+  // Load messages from local storage on component mount - only once
   useEffect(() => {
     const savedData = localStorage.getItem(LOCAL_STORAGE_KEY);
     
@@ -65,13 +66,20 @@ export function useChatMessages() {
     if (!user) return;
     
     // Skip if we're already loading this conversation or it's already loaded
-    if (loadingState.isLoading && loadingState.lastLoadedId === id) {
-      console.log(`Already loading conversation: ${id}`);
+    if (
+      (loadingState.isLoading && loadingState.lastLoadedId === id) || 
+      (conversationId === id && messages.length > 0)
+    ) {
+      console.log(`Already loading or loaded conversation: ${id}`);
       return;
     }
     
     try {
-      setLoadingState({ isLoading: true, lastLoadedId: id });
+      setLoadingState(prev => ({ 
+        isLoading: true, 
+        lastLoadedId: id,
+        attempt: prev.attempt + 1 
+      }));
       
       console.log(`Loading conversation: ${id}`);
       
@@ -120,9 +128,9 @@ export function useChatMessages() {
       });
       throw error; // Re-throw so parent can handle it
     } finally {
-      setLoadingState({ isLoading: false, lastLoadedId: id });
+      setLoadingState(prev => ({ ...prev, isLoading: false }));
     }
-  }, [user, toast, loadingState]);
+  }, [user, toast, conversationId, messages, loadingState]);
 
   // Create a new conversation or get the existing one
   const getOrCreateConversation = useCallback(async () => {

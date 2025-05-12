@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -30,7 +30,8 @@ const History = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const fetchChatHistory = async () => {
+  // Memoize fetchChatHistory to prevent unnecessary function recreations
+  const fetchChatHistory = useCallback(async () => {
     if (!user) {
       setChatHistory([]);
       setIsLoading(false);
@@ -76,11 +77,12 @@ const History = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user, toast]);
   
+  // Only fetch chat history once when component mounts
   useEffect(() => {
     fetchChatHistory();
-  }, [user, toast]);
+  }, [fetchChatHistory]);
 
   const handleDeleteConversation = async (id: string) => {
     if (!user) return;
@@ -119,6 +121,8 @@ const History = () => {
   };
 
   const handleViewConversation = (id: string) => {
+    // Clear local storage before loading a new conversation to prevent glitches
+    localStorage.removeItem("current_conversation");
     navigate(`/?conversation=${id}`);
   };
 
@@ -192,6 +196,7 @@ const History = () => {
     );
   }
 
+  // Main history display
   return (
     <SidebarProvider>
       <div className="flex h-screen w-full overflow-hidden">
