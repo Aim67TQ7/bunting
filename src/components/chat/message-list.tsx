@@ -55,11 +55,10 @@ export function MessageList({ messages, isAiResponding }: MessageListProps) {
     }
   };
 
-  // Check if the last message is from the assistant (to avoid showing loading indicator when there's already an assistant response)
-  const lastMessageIsFromAssistant = messages.length > 0 && messages[messages.length - 1].role === "assistant";
-
-  // Only show the typing indicator when we're actually waiting for a new AI response
-  const showTypingIndicator = isAiResponding && !lastMessageIsFromAssistant;
+  // Check if we should show the typing indicator
+  // Only show if the AI is responding AND the last message is from the user
+  const lastMessageIsFromUser = messages.length > 0 && messages[messages.length - 1].role === "user";
+  const showTypingIndicator = isAiResponding && lastMessageIsFromUser;
 
   return (
     <div className="space-y-4">

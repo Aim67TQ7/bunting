@@ -42,7 +42,7 @@ const Index = () => {
           <div className="flex gap-2 items-center">
             <SidebarTrigger className="md:hidden" />
             <h1 className="text-lg font-semibold">
-              {conversationTitle ? `${conversationTitle}` : "Executive Assistant"}
+              {conversationTitle ? conversationTitle : "New Chat"}
             </h1>
           </div>
         </div>

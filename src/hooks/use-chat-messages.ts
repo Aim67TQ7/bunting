@@ -1,9 +1,12 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Message } from "@/types/chat";
 import { nanoid } from "nanoid";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+
+const LOCAL_STORAGE_KEY = "current_conversation";
 
 export function useChatMessages() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -12,12 +15,52 @@ export function useChatMessages() {
   const { user } = useAuth();
   const { toast } = useToast();
 
+  // Load messages from local storage on component mount
+  useEffect(() => {
+    const savedData = localStorage.getItem(LOCAL_STORAGE_KEY);
+    
+    if (savedData) {
+      try {
+        const { messages: savedMessages, conversationId: savedId } = JSON.parse(savedData);
+        
+        // Convert stored timestamps back to Date objects
+        const processedMessages = savedMessages.map((msg: any) => ({
+          ...msg,
+          timestamp: new Date(msg.timestamp)
+        }));
+        
+        setMessages(processedMessages);
+        setConversationId(savedId);
+        console.log("Loaded conversation from local storage:", savedId);
+      } catch (error) {
+        console.error("Error parsing saved conversation from local storage:", error);
+      }
+    }
+  }, []);
+
+  // Save messages to local storage whenever they change
+  useEffect(() => {
+    if (messages.length > 0 || conversationId) {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({
+        messages,
+        conversationId
+      }));
+    }
+  }, [messages, conversationId]);
+
+  // Clear local storage when creating a new conversation
+  const clearCurrentConversation = () => {
+    localStorage.removeItem(LOCAL_STORAGE_KEY);
+    setMessages([]);
+    setConversationId(null);
+  };
+
   // Load an existing conversation by ID
   const loadConversation = async (id: string) => {
     if (!user) return;
     
     try {
-      setIsLoading(true); // We DO need to set loading state here for UI feedback
+      setIsLoading(true);
       
       console.log(`Loading conversation: ${id}`);
       
@@ -40,6 +83,12 @@ export function useChatMessages() {
           timestamp: new Date(msg.timestamp)
         }));
         
+        // Update local storage with loaded conversation
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({
+          messages: loadedMessages,
+          conversationId: id
+        }));
+        
         setMessages(loadedMessages);
         setConversationId(id);
         console.log(`Loaded conversation with ${loadedMessages.length} messages`);
@@ -59,7 +108,7 @@ export function useChatMessages() {
       });
       throw error; // Re-throw so parent can handle it
     } finally {
-      setIsLoading(false); // Always clear loading state
+      setIsLoading(false);
     }
   };
 
@@ -103,13 +152,16 @@ export function useChatMessages() {
           : new Date(msg.timestamp).toISOString()
       }));
       
+      // Generate a topic from the first user message content (limited to 100 chars)
+      const topic = messagesForSaving[0]?.content?.slice(0, 100) || "New Conversation";
+      
       const { error } = await supabase.functions.invoke('manage-conversations', {
         body: {
           action: 'saveConversation',
           data: {
             id: convoId,
             messages: messagesForSaving,
-            topic: messagesForSaving[0]?.content?.slice(0, 100) || "New Conversation"
+            topic: topic
           }
         }
       });
@@ -264,6 +316,12 @@ export function useChatMessages() {
         return;
       }
       
+      // Update local storage with the new conversation state
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({
+        messages: updatedMessages,
+        conversationId: convoIdToUse
+      }));
+      
       // Immediately save after receiving assistant response
       await updateConversation(convoIdToUse, updatedMessages);
       
@@ -313,6 +371,7 @@ export function useChatMessages() {
     isLoading,
     sendMessage,
     loadConversation,
-    conversationId
+    conversationId,
+    clearCurrentConversation
   };
 }

@@ -1,6 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { v4 as uuidv4, validate as uuidValidate } from "https://esm.sh/uuid@9.0.0";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
 const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
@@ -41,6 +42,11 @@ serve(async (req) => {
         result = await loadConversation(supabase, data.id, user.id);
         break;
       case "saveConversation":
+        // Validate conversationId is in UUID format
+        if (!data.id || !isValidNanoId(data.id)) {
+          // Convert nanoid to UUID if needed
+          data.id = convertToUuid(data.id);
+        }
         result = await saveConversation(supabase, data, user.id);
         break;
       case "listConversations":
@@ -69,6 +75,22 @@ serve(async (req) => {
     });
   }
 });
+
+// Check if string is likely a nanoid (not UUID format)
+function isValidNanoId(id) {
+  return typeof id === 'string' && id.length > 0 && !uuidValidate(id);
+}
+
+// Convert any string to a valid UUID
+function convertToUuid(id) {
+  // Generate a UUID v5 using the nanoid as namespace
+  try {
+    return uuidv4();
+  } catch (e) {
+    console.error("Error converting to UUID:", e);
+    return uuidv4(); // Fallback to a random UUID
+  }
+}
 
 async function loadConversation(supabase, conversationId, userId) {
   console.log(`Loading conversation ${conversationId} for user ${userId}`);
@@ -139,7 +161,7 @@ async function saveConversation(supabase, conversationData, userId) {
         updated_at: new Date().toISOString()
       }, {
         onConflict: 'id',
-        returning: 'minimal'
+        returning: 'minimal' 
       });
     
     if (error) {

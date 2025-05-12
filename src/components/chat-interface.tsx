@@ -6,13 +6,14 @@ import { WelcomeScreen } from "@/components/chat/welcome-screen";
 import { MessageList } from "@/components/chat/message-list";
 import { LoginPrompt } from "@/components/chat/login-prompt";
 import { ChatInputEnhanced } from "@/components/chat-input-enhanced";
-import { useSearchParams } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { Loader2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function ChatInterface() {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const conversationId = searchParams.get('conversation');
   const [loadAttempts, setLoadAttempts] = useState(0);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -23,7 +24,8 @@ export function ChatInterface() {
     isLoading: isAiResponding,
     sendMessage, 
     loadConversation, 
-    conversationId: activeConversationId 
+    conversationId: activeConversationId,
+    clearCurrentConversation
   } = useChatMessages();
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -66,6 +68,11 @@ export function ChatInterface() {
   const handleRetryLoad = () => {
     setLoadAttempts(prev => prev + 1);
   };
+  
+  const handleStartNewChat = () => {
+    clearCurrentConversation();
+    navigate('/'); // Navigate to root without conversation parameter
+  };
 
   // Show login message for unauthenticated users
   if (!user) {
@@ -79,6 +86,22 @@ export function ChatInterface() {
 
   return (
     <div className="flex h-full flex-col">
+      <div className="flex items-center justify-between p-2 border-b">
+        <h2 className="text-sm font-medium">
+          {activeConversationId ? "Current Chat" : "New Chat"}
+        </h2>
+        <Button 
+          variant="ghost" 
+          size="sm"
+          onClick={handleStartNewChat}
+          disabled={messages.length === 0 && !activeConversationId}
+          className="flex items-center gap-1 text-xs"
+        >
+          <Plus className="h-3 w-3" />
+          New Chat
+        </Button>
+      </div>
+      
       <div className="flex-1 overflow-y-auto p-4">
         {showWelcomeScreen && (
           <WelcomeScreen onStarterClick={handleStarterClick} />
