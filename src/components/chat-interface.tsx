@@ -20,7 +20,7 @@ export function ChatInterface() {
   
   const { 
     messages, 
-    isLoading: isResponseLoading,
+    isLoading: isAiResponding,
     sendMessage, 
     loadConversation, 
     conversationId: activeConversationId 
@@ -73,19 +73,9 @@ export function ChatInterface() {
   }
 
   // Determine what to display based on loading and conversation state
-  const showWelcomeScreen = messages.length === 0 && !isResponseLoading && !isHistoryLoading && !conversationId;
-  const showLoadingError = messages.length === 0 && !isResponseLoading && conversationId && loadError;
+  const showWelcomeScreen = messages.length === 0 && !isAiResponding && !isHistoryLoading && !conversationId;
+  const showLoadingError = messages.length === 0 && !isAiResponding && conversationId && loadError;
   const showHistoryLoadingIndicator = isHistoryLoading && messages.length === 0;
-
-  console.log({
-    messagesLength: messages.length,
-    isResponseLoading,
-    isHistoryLoading,
-    conversationId,
-    showWelcomeScreen,
-    showLoadingError,
-    showHistoryLoadingIndicator
-  });
 
   return (
     <div className="flex h-full flex-col">
@@ -126,7 +116,7 @@ export function ChatInterface() {
         )}
         
         {!showWelcomeScreen && !showLoadingError && !showHistoryLoadingIndicator && (
-          <MessageList messages={messages} isAiResponding={isResponseLoading} />
+          <MessageList messages={messages} isAiResponding={isAiResponding} />
         )}
         
         <div ref={messagesEndRef} />
@@ -135,7 +125,7 @@ export function ChatInterface() {
       <div className="border-t">
         <ChatInputEnhanced 
           onSubmit={handleSendMessage} 
-          isDisabled={isResponseLoading || isHistoryLoading} 
+          isDisabled={isAiResponding || isHistoryLoading} 
           conversationId={activeConversationId}
         />
       </div>

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Message } from "@/types/chat";
 import { nanoid } from "nanoid";
@@ -30,6 +29,7 @@ export function useChatMessages() {
       });
       
       if (error) {
+        console.error("Error from manage-conversations function:", error);
         throw new Error(`Error loading conversation: ${error.message}`);
       }
       
@@ -95,13 +95,21 @@ export function useChatMessages() {
     try {
       console.log(`Saving conversation ${convoId} with ${updatedMessages.length} messages`);
       
+      // Ensure all timestamps are correctly serialized
+      const messagesForSaving = updatedMessages.map(msg => ({
+        ...msg,
+        timestamp: msg.timestamp instanceof Date 
+          ? msg.timestamp.toISOString() 
+          : new Date(msg.timestamp).toISOString()
+      }));
+      
       const { error } = await supabase.functions.invoke('manage-conversations', {
         body: {
           action: 'saveConversation',
           data: {
             id: convoId,
-            messages: updatedMessages,
-            topic: updatedMessages[0]?.content?.slice(0, 100) || "New Conversation"
+            messages: messagesForSaving,
+            topic: messagesForSaving[0]?.content?.slice(0, 100) || "New Conversation"
           }
         }
       });
@@ -249,25 +257,15 @@ export function useChatMessages() {
       const updatedMessages = [...newMessages, assistantMessage];
       setMessages(updatedMessages);
       
-      // Update the conversation in the database with retry logic
-      if (conversationId) {
-        let retries = 3;
-        let saved = false;
-        
-        while (retries > 0 && !saved) {
-          try {
-            await updateConversation(conversationId, updatedMessages);
-            saved = true;
-          } catch (e) {
-            console.log(`Save attempt failed, retries left: ${retries - 1}`);
-            retries--;
-            if (retries === 0) console.error("All save attempts failed");
-            await new Promise(r => setTimeout(r, 1000)); // Wait 1 second before retry
-          }
-        }
-      } else {
+      // Ensure we have a conversation ID before trying to save
+      const convoIdToUse = conversationId;
+      if (!convoIdToUse) {
         console.error("No conversation ID available for saving");
+        return;
       }
+      
+      // Immediately save after receiving assistant response
+      await updateConversation(convoIdToUse, updatedMessages);
       
       // Handle auto-summarization if requested
       if (autoSummarize) {

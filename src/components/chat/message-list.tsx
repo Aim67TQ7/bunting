@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect } from "react";
 import { ChatMessage } from "@/components/chat-message";
 import { Message } from "@/types/chat";
@@ -57,13 +58,8 @@ export function MessageList({ messages, isAiResponding }: MessageListProps) {
   // Check if the last message is from the assistant (to avoid showing loading indicator when there's already an assistant response)
   const lastMessageIsFromAssistant = messages.length > 0 && messages[messages.length - 1].role === "assistant";
 
-  // For debugging
-  console.log({
-    messageCount: messages.length,
-    isAiResponding,
-    lastMessageIsFromAssistant,
-    shouldShowLoadingIndicator: isAiResponding && !lastMessageIsFromAssistant
-  });
+  // Only show the typing indicator when we're actually waiting for a new AI response
+  const showTypingIndicator = isAiResponding && !lastMessageIsFromAssistant;
 
   return (
     <div className="space-y-4">
@@ -97,10 +93,7 @@ export function MessageList({ messages, isAiResponding }: MessageListProps) {
         </div>
       ))}
       
-      {/* Only show the loading indicator if:
-          1. isAiResponding is true AND
-          2. The last message is NOT from the assistant (meaning we're waiting for a new response) */}
-      {isAiResponding && !lastMessageIsFromAssistant && (
+      {showTypingIndicator && (
         <ChatMessage
           role="assistant"
           content=""

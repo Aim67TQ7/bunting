@@ -73,6 +73,11 @@ serve(async (req) => {
 async function loadConversation(supabase, conversationId, userId) {
   console.log(`Loading conversation ${conversationId} for user ${userId}`);
   
+  // Input validation
+  if (!conversationId) {
+    throw new Error("Missing conversation ID");
+  }
+  
   const { data, error } = await supabase
     .from("conversations")
     .select("content, topic")
@@ -104,14 +109,14 @@ async function loadConversation(supabase, conversationId, userId) {
 
 async function saveConversation(supabase, conversationData, userId) {
   const { id, messages, topic } = conversationData;
-  console.log(`Saving conversation ${id} for user ${userId} with ${messages.length} messages`);
+  console.log(`Saving conversation ${id} for user ${userId} with ${messages?.length} messages`);
   
   if (!id || !messages || !Array.isArray(messages) || messages.length === 0) {
     console.error("Invalid conversation data:", { id, messagesLength: messages?.length });
     throw new Error("Invalid conversation data provided");
   }
   
-  // Prepare messages for storage (convert Date objects to ISO strings)
+  // Prepare messages for storage (ensure timestamps are ISO strings)
   const processedMessages = messages.map(msg => ({
     id: msg.id,
     role: msg.role,
