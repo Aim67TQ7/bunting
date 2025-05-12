@@ -14,7 +14,7 @@ export function MessageList({ messages, isAiResponding }: MessageListProps) {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, isAiResponding]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -55,10 +55,8 @@ export function MessageList({ messages, isAiResponding }: MessageListProps) {
     }
   };
 
-  // Check if we should show the typing indicator
-  // Only show if the AI is responding AND the last message is from the user
-  const lastMessageIsFromUser = messages.length > 0 && messages[messages.length - 1].role === "user";
-  const showTypingIndicator = isAiResponding && lastMessageIsFromUser;
+  // Show typing indicator when AI is responding
+  const showTypingIndicator = isAiResponding;
 
   return (
     <div className="space-y-4">

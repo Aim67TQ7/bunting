@@ -42,12 +42,13 @@ serve(async (req) => {
         result = await loadConversation(supabase, data.id, user.id);
         break;
       case "saveConversation":
-        // Validate conversationId is in UUID format
-        if (!data.id || !isValidNanoId(data.id)) {
-          // Convert nanoid to UUID if needed
-          data.id = convertToUuid(data.id);
+        // Validate conversationId format
+        if (!data.id) {
+          throw new Error("Missing conversation ID");
         }
-        result = await saveConversation(supabase, data, user.id);
+        // Ensure we have a valid UUID to work with
+        const conversationId = !uuidValidate(data.id) ? uuidv4() : data.id;
+        result = await saveConversation(supabase, { ...data, id: conversationId }, user.id);
         break;
       case "listConversations":
         result = await listConversations(supabase, user.id);
@@ -75,22 +76,6 @@ serve(async (req) => {
     });
   }
 });
-
-// Check if string is likely a nanoid (not UUID format)
-function isValidNanoId(id) {
-  return typeof id === 'string' && id.length > 0 && !uuidValidate(id);
-}
-
-// Convert any string to a valid UUID
-function convertToUuid(id) {
-  // Generate a UUID v5 using the nanoid as namespace
-  try {
-    return uuidv4();
-  } catch (e) {
-    console.error("Error converting to UUID:", e);
-    return uuidv4(); // Fallback to a random UUID
-  }
-}
 
 async function loadConversation(supabase, conversationId, userId) {
   console.log(`Loading conversation ${conversationId} for user ${userId}`);

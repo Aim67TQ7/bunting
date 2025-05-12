@@ -1,10 +1,10 @@
-
 import { useState, useEffect } from "react";
 import { Message } from "@/types/chat";
 import { nanoid } from "nanoid";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { v4 as uuidv4 } from "uuid";
 
 const LOCAL_STORAGE_KEY = "current_conversation";
 
@@ -113,7 +113,7 @@ export function useChatMessages() {
   };
 
   // Create a new conversation or get the existing one
-  const getOrCreateConversation = async (firstMessageContent: string) => {
+  const getOrCreateConversation = async () => {
     if (!user) return null;
     
     // If we're already in a conversation, return that ID
@@ -122,7 +122,8 @@ export function useChatMessages() {
     }
     
     try {
-      const newId = nanoid();
+      // Generate a proper UUID instead of nanoid for compatibility with Postgres
+      const newId = uuidv4();
       console.log(`Creating new conversation with ID: ${newId}`);
       setConversationId(newId);
       return newId;
@@ -153,7 +154,8 @@ export function useChatMessages() {
       }));
       
       // Generate a topic from the first user message content (limited to 100 chars)
-      const topic = messagesForSaving[0]?.content?.slice(0, 100) || "New Conversation";
+      const firstUserMessage = messagesForSaving.find(m => m.role === 'user');
+      const topic = firstUserMessage?.content?.slice(0, 100) || "New Conversation";
       
       const { error } = await supabase.functions.invoke('manage-conversations', {
         body: {
@@ -263,11 +265,12 @@ export function useChatMessages() {
     setIsLoading(true);
     
     // Create a new conversation if this is the first user message
-    if (!conversationId && user) {
-      const newConvoId = await getOrCreateConversation(content);
-      if (newConvoId) {
-        setConversationId(newConvoId);
-        console.log(`Set new conversation ID: ${newConvoId}`);
+    let convoIdToUse = conversationId;
+    if (!convoIdToUse && user) {
+      convoIdToUse = await getOrCreateConversation();
+      if (convoIdToUse) {
+        setConversationId(convoIdToUse);
+        console.log(`Set new conversation ID: ${convoIdToUse}`);
       }
     }
     
@@ -309,21 +312,16 @@ export function useChatMessages() {
       const updatedMessages = [...newMessages, assistantMessage];
       setMessages(updatedMessages);
       
-      // Ensure we have a conversation ID before trying to save
-      const convoIdToUse = conversationId;
-      if (!convoIdToUse) {
-        console.error("No conversation ID available for saving");
-        return;
-      }
-      
       // Update local storage with the new conversation state
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({
-        messages: updatedMessages,
-        conversationId: convoIdToUse
-      }));
-      
-      // Immediately save after receiving assistant response
-      await updateConversation(convoIdToUse, updatedMessages);
+      if (convoIdToUse) {
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({
+          messages: updatedMessages,
+          conversationId: convoIdToUse
+        }));
+        
+        // Immediately save to database after receiving assistant response
+        await updateConversation(convoIdToUse, updatedMessages);
+      }
       
       // Handle auto-summarization if requested
       if (autoSummarize) {
@@ -347,9 +345,9 @@ export function useChatMessages() {
       setMessages(updatedMessages);
       
       // Still update the conversation with the error message
-      if (conversationId) {
+      if (convoIdToUse) {
         try {
-          await updateConversation(conversationId, updatedMessages);
+          await updateConversation(convoIdToUse, updatedMessages);
         } catch (e) {
           console.error("Failed to save error message:", e);
         }
