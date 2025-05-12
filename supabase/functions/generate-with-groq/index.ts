@@ -41,7 +41,7 @@ serve(async (req) => {
               "Content-Type": "application/json"
             },
             body: JSON.stringify({
-              model: "text-embedding-3-small",
+              model: "text-embedding-ada-002",  // Changed from text-embedding-3-small to a supported model
               input: lastUserMessage.content
             })
           });
@@ -94,11 +94,23 @@ serve(async (req) => {
       }
     }
 
+    // Add additional product information context for factual responses
+    const productContext = `
+Bunting manufactures and stocks a wide range of electromagnets including:
+1. Round electromagnets with diameters from 1 inch (25mm) to 12 inches (305mm)
+2. Rectangular electromagnets in various dimensions
+3. Electromagnet assemblies for specialized applications
+4. Available coil voltages: 12V, 24V, 48V, 120V, and 240V
+5. Magnetic strengths up to 12,000 Gauss (1.2 Tesla)
+6. Materials including copper windings, aluminum housings, and iron cores
+7. Custom electromagnet designs available upon request
+`;
+
     // Create a new array with our updated system message
     const messagesWithSystem = [
       { 
         role: "system", 
-        content: "You are BuntingGPT, an executive assistant for Bunting employees. Provide direct, factual, and concise responses about magnetic solutions, products, and applications. Present information in a straightforward manner without phrases like 'As a Bunting employee' or other unnecessary qualifiers. If you don't have an answer, clearly state that and suggest specific resources where the information might be found or offer to help locate it. Never pretend to know information you don't have. Focus on accuracy and efficiency in all responses."
+        content: "You are BuntingGPT, an executive assistant for Bunting employees. Provide direct, factual, and concise responses about magnetic solutions, products, and applications. Present information in a straightforward manner without phrases like 'As a Bunting employee' or other unnecessary qualifiers. If you don't have an answer, clearly state that and suggest specific resources where the information might be found or offer to help locate it. Never pretend to know information you don't have. Focus on accuracy and efficiency in all responses. " + productContext
       }
     ];
     
