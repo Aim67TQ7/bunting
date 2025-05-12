@@ -59,7 +59,7 @@ serve(async (req) => {
             content: msg.content
           }))
         ],
-        temperature: 0.5,
+        temperature: 0.1, // Updated: Changed from 0.5 to 0.1 for more factual summaries
         max_tokens: 1024
       })
     });

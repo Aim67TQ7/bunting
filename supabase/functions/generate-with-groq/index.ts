@@ -124,7 +124,7 @@ serve(async (req) => {
         model: "llama3-70b-8192",
         messages: messagesWithSystem,
         stream,
-        temperature: 0.7,
+        temperature: 0.1, // Updated: Changed from 0.7 to 0.1 for more precise, factual responses
         max_tokens: 1024
       })
     });
