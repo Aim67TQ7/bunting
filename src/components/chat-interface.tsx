@@ -1,4 +1,3 @@
-
 import { useRef, useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useChatMessages } from "@/hooks/use-chat-messages";
@@ -7,7 +6,7 @@ import { MessageList } from "@/components/chat/message-list";
 import { LoginPrompt } from "@/components/chat/login-prompt";
 import { ChatInputEnhanced } from "@/components/chat-input-enhanced";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { Loader2, Plus, MessageSquare, Web } from "lucide-react";
+import { Loader2, Plus, MessageSquare, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 
@@ -142,7 +141,7 @@ export function ChatInterface() {
             className="rounded-full"
             title={webEnabled ? "Web Access Enabled" : "Enable Web Access"}
           >
-            <Web className="h-4 w-4" />
+            <Globe className="h-4 w-4" />
             <span className="sr-only">Web Access</span>
           </Button>
         </div>
