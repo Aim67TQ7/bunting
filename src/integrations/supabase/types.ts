@@ -445,15 +445,7 @@ export type Database = {
           userPrincipalName?: string
           userType?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "Employee_id_user_id_fkey1"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       match_feedback: {
         Row: {
