@@ -16,7 +16,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, stream = false } = await req.json();
+    const { messages, stream = false, enableWeb = false } = await req.json();
 
     if (!GROQ_API_KEY) {
       throw new Error("GROQ_API_KEY is not set");
@@ -135,6 +135,16 @@ ${productContext}`
     
     // Add user messages (filtering out any existing system messages)
     messagesWithSystem.push(...messages.filter(msg => msg.role !== "system"));
+
+    // Web search capability notice - add if web search is enabled
+    if (enableWeb) {
+      messagesWithSystem.push({
+        role: "system",
+        content: "IMPORTANT: You now have access to web search capabilities. If the user asks about current information like prices, market data, news, or events, you should use this capability to provide up-to-date information. Acknowledge when you're using web search and cite your sources clearly."
+      });
+      
+      console.log("Web search capability enabled for this query");
+    }
 
     // Call the GROQ API
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
