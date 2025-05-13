@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -7,10 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import KnowledgeList from './knowledge/KnowledgeList';
-import KnowledgeForm from './knowledge/KnowledgeForm';
-import KnowledgePipeline from './KnowledgePipeline';
-import KnowledgeAnalytics from './knowledge/KnowledgeAnalytics';
+import { KnowledgeList } from './knowledge/KnowledgeList';
+import { KnowledgeForm } from './knowledge/KnowledgeForm';
+import { KnowledgePipeline } from './KnowledgePipeline';
+import { KnowledgeAnalytics } from './knowledge/KnowledgeAnalytics';
 
 export const KnowledgeManager = () => {
   const { toast } = useToast();
