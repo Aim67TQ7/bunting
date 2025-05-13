@@ -184,17 +184,31 @@ export function useChatMessages() {
         // Call the appropriate Supabase function based on the query type
         let aiResponse: any;
         
-        // Default to the standard GROQ endpoint
-        const { data, error } = await supabase.functions.invoke('generate-with-groq', {
-          body: { 
-            messages: updatedMessages.map(m => ({ role: m.role, content: m.content })),
-            stream: false 
-          }
-        });
-          
-        if (error) throw error;
-          
-        aiResponse = data.choices[0].message.content;
+        // Use the web-enabled endpoint if queryType is 'web'
+        if (queryType === 'web') {
+          console.log('Using web search for response');
+          const { data, error } = await supabase.functions.invoke('generate-with-groq', {
+            body: { 
+              messages: updatedMessages.map(m => ({ role: m.role, content: m.content })),
+              stream: false,
+              enableWeb: true  // Enable web search
+            }
+          });
+            
+          if (error) throw error;
+          aiResponse = data.choices[0].message.content;
+        } else {
+          // Default to the standard GROQ endpoint
+          const { data, error } = await supabase.functions.invoke('generate-with-groq', {
+            body: { 
+              messages: updatedMessages.map(m => ({ role: m.role, content: m.content })),
+              stream: false 
+            }
+          });
+            
+          if (error) throw error;
+          aiResponse = data.choices[0].message.content;
+        }
         
         // Add AI message to chat
         const aiMessage: Message = {

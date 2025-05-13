@@ -11,9 +11,10 @@ interface ChatInputEnhancedProps {
   isDisabled?: boolean;
   className?: string;
   conversationId?: string | null;
+  webEnabled?: boolean;
 }
 
-export function ChatInputEnhanced({ onSubmit, isDisabled, className, conversationId }: ChatInputEnhancedProps) {
+export function ChatInputEnhanced({ onSubmit, isDisabled, className, conversationId, webEnabled = false }: ChatInputEnhancedProps) {
   const [message, setMessage] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [willAutoSummarize, setWillAutoSummarize] = useState(false);
@@ -87,8 +88,12 @@ export function ChatInputEnhanced({ onSubmit, isDisabled, className, conversatio
     setIsUploading(false);
   };
   
-  const placeholderText = 
-    "Send a message... (& to auto-summarize)";
+  const getPlaceholder = () => {
+    if (webEnabled) {
+      return "Send a message (web search enabled)...";
+    }
+    return "Send a message... (& to auto-summarize)";
+  };
   
   return (
     <div className="flex flex-col w-full">
@@ -99,11 +104,18 @@ export function ChatInputEnhanced({ onSubmit, isDisabled, className, conversatio
         </div>
       )}
       
+      {webEnabled && !willAutoSummarize && (
+        <div className="flex items-center px-4 py-2 text-xs bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 rounded-t-md mx-4 mb-0 mt-2">
+          <Info className="h-3 w-3 mr-1.5" />
+          <span>Web search is enabled for this message</span>
+        </div>
+      )}
+      
       <form
         onSubmit={handleSubmit}
         className={cn(
           "relative flex w-full items-center gap-2 p-4", 
-          willAutoSummarize ? "pt-2" : "",
+          (willAutoSummarize || webEnabled) ? "pt-2" : "",
           className
         )}
       >
@@ -131,10 +143,11 @@ export function ChatInputEnhanced({ onSubmit, isDisabled, className, conversatio
         </div>
         
         <Textarea
-          placeholder={placeholderText}
+          placeholder={getPlaceholder()}
           className={cn(
             "min-h-12 resize-none pl-16",
-            willAutoSummarize ? "border-secondary focus-visible:ring-secondary" : ""
+            willAutoSummarize ? "border-secondary focus-visible:ring-secondary" : "",
+            webEnabled && !willAutoSummarize ? "border-blue-400 focus-visible:ring-blue-400" : ""
           )}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
@@ -147,7 +160,7 @@ export function ChatInputEnhanced({ onSubmit, isDisabled, className, conversatio
           type="submit" 
           size="icon" 
           disabled={!message.trim() || isDisabled || isUploading}
-          variant={willAutoSummarize ? "secondary" : "default"}
+          variant={willAutoSummarize ? "secondary" : webEnabled ? "default" : "default"}
         >
           <Send className="h-4 w-4" />
           <span className="sr-only">Send message</span>

@@ -7,8 +7,9 @@ import { MessageList } from "@/components/chat/message-list";
 import { LoginPrompt } from "@/components/chat/login-prompt";
 import { ChatInputEnhanced } from "@/components/chat-input-enhanced";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2, Plus, MessageSquare, Web } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/hooks/use-toast";
 
 export function ChatInterface() {
   const { user } = useAuth();
@@ -19,6 +20,7 @@ export function ChatInterface() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [hasAttemptedLoad, setHasAttemptedLoad] = useState(false);
+  const [webEnabled, setWebEnabled] = useState(false);
   
   const { 
     messages, 
@@ -77,7 +79,10 @@ export function ChatInterface() {
       shouldAutoSummarize = true;
     }
     
-    sendMessage(finalContent, shouldAutoSummarize, queryType, file);
+    // Add web access flag if enabled
+    const actualQueryType = webEnabled ? "web" : queryType;
+    
+    sendMessage(finalContent, shouldAutoSummarize, actualQueryType, file);
   };
 
   const handleStarterClick = (question: string) => {
@@ -94,6 +99,17 @@ export function ChatInterface() {
     navigate('/'); // Navigate to root without conversation parameter
   };
 
+  const toggleWebAccess = () => {
+    setWebEnabled(!webEnabled);
+    toast({
+      title: webEnabled ? "Web access disabled" : "Web access enabled",
+      description: webEnabled 
+        ? "The AI will no longer search the web for information."
+        : "The AI will now search the web for up-to-date information.",
+      duration: 3000
+    });
+  };
+
   // Show login message for unauthenticated users
   if (!user) {
     return <LoginPrompt />;
@@ -107,19 +123,29 @@ export function ChatInterface() {
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between p-2 border-b">
-        <h2 className="text-sm font-medium">
-          {activeConversationId ? "Current Chat" : "New Chat"}
-        </h2>
-        <Button 
-          variant="ghost" 
-          size="sm"
-          onClick={handleStartNewChat}
-          disabled={messages.length === 0 && !activeConversationId}
-          className="flex items-center gap-1 text-xs"
-        >
-          <Plus className="h-3 w-3" />
-          New Chat
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={handleStartNewChat}
+            className="rounded-full"
+            title="New Chat"
+          >
+            <Plus className="h-4 w-4" />
+            <span className="sr-only">New Chat</span>
+          </Button>
+          
+          <Button
+            variant={webEnabled ? "secondary" : "ghost"}
+            size="icon"
+            onClick={toggleWebAccess}
+            className="rounded-full"
+            title={webEnabled ? "Web Access Enabled" : "Enable Web Access"}
+          >
+            <Web className="h-4 w-4" />
+            <span className="sr-only">Web Access</span>
+          </Button>
+        </div>
       </div>
       
       <div className="flex-1 overflow-y-auto p-4">
@@ -173,6 +199,7 @@ export function ChatInterface() {
           onSubmit={handleSendMessage} 
           isDisabled={isAiResponding || isHistoryLoading} 
           conversationId={activeConversationId}
+          webEnabled={webEnabled}
         />
       </div>
     </div>
