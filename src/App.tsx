@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -20,7 +21,7 @@ import Auth from "./pages/auth/Auth";
 import AuthCallback from "./pages/auth/AuthCallback";
 import ResetPassword from "./pages/auth/ResetPassword";
 import PrivateRoute from "./components/PrivateRoute";
-import AdminKnowledgePage from "./pages/AdminKnowledgePage";
+import AdminKnowledge from "./pages/AdminKnowledge";
 
 const queryClient = new QueryClient();
 
@@ -52,7 +53,7 @@ function App() {
                   <Route path="/baq-mto" element={<PrivateRoute><BaqMto /></PrivateRoute>} />
                   <Route path="/admin/knowledge" element={
                     <PrivateRoute>
-                      <AdminKnowledgePage />
+                      <AdminKnowledge />
                     </PrivateRoute>
                   } />
                   <Route path="*" element={<NotFound />} />
