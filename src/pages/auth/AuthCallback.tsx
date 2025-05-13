@@ -13,14 +13,25 @@ export default function AuthCallback() {
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        const { error } = await supabase.auth.getSession();
+        // Get the current session
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
         
-        if (error) {
-          setError(error.message);
+        if (sessionError) {
+          setError(sessionError.message);
+          return;
+        }
+        
+        // Check URL parameters to see if this is a password reset action
+        const params = new URLSearchParams(window.location.hash.substring(1));
+        const type = params.get('type');
+
+        if (type === 'recovery') {
+          // Redirect to reset password page
+          navigate('/auth/reset-password');
           return;
         }
 
-        // If no error, proceed to the settings page to complete profile
+        // For all other auth callbacks, proceed to the app
         setTimeout(() => {
           navigate("/settings");
         }, 2000);

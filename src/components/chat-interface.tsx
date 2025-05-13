@@ -9,6 +9,7 @@ import { ChatInputEnhanced } from "@/components/chat-input-enhanced";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 
 export function ChatInterface() {
   const { user } = useAuth();
@@ -123,6 +124,7 @@ export function ChatInterface() {
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between p-2 border-b">
         <div className="flex items-center gap-2">
+          <SidebarTrigger className="md:hidden" />
           <h1 className="text-lg font-semibold ml-2">
             {conversationId ? (activeConversationId ? "Chat" : "Loading...") : "New Chat"}
           </h1>
