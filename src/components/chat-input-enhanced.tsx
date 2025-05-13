@@ -1,10 +1,11 @@
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Info, Send, Upload } from "lucide-react";
+import { Info, Send, Upload, Plus, Globe } from "lucide-react";
 import { useState, FormEvent, useRef, ChangeEvent, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 interface ChatInputEnhancedProps {
   onSubmit: (message: string, autoSummarize: boolean, queryType?: string, file?: File) => void;
@@ -12,14 +13,25 @@ interface ChatInputEnhancedProps {
   className?: string;
   conversationId?: string | null;
   webEnabled?: boolean;
+  onWebToggle?: () => void;
+  onNewChat?: () => void;
 }
 
-export function ChatInputEnhanced({ onSubmit, isDisabled, className, conversationId, webEnabled = false }: ChatInputEnhancedProps) {
+export function ChatInputEnhanced({ 
+  onSubmit, 
+  isDisabled, 
+  className, 
+  conversationId, 
+  webEnabled = false,
+  onWebToggle,
+  onNewChat
+}: ChatInputEnhancedProps) {
   const [message, setMessage] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [willAutoSummarize, setWillAutoSummarize] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   // Check for auto-summarize prefix whenever message changes
   useEffect(() => {
@@ -94,6 +106,20 @@ export function ChatInputEnhanced({ onSubmit, isDisabled, className, conversatio
     }
     return "Send a message... (& to auto-summarize)";
   };
+
+  const handleNewChat = () => {
+    if (onNewChat) {
+      onNewChat();
+    } else {
+      navigate('/');
+    }
+  };
+
+  const handleWebToggle = () => {
+    if (onWebToggle) {
+      onWebToggle();
+    }
+  };
   
   return (
     <div className="flex flex-col w-full">
@@ -124,6 +150,30 @@ export function ChatInputEnhanced({ onSubmit, isDisabled, className, conversatio
             type="button" 
             variant="ghost" 
             size="icon"
+            onClick={handleNewChat}
+            className="h-8 w-8"
+            title="New Chat"
+          >
+            <Plus className="h-4 w-4" />
+            <span className="sr-only">New Chat</span>
+          </Button>
+
+          <Button 
+            type="button" 
+            variant="ghost" 
+            size="icon"
+            onClick={handleWebToggle}
+            className={cn("h-8 w-8", webEnabled ? "text-blue-500" : "")}
+            title={webEnabled ? "Web Access Enabled" : "Enable Web Access"}
+          >
+            <Globe className="h-4 w-4" />
+            <span className="sr-only">Web Access</span>
+          </Button>
+          
+          <Button 
+            type="button" 
+            variant="ghost" 
+            size="icon"
             onClick={handleFileUpload}
             className="h-8 w-8"
             title="Upload file"
@@ -145,7 +195,7 @@ export function ChatInputEnhanced({ onSubmit, isDisabled, className, conversatio
         <Textarea
           placeholder={getPlaceholder()}
           className={cn(
-            "min-h-12 resize-none pl-16",
+            "min-h-12 resize-none pl-28",
             willAutoSummarize ? "border-secondary focus-visible:ring-secondary" : "",
             webEnabled && !willAutoSummarize ? "border-blue-400 focus-visible:ring-blue-400" : ""
           )}

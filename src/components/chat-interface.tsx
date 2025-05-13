@@ -1,3 +1,4 @@
+
 import { useRef, useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useChatMessages } from "@/hooks/use-chat-messages";
@@ -6,8 +7,7 @@ import { MessageList } from "@/components/chat/message-list";
 import { LoginPrompt } from "@/components/chat/login-prompt";
 import { ChatInputEnhanced } from "@/components/chat-input-enhanced";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { Loader2, Plus, MessageSquare, Globe } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 export function ChatInterface() {
@@ -123,27 +123,9 @@ export function ChatInterface() {
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between p-2 border-b">
         <div className="flex items-center gap-2">
-          <Button 
-            variant="ghost" 
-            size="icon"
-            onClick={handleStartNewChat}
-            className="rounded-full"
-            title="New Chat"
-          >
-            <Plus className="h-4 w-4" />
-            <span className="sr-only">New Chat</span>
-          </Button>
-          
-          <Button
-            variant={webEnabled ? "secondary" : "ghost"}
-            size="icon"
-            onClick={toggleWebAccess}
-            className="rounded-full"
-            title={webEnabled ? "Web Access Enabled" : "Enable Web Access"}
-          >
-            <Globe className="h-4 w-4" />
-            <span className="sr-only">Web Access</span>
-          </Button>
+          <h1 className="text-lg font-semibold ml-2">
+            {conversationId ? (activeConversationId ? "Chat" : "Loading...") : "New Chat"}
+          </h1>
         </div>
       </div>
       
@@ -161,13 +143,12 @@ export function ChatInterface() {
             <p className="mt-2 text-sm text-muted-foreground max-w-md">
               {loadError || "There was a problem loading this conversation. Please try again."}
             </p>
-            <Button 
-              variant="outline" 
+            <button 
               className="mt-4"
               onClick={handleRetryLoad}
             >
               Retry
-            </Button>
+            </button>
           </div>
         )}
         
@@ -199,6 +180,8 @@ export function ChatInterface() {
           isDisabled={isAiResponding || isHistoryLoading} 
           conversationId={activeConversationId}
           webEnabled={webEnabled}
+          onWebToggle={toggleWebAccess}
+          onNewChat={handleStartNewChat}
         />
       </div>
     </div>
