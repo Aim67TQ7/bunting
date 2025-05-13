@@ -447,6 +447,89 @@ export type Database = {
         }
         Relationships: []
       }
+      market_research_reports: {
+        Row: {
+          competitive_landscape: Json
+          consumer_analysis: string
+          created_at: string
+          executive_summary: string
+          future_predictions: string
+          id: string
+          market_segmentation: Json
+          market_size: Json
+          recommendations: Json
+          swot_analysis: Json
+          topic_id: string
+          trends: Json
+          updated_at: string
+        }
+        Insert: {
+          competitive_landscape: Json
+          consumer_analysis: string
+          created_at?: string
+          executive_summary: string
+          future_predictions: string
+          id?: string
+          market_segmentation: Json
+          market_size: Json
+          recommendations: Json
+          swot_analysis: Json
+          topic_id: string
+          trends: Json
+          updated_at?: string
+        }
+        Update: {
+          competitive_landscape?: Json
+          consumer_analysis?: string
+          created_at?: string
+          executive_summary?: string
+          future_predictions?: string
+          id?: string
+          market_segmentation?: Json
+          market_size?: Json
+          recommendations?: Json
+          swot_analysis?: Json
+          topic_id?: string
+          trends?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_research_reports_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "market_research_topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      market_research_topics: {
+        Row: {
+          created_at: string
+          id: string
+          status: string
+          topic: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          status?: string
+          topic: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          status?: string
+          topic?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       match_feedback: {
         Row: {
           created_at: string | null
@@ -978,9 +1061,21 @@ export type Database = {
       }
     }
     Functions: {
+      backfill_training_data_embeddings: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       binary_quantize: {
         Args: { "": string } | { "": unknown }
         Returns: unknown
+      }
+      check_embedding_status: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          total_entries: number
+          entries_with_embeddings: number
+          entries_missing_embeddings: number
+        }[]
       }
       clean_old_weather_entries: {
         Args: Record<PropertyKey, never>
