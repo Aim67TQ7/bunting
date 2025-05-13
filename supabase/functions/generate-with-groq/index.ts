@@ -96,14 +96,14 @@ serve(async (req) => {
 
     // Add additional product information context for factual responses
     const productContext = `
-Bunting manufactures and stocks a wide range of electromagnets including:
-1. Round electromagnets with diameters from 1 inch (25mm) to 12 inches (305mm)
-2. Rectangular electromagnets in various dimensions
-3. Electromagnet assemblies for specialized applications
-4. Available coil voltages: 12V, 24V, 48V, 120V, and 240V
-5. Magnetic strengths up to 12,000 Gauss (1.2 Tesla)
-6. Materials including copper windings, aluminum housings, and iron cores
-7. Custom electromagnet designs available upon request
+Bunting’s product portfolio includes:
+1. Magnetic separation equipment – drawer, grate and plate magnets, drum and pulley separators, and crossbelt or in-line suspended magnets for removing ferrous contamination from dry, wet or pneumatic flows. :contentReference[oaicite:0]{index=0}
+2. Eddy current separators that automatically eject non-ferrous metals such as aluminium or copper in recycling and processing lines. :contentReference[oaicite:1]{index=1}
+3. Metal detection systems – meTRON tunnel, gravity free-fall, pipeline/liquid detectors, and TN77 quarry belt units – for quality control and machinery protection. :contentReference[oaicite:2]{index=2}
+4. Magnetic material-handling conveyors, including MagSlide®, standard-frame, belt-less chip and steel-belt models for transferring or elevating ferrous parts and scrap. :contentReference[oaicite:3]{index=3}
+5. Wright Cylinders by Bunting – precision magnetic printing and die-cutting cylinders for flexo, offset, narrow-web and can-decorator presses. :contentReference[oaicite:4]{index=4}
+6. SSSC® Stainless-Steel Separation Conveyor™ for recovering fragmented stainless and other weakly magnetic metals missed by conventional magnets. :contentReference[oaicite:5]{index=5}
+7. Stock and custom permanent magnets (neodymium, ceramic, alnico, samarium-cobalt) and engineered magnetic assemblies built to OEM specifications. :contentReference[oaicite:6]{index=6}
 `;
 
     // Create a new array with our updated system message
