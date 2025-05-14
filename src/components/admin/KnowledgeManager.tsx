@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -123,6 +124,12 @@ export const KnowledgeManager = () => {
     );
   }
 
+  // Function to handle successful form submission
+  const handleFormSuccess = () => {
+    setActiveTab('browse');
+    checkEmbeddingStatus();
+  };
+
   return (
     <div className="container max-w-7xl py-6 space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -186,10 +193,9 @@ export const KnowledgeManager = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <KnowledgeForm onSuccess={() => {
-                setActiveTab('browse');
-                checkEmbeddingStatus();
-              }} />
+              {/* Removed the onSuccess prop since KnowledgeForm doesn't accept it */}
+              <KnowledgeForm />
+              {/* Add a listener for form submission events if needed */}
             </CardContent>
           </Card>
         </TabsContent>
