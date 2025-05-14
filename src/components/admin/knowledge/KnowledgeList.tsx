@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -18,10 +17,11 @@ import { KnowledgeDetail } from "./KnowledgeDetail";
 import { KnowledgeEditForm } from "./KnowledgeEditForm";
 
 interface KnowledgeListProps {
-  type: 'all' | 'company' | 'sales' | 'contact' | 'purchase_order';
+  type?: 'all' | 'company' | 'sales' | 'contact' | 'purchase_order';
+  onRefresh?: () => Promise<void>;
 }
 
-export function KnowledgeList({ type }: KnowledgeListProps) {
+export function KnowledgeList({ type = 'all', onRefresh }: KnowledgeListProps) {
   const [entries, setEntries] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [selectedEntry, setSelectedEntry] = useState<any | null>(null);
@@ -78,6 +78,10 @@ export function KnowledgeList({ type }: KnowledgeListProps) {
       });
       
       fetchEntries();
+      // Call the onRefresh callback if provided
+      if (onRefresh) {
+        await onRefresh();
+      }
     } catch (error) {
       console.error('Error deleting entry:', error);
       toast({
@@ -212,6 +216,10 @@ export function KnowledgeList({ type }: KnowledgeListProps) {
                               onSaved={() => {
                                 setViewMode('view');
                                 fetchEntries();
+                                // Call the onRefresh callback if provided
+                                if (onRefresh) {
+                                  onRefresh();
+                                }
                               }}
                               onCancel={() => setViewMode('view')}
                             />
@@ -258,7 +266,6 @@ export function KnowledgeList({ type }: KnowledgeListProps) {
           </div>
         </>
       )}
-
     </div>
   );
 }

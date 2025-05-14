@@ -668,6 +668,183 @@ export type Database = {
           },
         ]
       }
+      mto_delivery: {
+        Row: {
+          created_at: string | null
+          id: string
+          lineCount: number
+          month: string
+          onTimePercentage: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          lineCount: number
+          month: string
+          onTimePercentage: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          lineCount?: number
+          month?: string
+          onTimePercentage?: number
+        }
+        Relationships: []
+      }
+      mto_incoming: {
+        Row: {
+          created_at: string | null
+          gmMonth: number | null
+          id: string
+          incoming: number | null
+          month: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          gmMonth?: number | null
+          id?: string
+          incoming?: number | null
+          month?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          gmMonth?: number | null
+          id?: string
+          incoming?: number | null
+          month?: string | null
+        }
+        Relationships: []
+      }
+      mto_metadata: {
+        Row: {
+          created_at: string | null
+          id: string
+          timestamp: string
+        }
+        Insert: {
+          created_at?: string | null
+          id: string
+          timestamp: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          timestamp?: string
+        }
+        Relationships: []
+      }
+      mto_orders: {
+        Row: {
+          activeOp: string | null
+          activeOpDesc: string | null
+          created_at: string | null
+          creditHold: string | null
+          creditOvrd: string | null
+          desc: string | null
+          id: string
+          jobNum: string | null
+          lastLaborDate: string | null
+          line: string | null
+          maxOp: string | null
+          maxOpDesc: string | null
+          mfgComplete: string | null
+          name: string | null
+          openValue: string | null
+          opStartDate: string | null
+          order: string | null
+          orderDate: string | null
+          orderHeld: string | null
+          orderQty: string | null
+          part: string | null
+          rel: string | null
+          shipBy: string | null
+          startDate: string | null
+        }
+        Insert: {
+          activeOp?: string | null
+          activeOpDesc?: string | null
+          created_at?: string | null
+          creditHold?: string | null
+          creditOvrd?: string | null
+          desc?: string | null
+          id?: string
+          jobNum?: string | null
+          lastLaborDate?: string | null
+          line?: string | null
+          maxOp?: string | null
+          maxOpDesc?: string | null
+          mfgComplete?: string | null
+          name?: string | null
+          openValue?: string | null
+          opStartDate?: string | null
+          order?: string | null
+          orderDate?: string | null
+          orderHeld?: string | null
+          orderQty?: string | null
+          part?: string | null
+          rel?: string | null
+          shipBy?: string | null
+          startDate?: string | null
+        }
+        Update: {
+          activeOp?: string | null
+          activeOpDesc?: string | null
+          created_at?: string | null
+          creditHold?: string | null
+          creditOvrd?: string | null
+          desc?: string | null
+          id?: string
+          jobNum?: string | null
+          lastLaborDate?: string | null
+          line?: string | null
+          maxOp?: string | null
+          maxOpDesc?: string | null
+          mfgComplete?: string | null
+          name?: string | null
+          openValue?: string | null
+          opStartDate?: string | null
+          order?: string | null
+          orderDate?: string | null
+          orderHeld?: string | null
+          orderQty?: string | null
+          part?: string | null
+          rel?: string | null
+          shipBy?: string | null
+          startDate?: string | null
+        }
+        Relationships: []
+      }
+      mto_shipments: {
+        Row: {
+          budgetAmount: number | null
+          created_at: string | null
+          id: string
+          monthTotal: number | null
+          productGroup: string
+          shipAmount: number | null
+          shipNotInvoiced: number | null
+        }
+        Insert: {
+          budgetAmount?: number | null
+          created_at?: string | null
+          id?: string
+          monthTotal?: number | null
+          productGroup: string
+          shipAmount?: number | null
+          shipNotInvoiced?: number | null
+        }
+        Update: {
+          budgetAmount?: number | null
+          created_at?: string | null
+          id?: string
+          monthTotal?: number | null
+          productGroup?: string
+          shipAmount?: number | null
+          shipNotInvoiced?: number | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

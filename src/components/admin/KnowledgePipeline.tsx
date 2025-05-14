@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,7 +10,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
-export function KnowledgePipeline() {
+interface KnowledgePipelineProps {
+  onUpdate?: () => Promise<void>;
+}
+
+export function KnowledgePipeline({ onUpdate }: KnowledgePipelineProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [lastRun, setLastRun] = useState<Date | null>(null);
@@ -39,6 +42,11 @@ export function KnowledgePipeline() {
         description: `Processed ${data.processed} conversations, created ${data.successful_summaries} summaries.`,
         variant: "default",
       });
+      
+      // Call the onUpdate callback if provided
+      if (onUpdate) {
+        await onUpdate();
+      }
     } catch (error) {
       console.error('Error triggering summary:', error);
       setError(error.message || "Failed to generate summaries. Check the logs for details.");
@@ -79,6 +87,11 @@ export function KnowledgePipeline() {
       
       setDirectTitle("");
       setDirectContent("");
+      
+      // Call the onUpdate callback if provided
+      if (onUpdate) {
+        await onUpdate();
+      }
     } catch (error) {
       console.error("Error saving direct knowledge:", error);
       toast({
