@@ -73,7 +73,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       email, 
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`
+        emailRedirectTo: `${getBaseUrl()}/auth/callback`
       }
     });
     return result;
@@ -84,11 +84,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const getBaseUrl = () => {
-    // Use the production URL if it's available in an environment variable
-    const productionUrl = "https://buntinggpt.com";
-    
-    // For local development or when the production URL isn't available, use the current origin
-    return window.location.hostname === "localhost" ? window.location.origin : productionUrl;
+    // Always use the production URL for consistency
+    return "https://buntinggpt.com";
   };
 
   const resetPassword = async (email: string) => {
