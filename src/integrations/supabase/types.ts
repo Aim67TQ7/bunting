@@ -987,15 +987,7 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "training_data_user_id_fkey1"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       transcriptions: {
         Row: {
@@ -1070,38 +1062,6 @@ export type Database = {
           },
         ]
       }
-      user_favorites: {
-        Row: {
-          agent_id: string
-          bridger_id: string | null
-          created_at: string
-          id: string
-          user_id: string
-        }
-        Insert: {
-          agent_id: string
-          bridger_id?: string | null
-          created_at?: string
-          id?: string
-          user_id: string
-        }
-        Update: {
-          agent_id?: string
-          bridger_id?: string | null
-          created_at?: string
-          id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_favorites_bridger_id_fkey"
-            columns: ["bridger_id"]
-            isOneToOne: false
-            referencedRelation: "bridgers"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       user_feedback: {
         Row: {
           content: string
@@ -1127,15 +1087,7 @@ export type Database = {
           is_anonymous?: boolean
           user_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "user_feedback_user_id_fkey1"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       user_messages: {
         Row: {
@@ -1167,27 +1119,6 @@ export type Database = {
           message_type?: string
           recipient_id?: string
           sender_id?: string
-        }
-        Relationships: []
-      }
-      user_starred_agents: {
-        Row: {
-          agent_id: string
-          created_at: string
-          id: string
-          user_id: string
-        }
-        Insert: {
-          agent_id: string
-          created_at?: string
-          id?: string
-          user_id: string
-        }
-        Update: {
-          agent_id?: string
-          created_at?: string
-          id?: string
-          user_id?: string
         }
         Relationships: []
       }

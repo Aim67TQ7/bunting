@@ -83,9 +83,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await supabase.auth.signOut();
   };
 
+  const getBaseUrl = () => {
+    // Use the production URL if it's available in an environment variable
+    const productionUrl = "https://buntinggpt.com";
+    
+    // For local development or when the production URL isn't available, use the current origin
+    return window.location.hostname === "localhost" ? window.location.origin : productionUrl;
+  };
+
   const resetPassword = async (email: string) => {
+    const baseUrl = getBaseUrl();
     const result = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/callback#type=recovery`,
+      redirectTo: `${baseUrl}/auth/callback#type=recovery`,
     });
     return result;
   };

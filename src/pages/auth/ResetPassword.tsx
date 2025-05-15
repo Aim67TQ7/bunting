@@ -31,6 +31,7 @@ export default function ResetPassword() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -54,11 +55,16 @@ export default function ResetPassword() {
           variant: "destructive",
         });
       } else {
+        setIsSuccess(true);
         toast({
           title: "Success",
-          description: "Your password has been updated.",
+          description: "Your password has been updated successfully.",
         });
-        navigate("/");
+        
+        // Redirect to login page after 3 seconds
+        setTimeout(() => {
+          navigate("/auth");
+        }, 3000);
       }
     } catch (err) {
       toast({
@@ -70,6 +76,30 @@ export default function ResetPassword() {
       setIsSubmitting(false);
     }
   };
+  
+  if (isSuccess) {
+    return (
+      <div className="flex items-center justify-center min-h-screen p-4 bg-background">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="text-2xl text-center">Password Reset Successful</CardTitle>
+            <CardDescription className="text-center">
+              Your password has been successfully updated.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-center">
+            <p className="mb-4">You will be redirected to the login page in a few seconds.</p>
+            <Button 
+              onClick={() => navigate("/auth")}
+              className="w-full"
+            >
+              Login Now
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
   
   return (
     <div className="flex items-center justify-center min-h-screen p-4 bg-background">
