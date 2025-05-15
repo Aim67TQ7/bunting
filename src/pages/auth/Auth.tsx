@@ -1,5 +1,5 @@
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { RegisterForm } from "@/components/auth/RegisterForm";
@@ -13,34 +13,26 @@ export default function Auth() {
   const [activeTab, setActiveTab] = useState<AuthTab>("login");
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
-  const [isRedirecting, setIsRedirecting] = useState(false);
-  const redirectAttempted = useRef(false);
+  const [redirectChecked, setRedirectChecked] = useState(false);
 
+  // Handle redirection when user is already authenticated
   useEffect(() => {
-    // Only attempt to redirect once when user is detected
-    if (user && !isLoading && !redirectAttempted.current) {
-      redirectAttempted.current = true;
+    if (isLoading) return;
+    
+    if (user) {
       console.log("Auth: User detected, redirecting to dashboard");
-      setIsRedirecting(true);
-      
       // Add a slight delay to ensure state updates properly
-      setTimeout(() => {
-        navigate("/");
+      const timer = setTimeout(() => {
+        navigate("/", { replace: true });
       }, 100);
+      
+      return () => clearTimeout(timer);
+    } else {
+      setRedirectChecked(true);
     }
   }, [user, isLoading, navigate]);
 
-  if (isRedirecting) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <p className="text-lg">Redirecting to dashboard...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (isLoading) {
+  if (isLoading || (user && !redirectChecked)) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -52,7 +44,6 @@ export default function Auth() {
 
   const handleLoginSuccess = () => {
     console.log("Login successful, redirecting...");
-    setIsRedirecting(true);
     navigate("/");
   };
 

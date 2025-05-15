@@ -30,32 +30,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const { toast } = useToast();
   const initialized = useRef(false);
-  const previousUserId = useRef<string | null>(null);
 
   useEffect(() => {
-    if (initialized.current) {
-      return;
-    }
-
+    if (initialized.current) return;
+    
     console.log("Setting up auth state listener");
     initialized.current = true;
 
     // Set up auth state listener first
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, currentSession) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => {
       console.log("Auth state changed:", event, currentSession?.user?.id);
       
-      // Update state with the new session and user
+      // Update session and user synchronously to prevent rendering issues
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
       
-      // Update previous user ID for comparison
-      previousUserId.current = currentSession?.user?.id || null;
-      
-      // Show toast notifications for certain events
-      if (event === 'SIGNED_IN') {
+      // Only show toasts for specific events the user should be notified about
+      if (event === 'SIGNED_IN' && currentSession?.user) {
         toast({
           title: "Signed in successfully",
-          description: "Welcome back!",
+          description: `Welcome, ${currentSession.user.email}!`,
         });
       } else if (event === 'SIGNED_OUT') {
         toast({
@@ -66,22 +60,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     // Then check for existing session
-    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
-      console.log("Initial session check:", initialSession?.user?.id);
-      setSession(initialSession);
-      setUser(initialSession?.user ?? null);
-      previousUserId.current = initialSession?.user?.id || null;
-      setIsLoading(false);
-    });
+    const checkSession = async () => {
+      try {
+        const { data: { session: initialSession } } = await supabase.auth.getSession();
+        console.log("Initial session check:", initialSession?.user?.id);
+        
+        if (initialSession?.user) {
+          setSession(initialSession);
+          setUser(initialSession.user);
+        }
+      } catch (error) {
+        console.error("Error checking session:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkSession();
 
     return () => {
-      authListener.subscription.unsubscribe();
+      subscription.unsubscribe();
     };
   }, []); // No dependencies to prevent re-runs
 
   const signIn = async (email: string, password: string) => {
     console.log("Attempting to sign in:", email);
     try {
+      setIsLoading(true);
       const result = await supabase.auth.signInWithPassword({ email, password });
       console.log("Sign in result:", result.error ? "Error" : "Success");
       return result;
@@ -91,11 +96,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         error: new Error("Failed to sign in"),
         data: { user: null, session: null } 
       };
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const signUp = async (email: string, password: string) => {
     try {
+      setIsLoading(true);
       const result = await supabase.auth.signUp({ 
         email, 
         password,
@@ -110,12 +118,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         error: new Error("Failed to sign up"),
         data: { user: null, session: null } 
       };
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const signOut = async () => {
     console.log("Signing out");
     try {
+      setIsLoading(true);
       await supabase.auth.signOut();
     } catch (error) {
       console.error("Error during sign out:", error);
@@ -124,6 +135,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: "Failed to sign out properly",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -134,6 +147,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const resetPassword = async (email: string) => {
     const baseUrl = getBaseUrl();
     try {
+      setIsLoading(true);
       const result = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${baseUrl}/auth/callback#type=recovery`,
       });
@@ -141,11 +155,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error("Error during password reset:", error);
       return { error: new Error("Failed to send password reset email") };
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const updatePassword = async (password: string) => {
     try {
+      setIsLoading(true);
       const result = await supabase.auth.updateUser({
         password: password,
       });
@@ -153,6 +170,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error("Error updating password:", error);
       return { error: new Error("Failed to update password") };
+    } finally {
+      setIsLoading(false);
     }
   };
 

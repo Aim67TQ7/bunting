@@ -41,7 +41,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
     console.log("Attempting to sign in with:", data.email);
     
     try {
-      const { error } = await signIn(data.email, data.password);
+      const { error, data: authData } = await signIn(data.email, data.password);
       
       if (error) {
         console.error("Login error:", error.message);
@@ -50,14 +50,28 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
           description: error.message || "Invalid email or password. Please try again.",
           variant: "destructive",
         });
-      } else {
-        console.log("Login successful");
+        return;
+      } 
+      
+      if (!authData.session || !authData.user) {
+        console.error("Login failed: No session or user returned");
         toast({
-          title: "Login successful",
-          description: "Welcome back!",
+          title: "Login failed",
+          description: "Authentication was successful but session data is missing. Please try again.",
+          variant: "destructive",
         });
-        onSuccess();
+        return;
       }
+      
+      console.log("Login successful, user:", authData.user.email);
+      toast({
+        title: "Login successful",
+        description: "Welcome back!",
+      });
+      
+      // Call the success handler
+      onSuccess();
+      
     } catch (err: any) {
       console.error("Unexpected error during login:", err);
       toast({

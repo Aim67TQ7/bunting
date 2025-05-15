@@ -2,7 +2,7 @@
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 
 interface PrivateRouteProps {
   children: React.ReactNode;
@@ -10,37 +10,32 @@ interface PrivateRouteProps {
 
 export default function PrivateRoute({ children }: PrivateRouteProps) {
   const { user, isLoading, session } = useAuth();
-  const [checkingSession, setCheckingSession] = useState(true);
-  const attemptCount = useRef(0);
-  const maxAttempts = 3;
-
+  const [authChecked, setAuthChecked] = useState(false);
+  
   useEffect(() => {
-    if (!isLoading && attemptCount.current < maxAttempts) {
-      attemptCount.current += 1;
-      console.log(`PrivateRoute: Auth check attempt ${attemptCount.current}`, { user: !!user, session: !!session });
-      
+    // Once loading is completed, mark auth as checked
+    if (!isLoading) {
+      // Add a small delay to ensure state is settled
       const timer = setTimeout(() => {
-        console.log("PrivateRoute: Session check complete", { user: !!user, session: !!session });
-        setCheckingSession(false);
-      }, 200);
+        console.log("PrivateRoute: Auth check completed", { 
+          user: !!user, 
+          session: !!session,
+          isLoading 
+        });
+        setAuthChecked(true);
+      }, 100);
       
       return () => clearTimeout(timer);
-    } else if (isLoading) {
-      attemptCount.current = 0;
-    } else if (attemptCount.current >= maxAttempts) {
-      console.log("PrivateRoute: Max attempts reached, proceeding with current state");
-      setCheckingSession(false);
     }
   }, [user, session, isLoading]);
   
   // Show loading state when authentication is still being checked
-  if (isLoading || checkingSession) {
-    console.log("PrivateRoute: Still loading or checking session");
+  if (isLoading || !authChecked) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="flex flex-col items-center gap-2">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Loading...</p>
+          <p className="text-muted-foreground">Checking authentication...</p>
         </div>
       </div>
     );
