@@ -56,6 +56,16 @@ export default function Auth() {
     navigate("/");
   };
 
+  const handleRegistrationSuccess = () => {
+    console.log("Registration successful, switching to login tab");
+    setActiveTab("login");
+  };
+
+  const handlePasswordResetSuccess = () => {
+    console.log("Password reset email sent, switching to login tab");
+    setActiveTab("login");
+  };
+
   return (
     <div className="bg-background min-h-screen flex flex-col">
       <div className="flex-1 flex items-center justify-center p-4">
@@ -90,11 +100,11 @@ export default function Auth() {
             )}
             
             {activeTab === "signup" && (
-              <RegisterForm />
+              <RegisterForm onSuccess={handleRegistrationSuccess} />
             )}
             
             {activeTab === "forgot-password" && (
-              <ForgotPasswordForm />
+              <ForgotPasswordForm onSuccess={handlePasswordResetSuccess} />
             )}
 
             {activeTab === "login" && (
