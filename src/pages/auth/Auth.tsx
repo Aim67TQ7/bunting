@@ -1,61 +1,43 @@
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { RegisterForm } from "@/components/auth/RegisterForm";
 import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
-import { useAuth } from "@/contexts/AuthContext";
 import { BrandLogo } from "@/components/brand-logo";
+import { useAuth } from "@/contexts/AuthContext";
 
 type AuthTab = "login" | "signup" | "forgot-password";
 
 export default function Auth() {
   const [activeTab, setActiveTab] = useState<AuthTab>("login");
-  const { user, isLoading } = useAuth();
   const navigate = useNavigate();
-  const [redirectChecked, setRedirectChecked] = useState(false);
+  const auth = useAuth();
 
-  // Handle redirection when user is already authenticated
-  useEffect(() => {
-    if (isLoading) return;
-    
-    if (user) {
-      console.log("Auth: User detected, redirecting to dashboard");
-      // Add a slight delay to ensure state updates properly
-      const timer = setTimeout(() => {
-        navigate("/", { replace: true });
-      }, 100);
-      
-      return () => clearTimeout(timer);
-    } else {
-      setRedirectChecked(true);
-    }
-  }, [user, isLoading, navigate]);
-
-  if (isLoading || (user && !redirectChecked)) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <p className="text-lg">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
+  // Handle successful login
   const handleLoginSuccess = () => {
     console.log("Login successful, redirecting...");
     navigate("/");
   };
 
+  // Handle successful registration
   const handleRegistrationSuccess = () => {
     console.log("Registration successful, switching to login tab");
     setActiveTab("login");
   };
 
+  // Handle successful password reset request
   const handlePasswordResetSuccess = () => {
     console.log("Password reset email sent, switching to login tab");
     setActiveTab("login");
   };
+
+  // If the user is already authenticated, redirect to home
+  if (auth.user && !auth.isLoading) {
+    console.log("User is already authenticated, redirecting to home");
+    navigate("/", { replace: true });
+    return null;
+  }
 
   return (
     <div className="bg-background min-h-screen flex flex-col">

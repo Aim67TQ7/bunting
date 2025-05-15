@@ -25,14 +25,14 @@ import AdminKnowledge from "./pages/AdminKnowledge";
 function App() {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <Router>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <Router>
+          <AuthProvider>
             <SidebarProvider>
               <Routes>
-                {/* Public routes */}
+                {/* Public routes that don't need auth */}
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/auth/callback" element={<AuthCallback />} />
                 <Route path="/auth/reset-password" element={<ResetPassword />} />
@@ -55,9 +55,9 @@ function App() {
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </SidebarProvider>
-          </Router>
-        </TooltipProvider>
-      </AuthProvider>
+          </AuthProvider>
+        </Router>
+      </TooltipProvider>
     </ThemeProvider>
   );
 }
