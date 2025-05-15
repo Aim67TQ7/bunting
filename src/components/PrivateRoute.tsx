@@ -2,7 +2,7 @@
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 interface PrivateRouteProps {
   children: React.ReactNode;
@@ -11,16 +11,22 @@ interface PrivateRouteProps {
 export default function PrivateRoute({ children }: PrivateRouteProps) {
   const { user, isLoading, session } = useAuth();
   const [checkingSession, setCheckingSession] = useState(true);
+  const attemptCount = useRef(0);
 
   useEffect(() => {
-    // Add a small delay to ensure auth state is properly loaded
-    const timer = setTimeout(() => {
-      console.log("PrivateRoute: Session check complete", { user: !!user, session: !!session });
-      setCheckingSession(false);
-    }, 100);
-    
-    return () => clearTimeout(timer);
-  }, [user, session]);
+    if (!isLoading && attemptCount.current < 3) {
+      attemptCount.current += 1;
+      console.log(`PrivateRoute: Auth check attempt ${attemptCount.current}`, { user: !!user, session: !!session });
+      
+      // Add a small delay to ensure auth state is properly loaded
+      const timer = setTimeout(() => {
+        console.log("PrivateRoute: Session check complete", { user: !!user, session: !!session });
+        setCheckingSession(false);
+      }, 300); // Increased delay for more reliable auth state check
+      
+      return () => clearTimeout(timer);
+    }
+  }, [user, session, isLoading]);
   
   // Show loading state when authentication is still being checked
   if (isLoading || checkingSession) {
@@ -38,7 +44,7 @@ export default function PrivateRoute({ children }: PrivateRouteProps) {
   // If no user is found after loading is complete, redirect to auth page
   if (!user || !session) {
     console.log("PrivateRoute: No user or session, redirecting to /auth");
-    return <Navigate to="/auth" />;
+    return <Navigate to="/auth" replace />;
   }
   
   // User is authenticated, render children

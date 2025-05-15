@@ -16,6 +16,7 @@ export default function Auth() {
   const navigate = useNavigate();
   const { user, isLoading } = useAuth();
   const redirectChecked = useRef(false);
+  const hasRedirected = useRef(false);
   
   useEffect(() => {
     // Prevent checking multiple times during component lifecycle
@@ -23,24 +24,25 @@ export default function Auth() {
       return;
     }
     
+    redirectChecked.current = true;
+    console.log("Auth: Checking authentication status", { user: !!user, isLoading });
+    
     // If user is already authenticated and not in loading state, redirect to home
-    if (user && !isLoading) {
+    if (user && !isLoading && !hasRedirected.current) {
       console.log("Auth: User already authenticated, redirecting to /");
-      redirectChecked.current = true;
-      navigate("/");
+      hasRedirected.current = true;
+      setTimeout(() => navigate("/"), 100);
+    } else if (isLoading) {
+      console.log("Auth: Auth state is still loading");
     } else {
-      console.log("Auth: User not authenticated or still loading", { user: !!user, isLoading });
-      // Mark as checked after a delay to ensure we don't check again
-      const timer = setTimeout(() => {
-        redirectChecked.current = true;
-      }, 500);
-      return () => clearTimeout(timer);
+      console.log("Auth: User not authenticated", { user: !!user, isLoading });
     }
   }, [user, isLoading, navigate]);
 
   // Handle successful login
   const handleLoginSuccess = () => {
     console.log("Auth: Login successful, redirecting to /");
+    hasRedirected.current = true;
     navigate("/");
   };
   
@@ -55,6 +57,15 @@ export default function Auth() {
     console.log("Auth: Password reset email sent, switching to login tab");
     setAuthTab("login");
   };
+
+  // If already redirecting, show a simple loading state
+  if (user && !isLoading && !hasRedirected.current) {
+    return (
+      <div className="flex items-center justify-center min-h-screen p-4">
+        <div className="text-center">Redirecting to dashboard...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center justify-center min-h-screen p-4 bg-background">
