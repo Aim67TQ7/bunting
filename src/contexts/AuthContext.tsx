@@ -21,6 +21,7 @@ type AuthContextType = {
   updatePassword: (password: string) => Promise<{ error: Error | null }>;
 };
 
+// Create context with a meaningful default value
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -133,6 +134,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     updatePassword,
   };
 
+  // Make sure to actually create the provider!
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 

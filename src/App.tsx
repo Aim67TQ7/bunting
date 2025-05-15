@@ -23,47 +23,44 @@ import ResetPassword from "./pages/auth/ResetPassword";
 import PrivateRoute from "./components/PrivateRoute";
 import AdminKnowledge from "./pages/AdminKnowledge";
 
-const queryClient = new QueryClient();
+// The query client is now created in main.tsx, so remove it here
+// const queryClient = new QueryClient();
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <ThemeProvider defaultTheme="dark">
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <Router>
-              <SidebarProvider>
-                <Routes>
-                  {/* Public routes */}
-                  <Route path="/auth" element={<Auth />} />
-                  <Route path="/auth/callback" element={<AuthCallback />} />
-                  <Route path="/auth/reset-password" element={<ResetPassword />} />
-                  
-                  {/* Protected routes */}
-                  <Route path="/" element={<PrivateRoute><Index /></PrivateRoute>} />
-                  <Route path="/history" element={<PrivateRoute><History /></PrivateRoute>} />
-                  <Route path="/calculators" element={<PrivateRoute><Calculators /></PrivateRoute>} />
-                  <Route path="/iframe" element={<PrivateRoute><Iframe /></PrivateRoute>} />
-                  <Route path="/sales" element={<PrivateRoute><Sales /></PrivateRoute>} />
-                  <Route path="/apps" element={<PrivateRoute><Apps /></PrivateRoute>} />
-                  <Route path="/reports" element={<PrivateRoute><Reports /></PrivateRoute>} />
-                  <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
-                  <Route path="/baq-mto" element={<PrivateRoute><BaqMto /></PrivateRoute>} />
-                  <Route path="/admin/knowledge" element={
-                    <PrivateRoute>
-                      <AdminKnowledge />
-                    </PrivateRoute>
-                  } />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </SidebarProvider>
-            </Router>
-          </TooltipProvider>
-        </ThemeProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <AuthProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <Router>
+          <SidebarProvider>
+            <Routes>
+              {/* Public routes */}
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/auth/callback" element={<AuthCallback />} />
+              <Route path="/auth/reset-password" element={<ResetPassword />} />
+              
+              {/* Protected routes */}
+              <Route path="/" element={<PrivateRoute><Index /></PrivateRoute>} />
+              <Route path="/history" element={<PrivateRoute><History /></PrivateRoute>} />
+              <Route path="/calculators" element={<PrivateRoute><Calculators /></PrivateRoute>} />
+              <Route path="/iframe" element={<PrivateRoute><Iframe /></PrivateRoute>} />
+              <Route path="/sales" element={<PrivateRoute><Sales /></PrivateRoute>} />
+              <Route path="/apps" element={<PrivateRoute><Apps /></PrivateRoute>} />
+              <Route path="/reports" element={<PrivateRoute><Reports /></PrivateRoute>} />
+              <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
+              <Route path="/baq-mto" element={<PrivateRoute><BaqMto /></PrivateRoute>} />
+              <Route path="/admin/knowledge" element={
+                <PrivateRoute>
+                  <AdminKnowledge />
+                </PrivateRoute>
+              } />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </SidebarProvider>
+        </Router>
+      </TooltipProvider>
+    </AuthProvider>
   );
 }
 
