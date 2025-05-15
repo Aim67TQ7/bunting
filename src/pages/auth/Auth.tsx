@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,25 +7,52 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { RegisterForm } from "@/components/auth/RegisterForm";
 import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
+import { useAuth } from "@/contexts/AuthContext";
 
 type AuthTab = "login" | "register" | "forgot-password";
 
 export default function Auth() {
   const [authTab, setAuthTab] = useState<AuthTab>("login");
   const navigate = useNavigate();
+  const { user, isLoading } = useAuth();
+  const redirectChecked = useRef(false);
+  
+  useEffect(() => {
+    // Prevent checking multiple times during component lifecycle
+    if (redirectChecked.current) {
+      return;
+    }
+    
+    // If user is already authenticated and not in loading state, redirect to home
+    if (user && !isLoading) {
+      console.log("Auth: User already authenticated, redirecting to /");
+      redirectChecked.current = true;
+      navigate("/");
+    } else {
+      console.log("Auth: User not authenticated or still loading", { user: !!user, isLoading });
+      // Mark as checked after a delay to ensure we don't check again
+      const timer = setTimeout(() => {
+        redirectChecked.current = true;
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [user, isLoading, navigate]);
 
   // Handle successful login
   const handleLoginSuccess = () => {
+    console.log("Auth: Login successful, redirecting to /");
     navigate("/");
   };
   
   // Handle successful registration
   const handleRegisterSuccess = () => {
+    console.log("Auth: Registration successful, switching to login tab");
     setAuthTab("login");
   };
   
   // Handle successful forgot password
   const handleForgotPasswordSuccess = () => {
+    console.log("Auth: Password reset email sent, switching to login tab");
     setAuthTab("login");
   };
 
