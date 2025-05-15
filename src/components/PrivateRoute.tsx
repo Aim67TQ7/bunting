@@ -11,6 +11,12 @@ export default function PrivateRoute({ children }: PrivateRouteProps) {
   const { user, isLoading } = useAuth();
   const location = useLocation();
   
+  console.log("PrivateRoute - Auth state:", { 
+    isLoading, 
+    isAuthenticated: !!user, 
+    currentPath: location.pathname 
+  });
+  
   // Don't render anything until authentication check is complete
   if (isLoading) {
     return (
@@ -25,9 +31,11 @@ export default function PrivateRoute({ children }: PrivateRouteProps) {
   
   // If not authenticated, redirect to auth page with return path
   if (!user) {
+    console.log("PrivateRoute - User not authenticated, redirecting to /auth");
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
   
   // If authenticated, render children
+  console.log("PrivateRoute - User authenticated, rendering children");
   return <>{children}</>;
 }

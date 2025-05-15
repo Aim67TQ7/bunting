@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
 import { useToast } from "@/hooks/use-toast";
@@ -28,55 +28,74 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const { toast } = useToast();
-  const [initialized, setInitialized] = useState(false);
+  const initialized = useRef(false);
+  const previousUserId = useRef<string | null>(null);
 
   useEffect(() => {
-    // Check for existing session first
-    const checkSession = async () => {
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
-      
-      if (currentSession) {
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
-      }
-      
-      setIsLoading(false);
-      setInitialized(true);
-    };
+    console.log("Auth provider effect running");
+    let authListener: { subscription: { unsubscribe: () => void } } | null = null;
     
-    checkSession();
-    
-    // Then set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, newSession) => {
-        // Only update if there's an actual change and component is initialized
-        // to prevent refresh loops
-        if (initialized && 
-            (JSON.stringify(newSession?.user?.id) !== JSON.stringify(user?.id) || 
-             event === 'SIGNED_OUT')) {
-          
-          setSession(newSession);
-          setUser(newSession?.user ?? null);
-          
-          if (event === 'SIGNED_IN') {
-            toast({
-              title: "Signed in successfully",
-              description: "Welcome back!",
-            });
-          } else if (event === 'SIGNED_OUT') {
-            toast({
-              title: "Signed out successfully",
-              description: "You have been signed out.",
-            });
-          }
+    const initializeAuth = async () => {
+      try {
+        // First get the session
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        
+        console.log("Initial session check:", currentSession ? "Session exists" : "No session");
+        
+        if (currentSession) {
+          setSession(currentSession);
+          setUser(currentSession.user);
+          previousUserId.current = currentSession.user.id;
         }
+        
+        // Then set up the auth listener
+        authListener = supabase.auth.onAuthStateChange((event, newSession) => {
+          console.log("Auth state change:", event);
+          
+          // Only update if there's a meaningful change
+          const newUserId = newSession?.user?.id;
+          const hasUserChanged = newUserId !== previousUserId.current;
+          const isSignOut = event === 'SIGNED_OUT';
+          
+          if (hasUserChanged || isSignOut) {
+            console.log("Updating auth state due to:", 
+              hasUserChanged ? "User ID change" : "Sign out");
+            
+            setSession(newSession);
+            setUser(newSession?.user ?? null);
+            previousUserId.current = newUserId ?? null;
+            
+            if (event === 'SIGNED_IN') {
+              toast({
+                title: "Signed in successfully",
+                description: "Welcome back!",
+              });
+            } else if (event === 'SIGNED_OUT') {
+              toast({
+                title: "Signed out successfully",
+                description: "You have been signed out.",
+              });
+            }
+          }
+        });
+        
+      } catch (error) {
+        console.error("Auth initialization error:", error);
+      } finally {
+        // Always mark as initialized and not loading
+        setIsLoading(false);
+        initialized.current = true;
       }
-    );
+    };
+
+    initializeAuth();
 
     return () => {
-      subscription.unsubscribe();
+      if (authListener) {
+        authListener.subscription.unsubscribe();
+      }
     };
-  }, [toast, user, initialized]);
+  }, []); // Removed dependencies to prevent re-initialization
 
   const signIn = async (email: string, password: string) => {
     const result = await supabase.auth.signInWithPassword({ email, password });

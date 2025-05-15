@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,13 +17,24 @@ export default function Auth() {
   const location = useLocation();
   const { user, isLoading } = useAuth();
   const [redirectChecked, setRedirectChecked] = useState(false);
+  const hasRedirected = useRef(false);
+  
+  console.log("Auth page - Current state:", { 
+    isLoading, 
+    hasUser: !!user,
+    redirectChecked,
+    hasRedirected: hasRedirected.current
+  });
   
   // Check if user is already logged in
   useEffect(() => {
-    if (!isLoading) {
+    // Only perform redirect logic when not loading and we haven't redirected yet
+    if (!isLoading && !hasRedirected.current) {
       if (user) {
+        console.log("Auth page - User is authenticated, redirecting");
         // Get the redirect path from location state or default to home
         const from = location.state?.from?.pathname || "/";
+        hasRedirected.current = true;
         navigate(from, { replace: true });
       }
       setRedirectChecked(true);
@@ -33,6 +44,7 @@ export default function Auth() {
   // Handle successful login
   const handleLoginSuccess = () => {
     const from = location.state?.from?.pathname || "/";
+    hasRedirected.current = true;
     navigate(from, { replace: true });
   };
   
