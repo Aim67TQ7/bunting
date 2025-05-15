@@ -16,13 +16,17 @@ export default function Auth() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isLoading } = useAuth();
+  const [redirectChecked, setRedirectChecked] = useState(false);
   
   // Check if user is already logged in
   useEffect(() => {
-    if (user && !isLoading) {
-      // Get the redirect path from location state or default to home
-      const from = location.state?.from?.pathname || "/";
-      navigate(from, { replace: true });
+    if (!isLoading) {
+      if (user) {
+        // Get the redirect path from location state or default to home
+        const from = location.state?.from?.pathname || "/";
+        navigate(from, { replace: true });
+      }
+      setRedirectChecked(true);
     }
   }, [user, isLoading, navigate, location]);
 
@@ -42,8 +46,8 @@ export default function Auth() {
     setAuthTab("login");
   };
 
-  // If still loading, show nothing to prevent flash
-  if (isLoading) {
+  // If still loading or haven't checked redirect, show loading state
+  if (isLoading || !redirectChecked) {
     return null;
   }
   

@@ -28,17 +28,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const { toast } = useToast();
-  const [authChangeProcessed, setAuthChangeProcessed] = useState<boolean>(false);
+  const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
-    // Set up auth state listener first
+    // Check for existing session first
+    const checkSession = async () => {
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      
+      if (currentSession) {
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
+      }
+      
+      setIsLoading(false);
+      setInitialized(true);
+    };
+    
+    checkSession();
+    
+    // Then set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, newSession) => {
-        // Only update state if session actually changed to prevent refresh loops
-        if (JSON.stringify(newSession) !== JSON.stringify(session)) {
+        // Only update if there's an actual change and component is initialized
+        // to prevent refresh loops
+        if (initialized && 
+            (JSON.stringify(newSession?.user?.id) !== JSON.stringify(user?.id) || 
+             event === 'SIGNED_OUT')) {
+          
           setSession(newSession);
           setUser(newSession?.user ?? null);
-          setAuthChangeProcessed(true);
           
           if (event === 'SIGNED_IN') {
             toast({
@@ -55,22 +73,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    // Then check for existing session, but don't trigger duplicate state updates
-    const checkSession = async () => {
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
-      if (JSON.stringify(currentSession) !== JSON.stringify(session)) {
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
-      }
-      setIsLoading(false);
-    };
-    
-    checkSession();
-
     return () => {
       subscription.unsubscribe();
     };
-  }, [toast, session]);
+  }, [toast, user, initialized]);
 
   const signIn = async (email: string, password: string) => {
     const result = await supabase.auth.signInWithPassword({ email, password });

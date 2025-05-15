@@ -11,6 +11,7 @@ export default function PrivateRoute({ children }: PrivateRouteProps) {
   const { user, isLoading } = useAuth();
   const location = useLocation();
   
+  // Don't render anything until authentication check is complete
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -22,10 +23,11 @@ export default function PrivateRoute({ children }: PrivateRouteProps) {
     );
   }
   
+  // If not authenticated, redirect to auth page with return path
   if (!user) {
-    // Save the current location to redirect back after login
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
   
+  // If authenticated, render children
   return <>{children}</>;
 }
