@@ -12,25 +12,22 @@ export default function PrivateRoute({ children }: PrivateRouteProps) {
   const { user, isLoading, session } = useAuth();
   const [checkingSession, setCheckingSession] = useState(true);
   const attemptCount = useRef(0);
-  const maxAttempts = 5; // Increase max attempts for more reliable checking
+  const maxAttempts = 3;
 
   useEffect(() => {
     if (!isLoading && attemptCount.current < maxAttempts) {
       attemptCount.current += 1;
       console.log(`PrivateRoute: Auth check attempt ${attemptCount.current}`, { user: !!user, session: !!session });
       
-      // Add a small delay to ensure auth state is properly loaded
       const timer = setTimeout(() => {
         console.log("PrivateRoute: Session check complete", { user: !!user, session: !!session });
         setCheckingSession(false);
-      }, 300); // Increased delay for more reliable auth state check
+      }, 200);
       
       return () => clearTimeout(timer);
     } else if (isLoading) {
-      // Reset attempt count when loading changes
       attemptCount.current = 0;
     } else if (attemptCount.current >= maxAttempts) {
-      // If we've reached max attempts, stop checking and proceed
       console.log("PrivateRoute: Max attempts reached, proceeding with current state");
       setCheckingSession(false);
     }

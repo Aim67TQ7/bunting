@@ -19,23 +19,23 @@ export default function Auth() {
   const hasRedirected = useRef(false);
   
   useEffect(() => {
-    // Prevent checking multiple times during component lifecycle
+    // Only check once when component first mounts or when auth state changes
     if (redirectChecked.current) {
       return;
     }
     
-    redirectChecked.current = true;
-    console.log("Auth: Checking authentication status", { user: !!user, isLoading });
-    
-    // If user is already authenticated and not in loading state, redirect to home
-    if (user && !isLoading && !hasRedirected.current) {
-      console.log("Auth: User already authenticated, redirecting to /");
-      hasRedirected.current = true;
-      setTimeout(() => navigate("/"), 100);
-    } else if (isLoading) {
-      console.log("Auth: Auth state is still loading");
-    } else {
-      console.log("Auth: User not authenticated", { user: !!user, isLoading });
+    // Only check for redirection if we're not currently loading auth state
+    if (!isLoading) {
+      redirectChecked.current = true;
+      console.log("Auth: Authentication check complete", { user: !!user });
+      
+      // If user is authenticated, redirect to home page
+      if (user && !hasRedirected.current) {
+        console.log("Auth: User authenticated, redirecting to /");
+        hasRedirected.current = true;
+        // Use a short timeout to ensure state is updated before navigation
+        setTimeout(() => navigate("/"), 100);
+      }
     }
   }, [user, isLoading, navigate]);
 
@@ -58,8 +58,8 @@ export default function Auth() {
     setAuthTab("login");
   };
 
-  // If already redirecting, show a simple loading state
-  if (user && !isLoading && !hasRedirected.current) {
+  // If already authenticated and about to redirect, show loading message
+  if (user && !hasRedirected.current) {
     return (
       <div className="flex items-center justify-center min-h-screen p-4">
         <div className="text-center">Redirecting to dashboard...</div>

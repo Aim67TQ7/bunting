@@ -21,7 +21,7 @@ type AuthContextType = {
   updatePassword: (password: string) => Promise<{ error: Error | null }>;
 };
 
-// Create context with a meaningful default value
+// Create context with a default undefined value
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -41,11 +41,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log("Setting up auth state listener");
     initialized.current = true;
 
-    const { data } = supabase.auth.onAuthStateChange((event, currentSession) => {
+    // Set up auth state listener first
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, currentSession) => {
       console.log("Auth state changed:", event, currentSession?.user?.id);
       
-      // Only update state if the session or user has changed
+      // Update state with the new session and user
       const newUserId = currentSession?.user?.id || null;
+      
+      // Only update state if the user ID has changed to prevent unnecessary re-renders
       if (previousUserId.current !== newUserId) {
         console.log("User ID changed from", previousUserId.current, "to", newUserId);
         previousUserId.current = newUserId;
@@ -67,7 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     });
 
-    // Initial session check
+    // Then check for existing session
     supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
       console.log("Initial session check:", initialSession?.user?.id);
       setSession(initialSession);
@@ -77,7 +80,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     return () => {
-      data.subscription.unsubscribe();
+      authListener.subscription.unsubscribe();
     };
   }, []); // No dependencies to prevent re-runs
 
@@ -134,7 +137,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     updatePassword,
   };
 
-  // Make sure to actually create the provider!
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
