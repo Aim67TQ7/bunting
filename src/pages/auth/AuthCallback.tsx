@@ -33,7 +33,7 @@ export default function AuthCallback() {
 
         // For all other auth callbacks, proceed to the app
         setTimeout(() => {
-          navigate("/settings");
+          navigate("/");
         }, 2000);
       } catch (err) {
         console.error("Auth callback error:", err);
