@@ -8,17 +8,14 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { useToast } from "@/hooks/use-toast";
 import { ProfilePicture } from "@/components/settings/ProfilePicture";
 import { ProfileForm } from "@/components/settings/ProfileForm";
-import { PasswordManager } from "@/components/settings/PasswordManager";
 import { profileSchema, ProfileFormValues, UserProfileData } from "@/types/profile";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Settings() {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [userData, setUserData] = useState<UserProfileData | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("profile");
   const { toast } = useToast();
   
   const form = useForm<ProfileFormValues>({
@@ -214,38 +211,25 @@ export default function Settings() {
           <div className="flex items-center justify-between border-b px-4 py-2">
             <div className="flex gap-2 items-center">
               <SidebarTrigger className="md:hidden" />
-              <h1 className="text-lg font-semibold">Settings</h1>
+              <h1 className="text-lg font-semibold">Profile Settings</h1>
             </div>
           </div>
           
           <div className="flex-1 overflow-y-auto p-4 md:p-6">
             <div className="mx-auto max-w-2xl">
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
-                <TabsList className="grid w-full grid-cols-2 mb-6">
-                  <TabsTrigger value="profile">Profile</TabsTrigger>
-                  <TabsTrigger value="security">Security</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="profile" className="space-y-6">
-                  <ProfilePicture 
-                    userId={user?.id}
-                    avatarUrl={avatarUrl}
-                    firstName={userData?.first_name}
-                    email={user?.email}
-                    onAvatarUpdate={handleAvatarUpdate}
-                  />
-                  
-                  <ProfileForm 
-                    form={form} 
-                    onSubmit={onSubmit} 
-                    isLoading={isLoading} 
-                  />
-                </TabsContent>
-                
-                <TabsContent value="security" className="space-y-6">
-                  <PasswordManager />
-                </TabsContent>
-              </Tabs>
+              <ProfilePicture 
+                userId={user?.id}
+                avatarUrl={avatarUrl}
+                firstName={userData?.first_name}
+                email={user?.email}
+                onAvatarUpdate={handleAvatarUpdate}
+              />
+              
+              <ProfileForm 
+                form={form} 
+                onSubmit={onSubmit} 
+                isLoading={isLoading} 
+              />
             </div>
           </div>
         </SidebarInset>

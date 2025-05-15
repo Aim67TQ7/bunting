@@ -1,5 +1,5 @@
 
-import { Navigate, useLocation } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 
@@ -9,15 +9,7 @@ interface PrivateRouteProps {
 
 export default function PrivateRoute({ children }: PrivateRouteProps) {
   const { user, isLoading } = useAuth();
-  const location = useLocation();
   
-  console.log("PrivateRoute - Auth state:", { 
-    isLoading, 
-    isAuthenticated: !!user, 
-    currentPath: location.pathname 
-  });
-  
-  // Don't render anything until authentication check is complete
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -29,13 +21,9 @@ export default function PrivateRoute({ children }: PrivateRouteProps) {
     );
   }
   
-  // If not authenticated, redirect to auth page with return path
   if (!user) {
-    console.log("PrivateRoute - User not authenticated, redirecting to /auth");
-    return <Navigate to="/auth" state={{ from: location }} replace />;
+    return <Navigate to="/auth" />;
   }
   
-  // If authenticated, render children
-  console.log("PrivateRoute - User authenticated, rendering children");
   return <>{children}</>;
 }
