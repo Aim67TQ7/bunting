@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { RegisterForm } from "@/components/auth/RegisterForm";
@@ -14,12 +14,19 @@ export default function Auth() {
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const redirectAttempted = useRef(false);
 
   useEffect(() => {
-    // If user is logged in, redirect to home
-    if (user && !isLoading) {
+    // Only attempt to redirect once when user is detected
+    if (user && !isLoading && !redirectAttempted.current) {
+      redirectAttempted.current = true;
+      console.log("Auth: User detected, redirecting to dashboard");
       setIsRedirecting(true);
-      navigate("/");
+      
+      // Add a slight delay to ensure state updates properly
+      setTimeout(() => {
+        navigate("/");
+      }, 100);
     }
   }, [user, isLoading, navigate]);
 
@@ -42,6 +49,12 @@ export default function Auth() {
       </div>
     );
   }
+
+  const handleLoginSuccess = () => {
+    console.log("Login successful, redirecting...");
+    setIsRedirecting(true);
+    navigate("/");
+  };
 
   return (
     <div className="bg-background min-h-screen flex flex-col">
@@ -73,15 +86,37 @@ export default function Auth() {
             </div>
             
             {activeTab === "login" && (
-              <LoginForm onForgotPassword={() => setActiveTab("forgot-password")} />
+              <LoginForm onSuccess={handleLoginSuccess} />
             )}
             
             {activeTab === "signup" && (
-              <RegisterForm onLoginClick={() => setActiveTab("login")} />
+              <RegisterForm />
             )}
             
             {activeTab === "forgot-password" && (
-              <ForgotPasswordForm onBackToLogin={() => setActiveTab("login")} />
+              <ForgotPasswordForm />
+            )}
+
+            {activeTab === "login" && (
+              <div className="mt-4 text-center">
+                <button 
+                  className="text-sm text-primary hover:underline" 
+                  onClick={() => setActiveTab("forgot-password")}
+                >
+                  Forgot your password?
+                </button>
+              </div>
+            )}
+
+            {activeTab === "forgot-password" && (
+              <div className="mt-4 text-center">
+                <button 
+                  className="text-sm text-primary hover:underline" 
+                  onClick={() => setActiveTab("login")}
+                >
+                  Back to login
+                </button>
+              </div>
             )}
           </div>
         </div>

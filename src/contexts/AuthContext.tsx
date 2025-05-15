@@ -33,7 +33,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const previousUserId = useRef<string | null>(null);
 
   useEffect(() => {
-    // Avoid running the effect multiple times
     if (initialized.current) {
       return;
     }
@@ -46,15 +45,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log("Auth state changed:", event, currentSession?.user?.id);
       
       // Update state with the new session and user
-      const newUserId = currentSession?.user?.id || null;
+      setSession(currentSession);
+      setUser(currentSession?.user ?? null);
       
-      // Only update state if the user ID has changed to prevent unnecessary re-renders
-      if (previousUserId.current !== newUserId) {
-        console.log("User ID changed from", previousUserId.current, "to", newUserId);
-        previousUserId.current = newUserId;
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
-      }
+      // Update previous user ID for comparison
+      previousUserId.current = currentSession?.user?.id || null;
       
       // Show toast notifications for certain events
       if (event === 'SIGNED_IN') {
@@ -86,44 +81,79 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (email: string, password: string) => {
     console.log("Attempting to sign in:", email);
-    const result = await supabase.auth.signInWithPassword({ email, password });
-    console.log("Sign in result:", result.error ? "Error" : "Success");
-    return result;
+    try {
+      const result = await supabase.auth.signInWithPassword({ email, password });
+      console.log("Sign in result:", result.error ? "Error" : "Success");
+      return result;
+    } catch (error) {
+      console.error("Error during sign in:", error);
+      return { 
+        error: new Error("Failed to sign in"),
+        data: { user: null, session: null } 
+      };
+    }
   };
 
   const signUp = async (email: string, password: string) => {
-    const result = await supabase.auth.signUp({ 
-      email, 
-      password,
-      options: {
-        emailRedirectTo: `${getBaseUrl()}/auth/callback`
-      }
-    });
-    return result;
+    try {
+      const result = await supabase.auth.signUp({ 
+        email, 
+        password,
+        options: {
+          emailRedirectTo: `${getBaseUrl()}/auth/callback`
+        }
+      });
+      return result;
+    } catch (error) {
+      console.error("Error during sign up:", error);
+      return { 
+        error: new Error("Failed to sign up"),
+        data: { user: null, session: null } 
+      };
+    }
   };
 
   const signOut = async () => {
     console.log("Signing out");
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error("Error during sign out:", error);
+      toast({
+        title: "Error",
+        description: "Failed to sign out properly",
+        variant: "destructive",
+      });
+    }
   };
 
   const getBaseUrl = () => {
-    return "https://buntinggpt.com";
+    return window.location.origin || "https://buntinggpt.com";
   };
 
   const resetPassword = async (email: string) => {
     const baseUrl = getBaseUrl();
-    const result = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${baseUrl}/auth/callback#type=recovery`,
-    });
-    return result;
+    try {
+      const result = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${baseUrl}/auth/callback#type=recovery`,
+      });
+      return result;
+    } catch (error) {
+      console.error("Error during password reset:", error);
+      return { error: new Error("Failed to send password reset email") };
+    }
   };
 
   const updatePassword = async (password: string) => {
-    const result = await supabase.auth.updateUser({
-      password: password,
-    });
-    return result;
+    try {
+      const result = await supabase.auth.updateUser({
+        password: password,
+      });
+      return result;
+    } catch (error) {
+      console.error("Error updating password:", error);
+      return { error: new Error("Failed to update password") };
+    }
   };
 
   const value = {

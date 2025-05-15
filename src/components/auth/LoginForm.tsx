@@ -38,19 +38,28 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
 
   const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true);
+    console.log("Attempting to sign in with:", data.email);
+    
     try {
       const { error } = await signIn(data.email, data.password);
       
       if (error) {
+        console.error("Login error:", error.message);
         toast({
           title: "Login failed",
-          description: error.message,
+          description: error.message || "Invalid email or password. Please try again.",
           variant: "destructive",
         });
       } else {
+        console.log("Login successful");
+        toast({
+          title: "Login successful",
+          description: "Welcome back!",
+        });
         onSuccess();
       }
-    } catch (err) {
+    } catch (err: any) {
+      console.error("Unexpected error during login:", err);
       toast({
         title: "Error",
         description: "An unexpected error occurred. Please try again.",
@@ -90,6 +99,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
                     type={showPassword ? "text" : "password"} 
                     {...field} 
                     className="pr-10"
+                    autoComplete="current-password"
                   />
                 </FormControl>
                 <Button
