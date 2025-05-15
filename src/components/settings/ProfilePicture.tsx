@@ -28,24 +28,6 @@ export function ProfilePicture({ userId, avatarUrl, firstName, email, onAvatarUp
       const fileExt = file.name.split('.').pop();
       const filePath = `${userId}/avatar.${fileExt}`;
       
-      // Check if avatars bucket exists, create if not
-      const { data: buckets, error: bucketsError } = await supabase.storage
-        .listBuckets();
-      
-      if (bucketsError) throw bucketsError;
-      
-      const avatarsBucketExists = buckets.some(bucket => bucket.name === 'avatars');
-      
-      if (!avatarsBucketExists) {
-        const { error: createBucketError } = await supabase.storage
-          .createBucket('avatars', {
-            public: true,
-            fileSizeLimit: 1024 * 1024 * 2 // 2MB
-          });
-        
-        if (createBucketError) throw createBucketError;
-      }
-      
       // Upload image to Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from("avatars")
@@ -96,7 +78,7 @@ export function ProfilePicture({ userId, avatarUrl, firstName, email, onAvatarUp
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col items-center space-y-4">
-        <Avatar className="h-24 w-24">
+        <Avatar className="h-24 w-24 border-2 border-primary/10">
           <AvatarImage src={avatarUrl || ""} alt={firstName || "User"} />
           <AvatarFallback>
             {firstName?.charAt(0) || email?.charAt(0) || "U"}

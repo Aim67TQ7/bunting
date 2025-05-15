@@ -109,9 +109,9 @@ export function AppSidebar({ className }: AppSidebarProps) {
       
       <SidebarFooter className="mt-auto">
         <div className="mt-3 px-2">
-          <div className="rounded-md bg-sidebar-accent/50 p-2">
-            <div className="flex items-center gap-2">
-              <Avatar className="h-8 w-8">
+          <div className="rounded-md bg-sidebar-accent/50 p-3">
+            <div className="flex items-center gap-3">
+              <Avatar className="h-10 w-10 border-2 border-primary/10">
                 <AvatarImage src={userProfile.avatar_url || ""} alt={userProfile.first_name || user?.email || ""} />
                 <AvatarFallback>
                   {userProfile.first_name?.charAt(0) || user?.email?.charAt(0) || "U"}
