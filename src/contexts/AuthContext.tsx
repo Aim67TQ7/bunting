@@ -100,6 +100,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const result = await supabase.auth.updateUser({
       password: password,
     });
+    
+    if (!result.error) {
+      toast({
+        title: "Password Updated",
+        description: "Your password has been successfully updated.",
+      });
+    }
+    
     return result;
   };
 
