@@ -1,6 +1,6 @@
 
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { RegisterForm } from "@/components/auth/RegisterForm";
 import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
@@ -12,12 +12,16 @@ type AuthTab = "login" | "signup" | "forgot-password";
 export default function Auth() {
   const [activeTab, setActiveTab] = useState<AuthTab>("login");
   const navigate = useNavigate();
+  const location = useLocation();
   const auth = useAuth();
-
+  
+  // Get the redirectUrl from location state (from PrivateRoute)
+  const redirectUrl = location.state?.from?.pathname || "/";
+  
   // Handle successful login
   const handleLoginSuccess = () => {
-    console.log("Login successful, redirecting...");
-    navigate("/");
+    console.log("Login successful, redirecting to:", redirectUrl);
+    navigate(redirectUrl, { replace: true });
   };
 
   // Handle successful registration
@@ -32,11 +36,22 @@ export default function Auth() {
     setActiveTab("login");
   };
 
-  // If the user is already authenticated, redirect to home
-  if (auth.user && !auth.isLoading) {
-    console.log("User is already authenticated, redirecting to home");
-    navigate("/", { replace: true });
-    return null;
+  // Redirect if already authenticated
+  useEffect(() => {
+    // Only redirect if we have a user and we're not loading
+    if (auth.user && !auth.isLoading) {
+      console.log("User is already authenticated, redirecting to:", redirectUrl);
+      navigate(redirectUrl, { replace: true });
+    }
+  }, [auth.user, auth.isLoading, navigate, redirectUrl]);
+
+  // If still loading auth state, show a loading spinner
+  if (auth.isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-muted-foreground">Checking authentication...</p>
+      </div>
+    );
   }
 
   return (

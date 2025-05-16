@@ -1,8 +1,8 @@
 
-import React, { createContext, useContext, useState, useEffect, useRef } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 type AuthContextType = {
   user: User | null;
@@ -29,24 +29,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const { toast } = useToast();
-  const initialized = useRef(false);
 
   useEffect(() => {
-    if (initialized.current) return;
-    
-    console.log("[AuthProvider] Initializing auth state");
-    initialized.current = true;
-    setIsLoading(true); // Ensure we start in loading state
+    console.log("[AuthProvider] Setting up auth state");
+    setIsLoading(true);
 
-    // Set up auth state listener first
+    // Set up auth state listener first to catch all future auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => {
       console.log("[AuthProvider] Auth state changed:", event, currentSession?.user?.id);
       
-      // Update session and user synchronously to prevent rendering issues
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
+      // Update state synchronously
+      if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setSession(null);
+      } else {
+        setUser(currentSession?.user ?? null);
+        setSession(currentSession);
+      }
       
-      // Only show toasts for specific events the user should be notified about
+      // Only show toasts for important events
       if (event === 'SIGNED_IN' && currentSession?.user) {
         toast({
           title: "Signed in successfully",
@@ -67,8 +68,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log("[AuthProvider] Initial session check:", initialSession?.user?.id);
         
         if (initialSession?.user) {
-          setSession(initialSession);
           setUser(initialSession.user);
+          setSession(initialSession);
         }
       } catch (error) {
         console.error("[AuthProvider] Error checking session:", error);
@@ -82,7 +83,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       subscription.unsubscribe();
     };
-  }, []); // No dependencies to prevent re-runs
+  }, []); // Empty dependency array to run once
 
   // Special sign in function with test mode option
   const signIn = async (email: string, password: string, isTestMode = false) => {
@@ -91,7 +92,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setIsLoading(true);
       
-      // Create a synthetic user for Bunting emails in test mode
+      // Handle Bunting emails in test mode
       if (isTestMode && email.toLowerCase().endsWith('@buntingmagnetics.com')) {
         // Try normal sign in first
         const result = await supabase.auth.signInWithPassword({ email, password });
@@ -149,7 +150,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email, 
         password,
         options: {
-          emailRedirectTo: `${getBaseUrl()}/auth/callback`
+          emailRedirectTo: `${window.location.origin}/auth/callback`
         }
       });
       return result;
@@ -181,16 +182,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const getBaseUrl = () => {
-    return window.location.origin || "https://buntinggpt.com";
-  };
-
   const resetPassword = async (email: string) => {
-    const baseUrl = getBaseUrl();
     try {
       setIsLoading(true);
       const result = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${baseUrl}/auth/callback#type=recovery`,
+        redirectTo: `${window.location.origin}/auth/callback#type=recovery`,
       });
       return result;
     } catch (error) {

@@ -1,8 +1,7 @@
 
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
 
 interface PrivateRouteProps {
   children: React.ReactNode;
@@ -10,44 +9,34 @@ interface PrivateRouteProps {
 
 export default function PrivateRoute({ children }: PrivateRouteProps) {
   const { user, isLoading, session } = useAuth();
-  const [authChecked, setAuthChecked] = useState(false);
-  
-  useEffect(() => {
-    // Once loading is completed, mark auth as checked
-    if (!isLoading) {
-      // Add a small delay to ensure state is settled
-      const timer = setTimeout(() => {
-        console.log("PrivateRoute: Auth check completed", { 
-          user: !!user, 
-          session: !!session,
-          isLoading 
-        });
-        setAuthChecked(true);
-      }, 100);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [user, session, isLoading]);
+  const location = useLocation();
   
   // Show loading state when authentication is still being checked
-  if (isLoading || !authChecked) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="flex flex-col items-center gap-2">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Checking authentication...</p>
+          <p className="text-muted-foreground">Verifying authentication...</p>
         </div>
       </div>
     );
   }
   
-  // If no user is found after loading is complete, redirect to auth page
+  // After loading completes, if no user is found, redirect to auth page
   if (!user || !session) {
-    console.log("PrivateRoute: No user or session, redirecting to /auth");
-    return <Navigate to="/auth" replace />;
+    console.log("PrivateRoute: No authenticated user, redirecting to /auth", {
+      path: location.pathname
+    });
+    
+    // Pass current location so we can redirect back after login
+    return <Navigate to="/auth" replace state={{ from: location }} />;
   }
   
   // User is authenticated, render children
-  console.log("PrivateRoute: User is authenticated, rendering children");
+  console.log("PrivateRoute: User is authenticated, rendering", {
+    path: location.pathname,
+    user: user.email
+  });
   return <>{children}</>;
 }

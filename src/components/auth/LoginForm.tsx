@@ -57,6 +57,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
             description: error.message || "Authentication failed. Please try again.",
             variant: "destructive",
           });
+          setIsLoading(false);
           return;
         }
         
@@ -67,6 +68,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
             description: "Authentication was successful but session data is missing. Please try again.",
             variant: "destructive",
           });
+          setIsLoading(false);
           return;
         }
         
@@ -76,7 +78,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
           description: "Welcome to the testing environment!",
         });
         
-        // Call the success handler
+        // Call the success handler provided by parent
         onSuccess();
       } else {
         // Normal authentication flow for non-Bunting emails
@@ -89,6 +91,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
             description: error.message || "Invalid email or password. Please try again.",
             variant: "destructive",
           });
+          setIsLoading(false);
           return;
         } 
         
@@ -99,6 +102,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
             description: "Authentication was successful but session data is missing. Please try again.",
             variant: "destructive",
           });
+          setIsLoading(false);
           return;
         }
         
@@ -108,7 +112,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
           description: "Welcome back!",
         });
         
-        // Call the success handler
+        // Call the success handler provided by parent
         onSuccess();
       }
     } catch (err: any) {
