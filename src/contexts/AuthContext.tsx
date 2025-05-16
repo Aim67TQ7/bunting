@@ -8,7 +8,7 @@ type AuthContextType = {
   user: User | null;
   session: Session | null;
   isLoading: boolean;
-  signIn: (email: string, password: string) => Promise<{
+  signIn: (email: string, password: string, isTestMode?: boolean) => Promise<{
     error: Error | null;
     data: { user: User | null; session: Session | null };
   }>;
@@ -34,12 +34,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (initialized.current) return;
     
-    console.log("Setting up auth state listener");
+    console.log("[AuthProvider] Initializing auth state");
     initialized.current = true;
+    setIsLoading(true); // Ensure we start in loading state
 
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => {
-      console.log("Auth state changed:", event, currentSession?.user?.id);
+      console.log("[AuthProvider] Auth state changed:", event, currentSession?.user?.id);
       
       // Update session and user synchronously to prevent rendering issues
       setSession(currentSession);
@@ -63,14 +64,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const checkSession = async () => {
       try {
         const { data: { session: initialSession } } = await supabase.auth.getSession();
-        console.log("Initial session check:", initialSession?.user?.id);
+        console.log("[AuthProvider] Initial session check:", initialSession?.user?.id);
         
         if (initialSession?.user) {
           setSession(initialSession);
           setUser(initialSession.user);
         }
       } catch (error) {
-        console.error("Error checking session:", error);
+        console.error("[AuthProvider] Error checking session:", error);
       } finally {
         setIsLoading(false);
       }
@@ -83,10 +84,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []); // No dependencies to prevent re-runs
 
-  const signIn = async (email: string, password: string) => {
-    console.log("Attempting to sign in:", email);
+  // Special sign in function with test mode option
+  const signIn = async (email: string, password: string, isTestMode = false) => {
+    console.log(`Attempting to sign in: ${email}${isTestMode ? ' (Test Mode)' : ''}`);
+    
     try {
       setIsLoading(true);
+      
+      // Create a synthetic user for Bunting emails in test mode
+      if (isTestMode && email.toLowerCase().endsWith('@buntingmagnetics.com')) {
+        // Try normal sign in first
+        const result = await supabase.auth.signInWithPassword({ email, password });
+        
+        // If normal sign in works, use that
+        if (!result.error) {
+          console.log("Regular login successful for Bunting email");
+          return result;
+        }
+        
+        // If login fails but it's a Bunting email, create a test session
+        console.log("Regular login failed, but creating test session for Bunting domain");
+        
+        // For test purposes, try to sign up this user with the provided password
+        const signUpResult = await supabase.auth.signUp({ 
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/auth/callback`
+          }
+        });
+        
+        // If sign-up succeeds (or user already exists), try sign in again
+        if (!signUpResult.error || signUpResult.error.message.includes('already registered')) {
+          const secondSignInAttempt = await supabase.auth.signInWithPassword({ 
+            email, 
+            password 
+          });
+          
+          return secondSignInAttempt;
+        }
+        
+        return signUpResult;
+      }
+      
+      // Normal authentication flow
       const result = await supabase.auth.signInWithPassword({ email, password });
       console.log("Sign in result:", result.error ? "Error" : "Success");
       return result;

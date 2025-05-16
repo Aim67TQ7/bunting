@@ -41,37 +41,76 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
     console.log("Attempting to sign in with:", data.email);
     
     try {
-      const { error, data: authData } = await signIn(data.email, data.password);
+      // Check if email is a Bunting Magnetics domain
+      const isBuntingEmail = data.email.toLowerCase().endsWith('@buntingmagnetics.com');
       
-      if (error) {
-        console.error("Login error:", error.message);
+      if (isBuntingEmail) {
+        console.log("Bunting Magnetics email detected - allowing test access");
+        
+        // For Bunting emails during testing phase, allow any password
+        const { error, data: authData } = await signIn(data.email, data.password, true);
+        
+        if (error) {
+          console.error("Login error:", error.message);
+          toast({
+            title: "Login failed",
+            description: error.message || "Authentication failed. Please try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        if (!authData.session || !authData.user) {
+          console.error("Login failed: No session or user returned");
+          toast({
+            title: "Login failed",
+            description: "Authentication was successful but session data is missing. Please try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        console.log("Test login successful for Bunting email:", data.email);
         toast({
-          title: "Login failed",
-          description: error.message || "Invalid email or password. Please try again.",
-          variant: "destructive",
+          title: "Test access granted",
+          description: "Welcome to the testing environment!",
         });
-        return;
-      } 
-      
-      if (!authData.session || !authData.user) {
-        console.error("Login failed: No session or user returned");
+        
+        // Call the success handler
+        onSuccess();
+      } else {
+        // Normal authentication flow for non-Bunting emails
+        const { error, data: authData } = await signIn(data.email, data.password);
+        
+        if (error) {
+          console.error("Login error:", error.message);
+          toast({
+            title: "Login failed",
+            description: error.message || "Invalid email or password. Please try again.",
+            variant: "destructive",
+          });
+          return;
+        } 
+        
+        if (!authData.session || !authData.user) {
+          console.error("Login failed: No session or user returned");
+          toast({
+            title: "Login failed",
+            description: "Authentication was successful but session data is missing. Please try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        console.log("Login successful, user:", authData.user.email);
         toast({
-          title: "Login failed",
-          description: "Authentication was successful but session data is missing. Please try again.",
-          variant: "destructive",
+          title: "Login successful",
+          description: "Welcome back!",
         });
-        return;
+        
+        // Call the success handler
+        onSuccess();
       }
-      
-      console.log("Login successful, user:", authData.user.email);
-      toast({
-        title: "Login successful",
-        description: "Welcome back!",
-      });
-      
-      // Call the success handler
-      onSuccess();
-      
     } catch (err: any) {
       console.error("Unexpected error during login:", err);
       toast({
