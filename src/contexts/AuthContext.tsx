@@ -38,6 +38,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => {
       console.log("[AuthProvider] Auth state changed:", event, currentSession?.user?.id);
       
+      // Don't show loading state for every auth event as it can cause flicker
+      // but do update the user/session state
       if (event === 'SIGNED_OUT') {
         setUser(null);
         setSession(null);
@@ -73,10 +75,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } catch (error) {
         console.error("[AuthProvider] Error checking session:", error);
       } finally {
+        // Ensure we always set isLoading to false, even if there's an error
         setIsLoading(false);
       }
     };
 
+    // Execute the session check
     checkSession();
 
     return () => {
@@ -99,6 +103,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error("Sign in error:", result.error.message);
       } else {
         console.log("Sign in successful:", result.data.user?.email);
+        
+        // Update state immediately to prevent flashes
+        if (result.data?.user && result.data?.session) {
+          setUser(result.data.user);
+          setSession(result.data.session);
+        }
       }
       
       return result;

@@ -19,7 +19,7 @@ export default function PrivateRoute({ children }: PrivateRouteProps) {
     userEmail: user?.email
   });
   
-  // Show loading state when authentication is still being checked
+  // Only show loading state when authentication is still being checked
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">

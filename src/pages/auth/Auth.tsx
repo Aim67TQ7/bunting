@@ -32,10 +32,10 @@ export default function Auth() {
   const handleLoginSuccess = () => {
     console.log("Login successful, redirecting to:", redirectUrl);
     setIsRedirecting(true);
-    // Add a longer delay to allow state to update properly
+    // Use a longer delay to allow state to update properly
     setTimeout(() => {
       navigate(redirectUrl, { replace: true });
-    }, 500); // Increased timeout
+    }, 800); // Increased timeout
   };
 
   // Handle successful registration
@@ -56,10 +56,10 @@ export default function Auth() {
     if (!isLoading && user && session && !isRedirecting) {
       console.log("User already authenticated, redirecting to:", redirectUrl);
       setIsRedirecting(true);
-      // Add a longer delay to allow state to update properly
+      // Use a longer delay to allow state to update properly
       setTimeout(() => {
         navigate(redirectUrl, { replace: true });
-      }, 500); // Increased timeout
+      }, 800); // Increased timeout
     }
   }, [isLoading, user, session, navigate, redirectUrl, isRedirecting]);
 
