@@ -77,7 +77,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
       // Make sure to delay the onSuccess call to prevent race conditions
       setTimeout(() => {
         onSuccess();
-      }, 100);
+      }, 500); // Increased timeout
     } catch (err: any) {
       console.error("Unexpected error during login:", err);
       toast({

@@ -32,10 +32,10 @@ export default function Auth() {
   const handleLoginSuccess = () => {
     console.log("Login successful, redirecting to:", redirectUrl);
     setIsRedirecting(true);
-    // Add a slight delay to allow state to update properly
+    // Add a longer delay to allow state to update properly
     setTimeout(() => {
       navigate(redirectUrl, { replace: true });
-    }, 100);
+    }, 500); // Increased timeout
   };
 
   // Handle successful registration
@@ -52,28 +52,16 @@ export default function Auth() {
 
   // Handle redirection for already authenticated users
   useEffect(() => {
-    // Only redirect if user is authenticated and we're not already redirecting
+    // Only redirect if user is authenticated, we're not already redirecting, and we're not loading
     if (!isLoading && user && session && !isRedirecting) {
       console.log("User already authenticated, redirecting to:", redirectUrl);
       setIsRedirecting(true);
-      // Add a slight delay to allow state to update properly
+      // Add a longer delay to allow state to update properly
       setTimeout(() => {
         navigate(redirectUrl, { replace: true });
-      }, 100);
+      }, 500); // Increased timeout
     }
   }, [isLoading, user, session, navigate, redirectUrl, isRedirecting]);
-
-  // If redirecting, show loading indicator
-  if (isRedirecting) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="flex flex-col items-center gap-2">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Redirecting to dashboard...</p>
-        </div>
-      </div>
-    );
-  }
 
   // If still loading auth state, show loading state
   if (isLoading) {
@@ -82,6 +70,18 @@ export default function Auth() {
         <div className="flex flex-col items-center gap-2">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p className="text-muted-foreground">Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If redirecting, show loading indicator
+  if (isRedirecting) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Redirecting to dashboard...</p>
         </div>
       </div>
     );
@@ -99,6 +99,7 @@ export default function Auth() {
     );
   }
 
+  // If we're here, user is not authenticated and we should show the login form
   return (
     <div className="bg-background min-h-screen flex flex-col">
       <div className="flex-1 flex items-center justify-center p-4">
