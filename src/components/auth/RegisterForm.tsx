@@ -2,7 +2,6 @@
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -10,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { useNavigate } from "react-router-dom";
 
 // Form schema
 const registerSchema = z.object({
@@ -34,7 +32,6 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { signUp } = useAuth();
   const { toast } = useToast();
-  const navigate = useNavigate();
 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -86,7 +83,7 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
         });
         
         // Navigate to home page
-        navigate("/", { replace: true });
+        onSuccess();
       } else {
         console.log("Account created but session not established");
         // Fall back to onSuccess if something went wrong with the automatic login
@@ -94,7 +91,7 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
           title: "Account created",
           description: "Please sign in with your credentials.",
         });
-        onSuccess(); // Switch to login tab
+        onSuccess(); // Redirect to login page
       }
     } catch (err: any) {
       console.error("Unexpected registration error:", err);
@@ -118,7 +115,7 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
             <FormItem>
               <FormLabel>Email</FormLabel>
               <FormControl>
-                <Input placeholder="email@example.com" {...field} autoComplete="email" />
+                <Input placeholder="email@buntingmagnetics.com" {...field} autoComplete="email" />
               </FormControl>
               <FormMessage />
             </FormItem>

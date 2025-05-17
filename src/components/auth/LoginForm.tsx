@@ -137,7 +137,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
             <FormItem>
               <FormLabel>Email</FormLabel>
               <FormControl>
-                <Input placeholder="email@bunting.com" {...field} />
+                <Input placeholder="email@buntingmagnetics.com" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
