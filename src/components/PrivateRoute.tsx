@@ -29,14 +29,17 @@ export default function PrivateRoute({ children }: PrivateRouteProps) {
       path: location.pathname
     });
     
-    // Pass current location so we can redirect back after login
-    return <Navigate to="/auth" replace state={{ from: location }} />;
+    // Only redirect to /auth if we're not already there to prevent loops
+    if (location.pathname !== "/auth") {
+      // Pass current location so we can redirect back after login
+      return <Navigate to="/auth" replace state={{ from: location }} />;
+    }
   }
   
   // User is authenticated, render children
   console.log("PrivateRoute: User is authenticated, rendering", {
     path: location.pathname,
-    user: user.email
+    user: user?.email
   });
   return <>{children}</>;
 }

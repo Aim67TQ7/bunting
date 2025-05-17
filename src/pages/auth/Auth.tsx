@@ -6,12 +6,14 @@ import { RegisterForm } from "@/components/auth/RegisterForm";
 import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
 import { BrandLogo } from "@/components/brand-logo";
 import { useAuth } from "@/contexts/AuthContext";
+import { Loader2 } from "lucide-react";
 
 type AuthTab = "login" | "signup" | "forgot-password";
 
 export default function Auth() {
   const [activeTab, setActiveTab] = useState<AuthTab>("login");
   const [authCheckComplete, setAuthCheckComplete] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const auth = useAuth();
@@ -22,6 +24,7 @@ export default function Auth() {
   // Handle successful login
   const handleLoginSuccess = () => {
     console.log("Login successful, redirecting to:", redirectUrl);
+    setRedirecting(true);
     navigate(redirectUrl, { replace: true });
   };
 
@@ -47,17 +50,30 @@ export default function Auth() {
 
   // Only redirect if we've completed the auth check and found a user
   useEffect(() => {
-    if (authCheckComplete && auth.user && auth.session) {
+    if (authCheckComplete && auth.user && auth.session && !redirecting) {
       console.log("User is already authenticated, redirecting to:", redirectUrl);
+      setRedirecting(true);
       navigate(redirectUrl, { replace: true });
     }
-  }, [authCheckComplete, auth.user, auth.session, navigate, redirectUrl]);
+  }, [authCheckComplete, auth.user, auth.session, navigate, redirectUrl, redirecting]);
 
   // If still loading auth state, show a minimal loading state
   if (auth.isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <p className="text-muted-foreground">Checking authentication...</p>
+      </div>
+    );
+  }
+
+  // If redirecting, show loading indicator
+  if (redirecting) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Redirecting to dashboard...</p>
+        </div>
       </div>
     );
   }

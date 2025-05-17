@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -37,33 +37,21 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
   });
 
   const onSubmit = async (data: LoginFormValues) => {
+    if (isLoading) return;
+    
     setIsLoading(true);
     console.log("Attempting to sign in with:", data.email);
     
     try {
-      // Determine if this is a Bunting email
-      const isBuntingEmail = data.email.toLowerCase().endsWith('@buntingmagnetics.com');
-      
-      // Always try regular sign-in first
       const { error, data: authData } = await signIn(data.email, data.password);
       
       if (error) {
         console.error("Login error:", error.message);
-        
-        // If this is a Bunting email, we'll show a more helpful message
-        if (isBuntingEmail) {
-          toast({
-            title: "Login issue",
-            description: "We're having trouble logging you in. Email confirmation is disabled, so this should work. Please try again or contact support.",
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "Login failed",
-            description: error.message || "Invalid email or password. Please try again.",
-            variant: "destructive",
-          });
-        }
+        toast({
+          title: "Login failed",
+          description: error.message || "Invalid email or password. Please try again.",
+          variant: "destructive",
+        });
         setIsLoading(false);
         return;
       } 
@@ -94,7 +82,6 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
         description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
-    } finally {
       setIsLoading(false);
     }
   };
@@ -154,7 +141,14 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
         />
         
         <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? "Signing in..." : "Sign In"}
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Signing in...
+            </>
+          ) : (
+            "Sign In"
+          )}
         </Button>
       </form>
     </Form>

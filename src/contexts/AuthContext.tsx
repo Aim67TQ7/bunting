@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
@@ -37,12 +38,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => {
       console.log("[AuthProvider] Auth state changed:", event, currentSession?.user?.id);
       
-      // Update state synchronously
       if (event === 'SIGNED_OUT') {
         setUser(null);
         setSession(null);
-      } else {
-        setUser(currentSession?.user ?? null);
+      } else if (currentSession) {
+        setUser(currentSession.user);
         setSession(currentSession);
       }
       
@@ -84,7 +84,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []); // Empty dependency array to run once
 
-  // Standard sign in function (without test mode)
+  // Standard sign in function
   const signIn = async (email: string, password: string) => {
     console.log(`Attempting to sign in: ${email}`);
     
@@ -94,6 +94,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Regular authentication flow
       const result = await supabase.auth.signInWithPassword({ email, password });
       console.log("Sign in result:", result.error ? "Error" : "Success");
+      
+      if (result.error) {
+        console.error("Sign in error:", result.error.message);
+      } else {
+        console.log("Sign in successful:", result.data.user?.email);
+      }
+      
       return result;
     } catch (error) {
       console.error("Error during sign in:", error);
