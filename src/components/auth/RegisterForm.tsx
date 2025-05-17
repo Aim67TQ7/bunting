@@ -3,138 +3,103 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState, useEffect } from "react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 // Form schema
 const registerSchema = z.object({
-  employee: z.string().uuid({ message: "Please select an employee from the list" }),
+  email: z.string().email({ message: "Please enter a valid email address" }),
+  password: z.string().min(8, { message: "Password must be at least 8 characters" }),
+  confirmPassword: z.string().min(1, { message: "Confirm your password" }),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
 });
 
 export type RegisterFormValues = z.infer<typeof registerSchema>;
-
-// Interface for Employee data
-export interface Employee {
-  employee_id: string;
-  displayName: string;
-  userPrincipalName: string;
-}
 
 interface RegisterFormProps {
   onSuccess: () => void;
 }
 
 export function RegisterForm({ onSuccess }: RegisterFormProps) {
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isFetching, setIsFetching] = useState(true);
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [fetchError, setFetchError] = useState<string | null>(null);
+  const { signUp } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      employee: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
     },
   });
 
-  // Fetch available employees (those without user_id)
-  useEffect(() => {
-    const fetchAvailableEmployees = async () => {
-      setIsFetching(true);
-      setFetchError(null);
-      
-      try {
-        console.log("Fetching available employees...");
-        
-        // Try using the RPC function first
-        const { data: rpcData, error: rpcError } = await supabase
-          .rpc('get_available_employees');
-          
-        if (rpcError) {
-          console.error("Error fetching employees via RPC:", rpcError);
-          
-          // Fallback to direct query if RPC fails
-          console.log("Falling back to direct query...");
-          const { data: queryData, error: queryError } = await supabase
-            .from('Employee_id')
-            .select('employee_id, displayName, userPrincipalName')
-            .is('user_id', null);
-            
-          if (queryError) {
-            throw queryError;
-          }
-          
-          console.log(`Direct query found ${queryData?.length || 0} employees`);
-          setEmployees(queryData || []);
-        } else {
-          // Format the RPC response to match our Employee interface
-          // The RPC function returns lowercase column names
-          const formattedData = rpcData.map((emp: any) => ({
-            employee_id: emp.employee_id,
-            displayName: emp.displayname,
-            userPrincipalName: emp.userprincipalname
-          }));
-          
-          console.log(`RPC found ${formattedData?.length || 0} employees`);
-          setEmployees(formattedData || []);
-        }
-      } catch (error) {
-        console.error("Error fetching employees:", error);
-        setFetchError("Failed to load employee list. Please try again later.");
-        setEmployees([]);
-      } finally {
-        setIsFetching(false);
-      }
-    };
-
-    fetchAvailableEmployees();
-  }, []);
-
   const onSubmit = async (data: RegisterFormValues) => {
     setIsLoading(true);
+    console.log("Starting registration process with email:", data.email);
+    
     try {
-      // Find the selected employee
-      const selectedEmployee = employees.find(emp => emp.employee_id === data.employee);
+      // Direct sign-up with email and password (without magic link)
+      const { error, data: authData } = await signUp(data.email, data.password);
       
-      if (!selectedEmployee) {
-        toast({
-          title: "Error",
-          description: "Selected employee not found",
-          variant: "destructive",
-        });
+      if (error) {
+        console.error("Registration error:", error.message);
+        
+        if (error.message.includes("already registered")) {
+          toast({
+            title: "Account already exists",
+            description: "This email is already registered. Please log in instead.",
+            variant: "default",
+          });
+        } else {
+          toast({
+            title: "Registration failed",
+            description: error.message || "Failed to create account. Please try again.",
+            variant: "destructive",
+          });
+        }
         setIsLoading(false);
         return;
       }
-
-      // Send magic link to the employee's email
-      const { error } = await supabase.auth.signInWithOtp({
-        email: selectedEmployee.userPrincipalName,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
       
-      if (error) {
+      console.log("Sign-up response:", authData);
+
+      // Direct login after successful signup
+      if (authData.user) {
+        console.log("User created successfully:", authData.user.email);
+        
+        // Provide feedback and redirect to home page
         toast({
-          title: "Registration failed",
-          description: error.message,
-          variant: "destructive",
+          title: "Account created successfully",
+          description: `Welcome to BuntingGPT!`,
         });
+        
+        // Navigate to home page
+        navigate("/", { replace: true });
       } else {
+        console.log("Account created but session not established");
+        // Fall back to onSuccess if something went wrong with the automatic login
         toast({
-          title: "Email sent",
-          description: `Check ${selectedEmployee.userPrincipalName} for a magic link to complete your registration`,
+          title: "Account created",
+          description: "Please sign in with your credentials.",
         });
-        onSuccess();
+        onSuccess(); // Switch to login tab
       }
-    } catch (err) {
+    } catch (err: any) {
+      console.error("Unexpected registration error:", err);
       toast({
-        title: "Error",
+        title: "Registration error",
         description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
@@ -148,63 +113,93 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <FormField
           control={form.control}
-          name="employee"
+          name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Select Your Name</FormLabel>
+              <FormLabel>Email</FormLabel>
+              <FormControl>
+                <Input placeholder="email@example.com" {...field} autoComplete="email" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Password</FormLabel>
               <div className="relative">
-                {isFetching && (
-                  <div className="absolute right-2 top-2 z-10">
-                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                  </div>
-                )}
-                <Select 
-                  onValueChange={field.onChange} 
-                  defaultValue={field.value}
-                  disabled={isFetching || employees.length === 0}
+                <FormControl>
+                  <Input 
+                    type={showPassword ? "text" : "password"} 
+                    {...field} 
+                    className="pr-10"
+                    autoComplete="new-password"
+                  />
+                </FormControl>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0"
+                  onClick={() => setShowPassword(!showPassword)}
                 >
-                  <FormControl>
-                    <SelectTrigger className="w-full">
-                      <SelectValue 
-                        placeholder={
-                          isFetching ? "Loading employees..." : 
-                          fetchError ? "Error loading employees" :
-                          employees.length === 0 ? "No available employees found" : 
-                          "Select your name from the list"
-                        } 
-                      />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent className="max-h-80 overflow-y-auto">
-                    {fetchError ? (
-                      <SelectItem value="error" disabled>{fetchError}</SelectItem>
-                    ) : employees.length === 0 ? (
-                      <SelectItem value="none" disabled>No available employees found</SelectItem>
-                    ) : (
-                      employees.map((employee) => (
-                        <SelectItem key={employee.employee_id} value={employee.employee_id}>
-                          {employee.displayName} ({employee.userPrincipalName})
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  <span className="sr-only">
+                    {showPassword ? "Hide password" : "Show password"}
+                  </span>
+                </Button>
               </div>
               <FormMessage />
             </FormItem>
           )}
         />
         
-        <div className="text-sm text-muted-foreground">
-          A magic link will be sent to your email address to complete the registration.
-        </div>
+        <FormField
+          control={form.control}
+          name="confirmPassword"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Confirm Password</FormLabel>
+              <div className="relative">
+                <FormControl>
+                  <Input 
+                    type={showConfirmPassword ? "text" : "password"} 
+                    {...field} 
+                    className="pr-10"
+                    autoComplete="new-password"
+                  />
+                </FormControl>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  <span className="sr-only">
+                    {showConfirmPassword ? "Hide password" : "Show password"}
+                  </span>
+                </Button>
+              </div>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         
-        <Button 
-          type="submit" 
-          className="w-full" 
-          disabled={isLoading || isFetching || employees.length === 0}
-        >
-          {isLoading ? "Sending magic link..." : "Send Magic Link"}
+        <Button type="submit" className="w-full" disabled={isLoading}>
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Creating Account...
+            </>
+          ) : (
+            "Create Account"
+          )}
         </Button>
       </form>
     </Form>

@@ -11,6 +11,7 @@ type AuthTab = "login" | "signup" | "forgot-password";
 
 export default function Auth() {
   const [activeTab, setActiveTab] = useState<AuthTab>("login");
+  const [authCheckComplete, setAuthCheckComplete] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const auth = useAuth();
@@ -36,16 +37,23 @@ export default function Auth() {
     setActiveTab("login");
   };
 
-  // Redirect if already authenticated
+  // Wait for auth state to stabilize before making any redirect decisions
   useEffect(() => {
-    // Only redirect if we have a user and we're not loading
-    if (auth.user && !auth.isLoading) {
+    if (!auth.isLoading) {
+      console.log("Auth check completed:", { user: !!auth.user, redirectUrl });
+      setAuthCheckComplete(true);
+    }
+  }, [auth.isLoading, redirectUrl]);
+
+  // Only redirect if we've completed the auth check and found a user
+  useEffect(() => {
+    if (authCheckComplete && auth.user && auth.session) {
       console.log("User is already authenticated, redirecting to:", redirectUrl);
       navigate(redirectUrl, { replace: true });
     }
-  }, [auth.user, auth.isLoading, navigate, redirectUrl]);
+  }, [authCheckComplete, auth.user, auth.session, navigate, redirectUrl]);
 
-  // If still loading auth state, show a loading spinner
+  // If still loading auth state, show a minimal loading state
   if (auth.isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">

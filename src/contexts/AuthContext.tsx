@@ -109,10 +109,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // For test purposes, try to sign up this user with the provided password
         const signUpResult = await supabase.auth.signUp({ 
           email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback`
-          }
+          password
         });
         
         // If sign-up succeeds (or user already exists), try sign in again
@@ -146,13 +143,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signUp = async (email: string, password: string) => {
     try {
       setIsLoading(true);
+      console.log("Signing up new user with email:", email);
+      
+      // Direct sign up with auto-confirmation (no magic link)
       const result = await supabase.auth.signUp({ 
-        email, 
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`
-        }
+        email,
+        password
       });
+      
+      console.log("Sign up response:", result.error ? "Error" : "Success");
+      
+      // If signup is successful but no session (email confirmation required),
+      // try to sign in directly to create the session
+      if (!result.error && !result.data.session && result.data.user) {
+        console.log("Signup successful but no session. Attempting direct login...");
+        return await signIn(email, password);
+      }
+      
       return result;
     } catch (error) {
       console.error("Error during sign up:", error);
