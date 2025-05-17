@@ -12,11 +12,10 @@ type AuthTab = "login" | "signup" | "forgot-password";
 
 export default function Auth() {
   const [activeTab, setActiveTab] = useState<AuthTab>("login");
-  const [authCheckComplete, setAuthCheckComplete] = useState(false);
-  const [redirecting, setRedirecting] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const auth = useAuth();
+  const { user, session, isLoading } = useAuth();
   
   // Get the redirectUrl from location state (from PrivateRoute)
   const redirectUrl = location.state?.from?.pathname || "/";
@@ -24,7 +23,7 @@ export default function Auth() {
   // Handle successful login
   const handleLoginSuccess = () => {
     console.log("Login successful, redirecting to:", redirectUrl);
-    setRedirecting(true);
+    setIsRedirecting(true);
     navigate(redirectUrl, { replace: true });
   };
 
@@ -40,39 +39,50 @@ export default function Auth() {
     setActiveTab("login");
   };
 
-  // Wait for auth state to stabilize before making any redirect decisions
+  // Handle redirection for already authenticated users
   useEffect(() => {
-    if (!auth.isLoading) {
-      console.log("Auth check completed:", { user: !!auth.user, redirectUrl });
-      setAuthCheckComplete(true);
-    }
-  }, [auth.isLoading, redirectUrl]);
-
-  // Only redirect if we've completed the auth check and found a user
-  useEffect(() => {
-    if (authCheckComplete && auth.user && auth.session && !redirecting) {
-      console.log("User is already authenticated, redirecting to:", redirectUrl);
-      setRedirecting(true);
+    // Only redirect if all conditions are met:
+    // 1. Auth state is not loading anymore
+    // 2. User is authenticated
+    // 3. Not already redirecting
+    if (!isLoading && user && session) {
+      console.log("User already authenticated, redirecting to:", redirectUrl);
+      setIsRedirecting(true);
       navigate(redirectUrl, { replace: true });
     }
-  }, [authCheckComplete, auth.user, auth.session, navigate, redirectUrl, redirecting]);
-
-  // If still loading auth state, show a minimal loading state
-  if (auth.isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-muted-foreground">Checking authentication...</p>
-      </div>
-    );
-  }
+  }, [isLoading, user, session, navigate, redirectUrl]);
 
   // If redirecting, show loading indicator
-  if (redirecting) {
+  if (isRedirecting) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="flex flex-col items-center gap-2">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p className="text-muted-foreground">Redirecting to dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If still loading auth state, show loading state
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If user is already authenticated but we haven't started redirecting yet
+  if (user && session) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Already authenticated, redirecting...</p>
         </div>
       </div>
     );

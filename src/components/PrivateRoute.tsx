@@ -37,9 +37,5 @@ export default function PrivateRoute({ children }: PrivateRouteProps) {
   }
   
   // User is authenticated, render children
-  console.log("PrivateRoute: User is authenticated, rendering", {
-    path: location.pathname,
-    user: user?.email
-  });
   return <>{children}</>;
 }
