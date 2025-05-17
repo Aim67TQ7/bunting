@@ -41,80 +41,52 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
     console.log("Attempting to sign in with:", data.email);
     
     try {
-      // Check if email is a Bunting Magnetics domain
+      // Determine if this is a Bunting email
       const isBuntingEmail = data.email.toLowerCase().endsWith('@buntingmagnetics.com');
       
-      if (isBuntingEmail) {
-        console.log("Bunting Magnetics email detected - allowing test access");
+      // Always try regular sign-in first
+      const { error, data: authData } = await signIn(data.email, data.password);
+      
+      if (error) {
+        console.error("Login error:", error.message);
         
-        // For Bunting emails during testing phase, allow any password
-        const { error, data: authData } = await signIn(data.email, data.password, true);
-        
-        if (error) {
-          console.error("Login error:", error.message);
+        // If this is a Bunting email, we'll show a more helpful message
+        if (isBuntingEmail) {
           toast({
-            title: "Login failed",
-            description: error.message || "Authentication failed. Please try again.",
+            title: "Login issue",
+            description: "We're having trouble logging you in. Email confirmation is disabled, so this should work. Please try again or contact support.",
             variant: "destructive",
           });
-          setIsLoading(false);
-          return;
-        }
-        
-        if (!authData.session || !authData.user) {
-          console.error("Login failed: No session or user returned");
-          toast({
-            title: "Login failed",
-            description: "Authentication was successful but session data is missing. Please try again.",
-            variant: "destructive",
-          });
-          setIsLoading(false);
-          return;
-        }
-        
-        console.log("Test login successful for Bunting email:", data.email);
-        toast({
-          title: "Test access granted",
-          description: "Welcome to the testing environment!",
-        });
-        
-        // Call the success handler provided by parent
-        onSuccess();
-      } else {
-        // Normal authentication flow for non-Bunting emails
-        const { error, data: authData } = await signIn(data.email, data.password);
-        
-        if (error) {
-          console.error("Login error:", error.message);
+        } else {
           toast({
             title: "Login failed",
             description: error.message || "Invalid email or password. Please try again.",
             variant: "destructive",
           });
-          setIsLoading(false);
-          return;
-        } 
-        
-        if (!authData.session || !authData.user) {
-          console.error("Login failed: No session or user returned");
-          toast({
-            title: "Login failed",
-            description: "Authentication was successful but session data is missing. Please try again.",
-            variant: "destructive",
-          });
-          setIsLoading(false);
-          return;
         }
-        
-        console.log("Login successful, user:", authData.user.email);
+        setIsLoading(false);
+        return;
+      } 
+      
+      if (!authData.session || !authData.user) {
+        console.error("Login failed: No session or user returned");
         toast({
-          title: "Login successful",
-          description: "Welcome back!",
+          title: "Login failed",
+          description: "Authentication was successful but session data is missing. Please try again.",
+          variant: "destructive",
         });
-        
-        // Call the success handler provided by parent
-        onSuccess();
+        setIsLoading(false);
+        return;
       }
+      
+      console.log("Login successful, user:", authData.user.email);
+      toast({
+        title: "Login successful",
+        description: "Welcome back!",
+      });
+      
+      // Call the success handler provided by parent
+      onSuccess();
     } catch (err: any) {
       console.error("Unexpected error during login:", err);
       toast({

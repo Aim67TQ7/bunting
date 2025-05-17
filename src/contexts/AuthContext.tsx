@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
@@ -8,7 +7,7 @@ type AuthContextType = {
   user: User | null;
   session: Session | null;
   isLoading: boolean;
-  signIn: (email: string, password: string, isTestMode?: boolean) => Promise<{
+  signIn: (email: string, password: string) => Promise<{
     error: Error | null;
     data: { user: User | null; session: Session | null };
   }>;
@@ -85,47 +84,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []); // Empty dependency array to run once
 
-  // Special sign in function with test mode option
-  const signIn = async (email: string, password: string, isTestMode = false) => {
-    console.log(`Attempting to sign in: ${email}${isTestMode ? ' (Test Mode)' : ''}`);
+  // Standard sign in function (without test mode)
+  const signIn = async (email: string, password: string) => {
+    console.log(`Attempting to sign in: ${email}`);
     
     try {
       setIsLoading(true);
       
-      // Handle Bunting emails in test mode
-      if (isTestMode && email.toLowerCase().endsWith('@buntingmagnetics.com')) {
-        // Try normal sign in first
-        const result = await supabase.auth.signInWithPassword({ email, password });
-        
-        // If normal sign in works, use that
-        if (!result.error) {
-          console.log("Regular login successful for Bunting email");
-          return result;
-        }
-        
-        // If login fails but it's a Bunting email, create a test session
-        console.log("Regular login failed, but creating test session for Bunting domain");
-        
-        // For test purposes, try to sign up this user with the provided password
-        const signUpResult = await supabase.auth.signUp({ 
-          email,
-          password
-        });
-        
-        // If sign-up succeeds (or user already exists), try sign in again
-        if (!signUpResult.error || signUpResult.error.message.includes('already registered')) {
-          const secondSignInAttempt = await supabase.auth.signInWithPassword({ 
-            email, 
-            password 
-          });
-          
-          return secondSignInAttempt;
-        }
-        
-        return signUpResult;
-      }
-      
-      // Normal authentication flow
+      // Regular authentication flow
       const result = await supabase.auth.signInWithPassword({ email, password });
       console.log("Sign in result:", result.error ? "Error" : "Success");
       return result;
