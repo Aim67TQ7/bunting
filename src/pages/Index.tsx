@@ -6,19 +6,33 @@ import { useSearchParams } from "react-router-dom";
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { Loader2 } from "lucide-react";
 
 const Index = () => {
   const [searchParams] = useSearchParams();
   const conversationId = searchParams.get('conversation');
   const [conversationTitle, setConversationTitle] = useState<string | null>(null);
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const [isTitleLoading, setIsTitleLoading] = useState(false);
   const [hasAttemptedLoad, setHasAttemptedLoad] = useState(false);
   
   console.log("Index page loaded", { 
     userId: user?.id,
-    conversationId 
+    conversationId,
+    isLoading 
   });
+  
+  // Show loading state if auth is still being verified
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 className="h-8 w-4 animate-spin text-primary" />
+          <p className="text-muted-foreground">Loading authentication...</p>
+        </div>
+      </div>
+    );
+  }
   
   // Memoize the fetchConversationTitle function with proper debouncing
   const fetchConversationTitle = useCallback(async () => {
