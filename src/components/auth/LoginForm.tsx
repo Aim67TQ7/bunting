@@ -74,7 +74,10 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
       });
       
       // Call the success handler provided by parent
-      onSuccess();
+      // Make sure to delay the onSuccess call to prevent race conditions
+      setTimeout(() => {
+        onSuccess();
+      }, 100);
     } catch (err: any) {
       console.error("Unexpected error during login:", err);
       toast({

@@ -11,6 +11,14 @@ export default function PrivateRoute({ children }: PrivateRouteProps) {
   const { user, isLoading, session } = useAuth();
   const location = useLocation();
   
+  console.log("PrivateRoute: Checking auth", {
+    path: location.pathname,
+    isLoading,
+    hasUser: !!user,
+    hasSession: !!session,
+    userEmail: user?.email
+  });
+  
   // Show loading state when authentication is still being checked
   if (isLoading) {
     return (

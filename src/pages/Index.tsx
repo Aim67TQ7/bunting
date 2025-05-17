@@ -15,6 +15,11 @@ const Index = () => {
   const [isTitleLoading, setIsTitleLoading] = useState(false);
   const [hasAttemptedLoad, setHasAttemptedLoad] = useState(false);
   
+  console.log("Index page loaded", { 
+    userId: user?.id,
+    conversationId 
+  });
+  
   // Memoize the fetchConversationTitle function with proper debouncing
   const fetchConversationTitle = useCallback(async () => {
     // Skip fetching if we already tried for this conversation or if missing required data

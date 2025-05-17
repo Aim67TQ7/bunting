@@ -20,11 +20,22 @@ export default function Auth() {
   // Get the redirectUrl from location state (from PrivateRoute)
   const redirectUrl = location.state?.from?.pathname || "/";
   
+  console.log("Auth page status:", { 
+    isLoading, 
+    hasUser: !!user, 
+    hasSession: !!session,
+    redirectUrl,
+    isRedirecting
+  });
+
   // Handle successful login
   const handleLoginSuccess = () => {
     console.log("Login successful, redirecting to:", redirectUrl);
     setIsRedirecting(true);
-    navigate(redirectUrl, { replace: true });
+    // Add a slight delay to allow state to update properly
+    setTimeout(() => {
+      navigate(redirectUrl, { replace: true });
+    }, 100);
   };
 
   // Handle successful registration
@@ -41,16 +52,16 @@ export default function Auth() {
 
   // Handle redirection for already authenticated users
   useEffect(() => {
-    // Only redirect if all conditions are met:
-    // 1. Auth state is not loading anymore
-    // 2. User is authenticated
-    // 3. Not already redirecting
-    if (!isLoading && user && session) {
+    // Only redirect if user is authenticated and we're not already redirecting
+    if (!isLoading && user && session && !isRedirecting) {
       console.log("User already authenticated, redirecting to:", redirectUrl);
       setIsRedirecting(true);
-      navigate(redirectUrl, { replace: true });
+      // Add a slight delay to allow state to update properly
+      setTimeout(() => {
+        navigate(redirectUrl, { replace: true });
+      }, 100);
     }
-  }, [isLoading, user, session, navigate, redirectUrl]);
+  }, [isLoading, user, session, navigate, redirectUrl, isRedirecting]);
 
   // If redirecting, show loading indicator
   if (isRedirecting) {
