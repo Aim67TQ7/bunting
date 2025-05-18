@@ -1,5 +1,5 @@
 
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -22,6 +22,7 @@ export default function PrivateRoute({ children }: PrivateRouteProps) {
 
   // Redirect to auth page if not logged in
   if (!user) {
+    // Pass the current location in state so we can redirect back after login
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 

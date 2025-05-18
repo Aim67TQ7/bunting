@@ -6,16 +6,18 @@ import { WelcomeScreen } from "@/components/chat/welcome-screen";
 import { MessageList } from "@/components/chat/message-list";
 import { LoginPrompt } from "@/components/chat/login-prompt";
 import { ChatInputEnhanced } from "@/components/chat-input-enhanced";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 
-export function ChatInterface() {
-  const { user } = useAuth();
-  const [searchParams] = useSearchParams();
+interface ChatInterfaceProps {
+  conversationId: string | null;
+}
+
+export function ChatInterface({ conversationId }: ChatInterfaceProps) {
+  const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const conversationId = searchParams.get('conversation');
   const [loadAttempts, setLoadAttempts] = useState(0);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
@@ -43,8 +45,14 @@ export function ChatInterface() {
       setIsHistoryLoading(true);
       await loadConversation(conversationId);
       console.log("Conversation loaded successfully");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error loading conversation:", err);
+      
+      // Check if it's an auth error, but don't redirect - let PrivateRoute handle it
+      if (err?.status === 401) {
+        console.log("Authentication error detected, but letting PrivateRoute handle redirect");
+      }
+      
       setLoadError(err.message || "Failed to load conversation");
     } finally {
       setIsHistoryLoading(false);
@@ -59,10 +67,10 @@ export function ChatInterface() {
   
   // Trigger load conversation when needed
   useEffect(() => {
-    if (conversationId && !hasAttemptedLoad) {
+    if (conversationId && !hasAttemptedLoad && user) {
       loadConvo();
     }
-  }, [conversationId, loadConvo, hasAttemptedLoad]);
+  }, [conversationId, loadConvo, hasAttemptedLoad, user]);
   
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -109,6 +117,21 @@ export function ChatInterface() {
       duration: 3000
     });
   };
+
+  // If auth is still loading, show loading indicator
+  if (authLoading) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center text-center p-4">
+        <div className="rounded-full bg-muted p-4">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        </div>
+        <h3 className="mt-4 text-lg font-medium">Loading</h3>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Please wait...
+        </p>
+      </div>
+    );
+  }
 
   // Show login message for unauthenticated users
   if (!user) {
@@ -169,7 +192,7 @@ export function ChatInterface() {
         {!showWelcomeScreen && !showLoadingError && !showHistoryLoadingIndicator && (
           <MessageList 
             messages={messages} 
-            isAiResponding={isAiResponding && !hasAttemptedLoad} // Only show typing indicator for new messages, not loaded conversations
+            isAiResponding={isAiResponding && !hasAttemptedLoad}
           />
         )}
         
