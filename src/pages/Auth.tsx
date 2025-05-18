@@ -1,6 +1,5 @@
-
-import { useState } from "react";
-import { Navigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -70,9 +69,11 @@ const newPasswordSchema = z.object({
 });
 
 export default function Auth() {
-  const { user, isLoading, signIn, signUp, resetPassword } = useAuth();
+  const { user, isLoading, signIn, signUp, resetPassword, verifyOtp, updatePassword } = useAuth();
   const [authMode, setAuthMode] = useState<"login" | "signup" | "reset" | "otp" | "new-password">("login");
   const [resetEmail, setResetEmail] = useState("");
+  const location = useLocation();
+  const navigate = useNavigate();
 
   // Form for login
   const loginForm = useForm<z.infer<typeof loginSchema>>({
@@ -120,8 +121,26 @@ export default function Auth() {
   });
 
   // Redirect if already authenticated
-  if (user && !isLoading) {
-    return <Navigate to="/" replace />;
+  useEffect(() => {
+    if (user && !isLoading) {
+      // Redirect to the page they were trying to access, or to home
+      const origin = location.state?.from?.pathname || "/";
+      navigate(origin, { replace: true });
+    }
+  }, [user, isLoading, navigate, location.state]);
+
+  // If still loading, show loading indicator
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  // If already authenticated, don't render the login form
+  if (user) {
+    return null; // The useEffect will handle the redirect
   }
 
   // Handle login submission
