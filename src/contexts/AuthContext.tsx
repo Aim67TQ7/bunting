@@ -11,7 +11,6 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: any | null }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: any | null }>;
-  verifyOtp: (email: string, token: string) => Promise<{ error: any | null }>;
   updatePassword: (newPassword: string) => Promise<{ error: any | null }>;
 }
 
@@ -23,7 +22,6 @@ const AuthContext = createContext<AuthContextType>({
   signIn: async () => ({ error: null }),
   signOut: async () => {},
   resetPassword: async () => ({ error: null }),
-  verifyOtp: async () => ({ error: null }),
   updatePassword: async () => ({ error: null }),
 });
 
@@ -42,6 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Set up authentication state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
+        console.log("Auth state change event:", event);
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         setIsLoading(false);
@@ -50,6 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      console.log("Initial session check:", currentSession ? "Session found" : "No session");
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
       setIsLoading(false);
@@ -67,17 +67,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
+      console.log("Attempting signup with email:", email);
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
       });
 
       if (error) {
+        console.error("Signup error:", error);
         return { error };
       }
 
+      console.log("Signup successful:", data);
       return { error: null };
     } catch (error) {
+      console.error("Exception during signup:", error);
       return { error };
     }
   };
@@ -89,17 +93,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
+      console.log("Attempting signin with email:", email);
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
+        console.error("Signin error:", error);
         return { error };
       }
 
+      console.log("Signin successful");
       return { error: null };
     } catch (error) {
+      console.error("Exception during signin:", error);
       return { error };
     }
   };
@@ -107,56 +115,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Sign out
   const signOut = async () => {
     setIsLoading(true);
+    console.log("Signing out");
     await supabase.auth.signOut();
     setUser(null);
     setIsLoading(false);
   };
 
-  // Reset password with email validation
+  // Reset password with email validation - Updated to use link-based method instead of OTP
   const resetPassword = async (email: string) => {
     if (!isValidBuntingEmail(email)) {
       return { error: { message: "Only buntingmagnetics.com email addresses are allowed" } };
     }
 
     try {
+      console.log("Requesting password reset for:", email);
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: window.location.origin + '/auth/update-password',
       });
 
       if (error) {
+        console.error("Password reset error:", error);
         return { error };
       }
 
       toast({
         title: "Password reset email sent",
-        description: "Check your email for the OTP code",
+        description: "Check your email for the password reset link",
       });
       
       return { error: null };
     } catch (error) {
-      return { error };
-    }
-  };
-
-  // Verify OTP token
-  const verifyOtp = async (email: string, token: string) => {
-    if (!isValidBuntingEmail(email)) {
-      return { error: { message: "Only buntingmagnetics.com email addresses are allowed" } };
-    }
-
-    try {
-      const { error } = await supabase.auth.verifyOtp({
-        email,
-        token,
-        type: 'recovery',
-      });
-
-      if (error) {
-        return { error };
-      }
-
-      return { error: null };
-    } catch (error) {
+      console.error("Exception during password reset:", error);
       return { error };
     }
   };
@@ -164,11 +153,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Update password
   const updatePassword = async (newPassword: string) => {
     try {
+      console.log("Updating password");
       const { error } = await supabase.auth.updateUser({
         password: newPassword,
       });
 
       if (error) {
+        console.error("Password update error:", error);
         return { error };
       }
 
@@ -179,6 +170,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       return { error: null };
     } catch (error) {
+      console.error("Exception during password update:", error);
       return { error };
     }
   };
@@ -190,7 +182,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signIn,
     signOut,
     resetPassword,
-    verifyOtp,
     updatePassword,
   };
 

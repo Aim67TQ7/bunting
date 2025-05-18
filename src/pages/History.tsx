@@ -49,15 +49,20 @@ const History = () => {
       setAuthError(null);
       
       // Use the edge function to get conversations
-      const { data, error, status } = await supabase.functions.invoke('manage-conversations', {
+      const response = await supabase.functions.invoke('manage-conversations', {
         body: {
           action: 'listConversations'
         }
       });
       
-      if (error) {
-        // Check if it's an authentication error
-        if (status === 401) {
+      // Check for authentication errors - fixed TypeScript error
+      if (response.error) {
+        console.error("Error response:", response.error);
+        
+        // Check if it's an authentication error based on error message
+        if (response.error.message?.includes("Authentication") || 
+            response.error.message?.includes("auth") || 
+            response.error.message?.includes("401")) {
           setAuthError("Authentication error. Please try logging in again.");
           // Let the user know they should try to log in again
           toast({
@@ -66,16 +71,17 @@ const History = () => {
             variant: "destructive",
           });
         } else {
-          throw error;
+          throw response.error;
         }
+        return;
       }
       
-      if (data?.conversations) {
+      if (response.data?.conversations) {
         // Process to remove duplicate topics
         const uniqueConversations: ChatHistoryItem[] = [];
         const topics = new Set<string>();
         
-        data.conversations.forEach((conversation: ChatHistoryItem) => {
+        response.data.conversations.forEach((conversation: ChatHistoryItem) => {
           // Normalize topic for comparison (lowercase and trim)
           const normalizedTopic = conversation.topic?.toLowerCase().trim() || "";
           
@@ -114,18 +120,18 @@ const History = () => {
     try {
       setIsSearching(true);
       
-      const { data, error } = await supabase.functions.invoke('manage-conversations', {
+      const response = await supabase.functions.invoke('manage-conversations', {
         body: {
           action: 'searchConversations',
           data: { query: query.trim() }
         }
       });
       
-      if (error) {
-        throw error;
+      if (response.error) {
+        throw response.error;
       }
       
-      setFilteredChatHistory(data.conversations || []);
+      setFilteredChatHistory(response.data.conversations || []);
     } catch (err) {
       console.error("Error searching conversations:", err);
       toast({

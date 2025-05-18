@@ -48,17 +48,27 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
     } catch (err: any) {
       console.error("Error loading conversation:", err);
       
-      // Check if it's an auth error, but don't redirect - let PrivateRoute handle it
-      if (err?.status === 401) {
-        console.log("Authentication error detected, but letting PrivateRoute handle redirect");
+      // Improved error handling for authentication errors
+      if (err?.message?.includes('Authentication') || 
+          err?.message?.includes('auth') || 
+          err?.status === 401) {
+        console.log("Authentication error detected when loading conversation");
+        setLoadError("Authentication error. Please sign in again to continue.");
+        
+        // Notify the user about the session issue
+        toast({
+          title: "Session expired",
+          description: "Your authentication session has expired. Please sign in again.",
+          variant: "destructive",
+        });
+      } else {
+        setLoadError(err.message || "Failed to load conversation");
       }
-      
-      setLoadError(err.message || "Failed to load conversation");
     } finally {
       setIsHistoryLoading(false);
       setHasAttemptedLoad(true); // Mark that we've attempted to load
     }
-  }, [conversationId, user, loadConversation, hasAttemptedLoad]);
+  }, [conversationId, user, loadConversation, hasAttemptedLoad, toast]);
   
   // Reset state when conversation changes
   useEffect(() => {
@@ -71,6 +81,15 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
       loadConvo();
     }
   }, [conversationId, loadConvo, hasAttemptedLoad, user]);
+  
+  // Add debug logging for auth state
+  useEffect(() => {
+    console.log("ChatInterface auth state:", { 
+      isAuthenticated: !!user,
+      userId: user?.id,
+      isAuthLoading: authLoading
+    });
+  }, [user, authLoading]);
   
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -168,12 +187,22 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
             <p className="mt-2 text-sm text-muted-foreground max-w-md">
               {loadError || "There was a problem loading this conversation. Please try again."}
             </p>
-            <button 
-              className="mt-4"
-              onClick={handleRetryLoad}
-            >
-              Retry
-            </button>
+            <div className="flex gap-3 mt-4">
+              <button 
+                className="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
+                onClick={handleRetryLoad}
+              >
+                Retry
+              </button>
+              {loadError?.includes("Authentication") && (
+                <button 
+                  className="px-4 py-2 bg-secondary text-secondary-foreground rounded hover:bg-secondary/90"
+                  onClick={() => navigate('/auth')}
+                >
+                  Sign In Again
+                </button>
+              )}
+            </div>
           </div>
         )}
         
