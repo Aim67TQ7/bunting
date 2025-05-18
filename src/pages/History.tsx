@@ -23,7 +23,7 @@ interface ChatHistoryItem {
 }
 
 const History = () => {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const [chatHistory, setChatHistory] = useState<ChatHistoryItem[]>([]);
   const [filteredChatHistory, setFilteredChatHistory] = useState<ChatHistoryItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -31,6 +31,7 @@ const History = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [isDeletingId, setIsDeletingId] = useState<string | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -38,40 +39,59 @@ const History = () => {
   const fetchChatHistory = useCallback(async () => {
     if (!user) {
       setChatHistory([]);
+      setFilteredChatHistory([]);
       setIsLoading(false);
       return;
     }
     
     try {
       setIsLoading(true);
+      setAuthError(null);
       
       // Use the edge function to get conversations
-      const { data, error } = await supabase.functions.invoke('manage-conversations', {
+      const { data, error, status } = await supabase.functions.invoke('manage-conversations', {
         body: {
           action: 'listConversations'
         }
       });
       
       if (error) {
-        throw error;
+        // Check if it's an authentication error
+        if (status === 401) {
+          setAuthError("Authentication error. Please try logging in again.");
+          // Let the user know they should try to log in again
+          toast({
+            title: "Session expired",
+            description: "Your session has expired. Please log in again.",
+            variant: "destructive",
+          });
+        } else {
+          throw error;
+        }
       }
       
-      // Process to remove duplicate topics
-      const uniqueConversations: ChatHistoryItem[] = [];
-      const topics = new Set<string>();
-      
-      data?.conversations?.forEach((conversation: ChatHistoryItem) => {
-        // Normalize topic for comparison (lowercase and trim)
-        const normalizedTopic = conversation.topic?.toLowerCase().trim() || "";
+      if (data?.conversations) {
+        // Process to remove duplicate topics
+        const uniqueConversations: ChatHistoryItem[] = [];
+        const topics = new Set<string>();
         
-        if (!topics.has(normalizedTopic)) {
-          topics.add(normalizedTopic);
-          uniqueConversations.push(conversation);
-        }
-      });
-      
-      setChatHistory(uniqueConversations || []);
-      setFilteredChatHistory(uniqueConversations || []);
+        data.conversations.forEach((conversation: ChatHistoryItem) => {
+          // Normalize topic for comparison (lowercase and trim)
+          const normalizedTopic = conversation.topic?.toLowerCase().trim() || "";
+          
+          if (!topics.has(normalizedTopic)) {
+            topics.add(normalizedTopic);
+            uniqueConversations.push(conversation);
+          }
+        });
+        
+        setChatHistory(uniqueConversations);
+        setFilteredChatHistory(uniqueConversations);
+      } else {
+        // If no error but no data either, set empty arrays
+        setChatHistory([]);
+        setFilteredChatHistory([]);
+      }
     } catch (err) {
       console.error("Error fetching chat history:", err);
       toast({
@@ -84,7 +104,7 @@ const History = () => {
     }
   }, [user, toast]);
   
-  // Search conversations
+  // Search conversations with improved error handling
   const searchConversations = useCallback(async (query: string) => {
     if (!user || !query.trim()) {
       setFilteredChatHistory(chatHistory);
@@ -110,7 +130,7 @@ const History = () => {
       console.error("Error searching conversations:", err);
       toast({
         title: "Error",
-        description: "Failed to search conversations. Please try again.",
+        description: "Failed to search conversations. Falling back to local filtering.",
         variant: "destructive",
       });
       // Fall back to client-side filtering
@@ -123,7 +143,7 @@ const History = () => {
     }
   }, [user, chatHistory, toast]);
   
-  // Handle search input change
+  // Handle search input change with debouncing
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value;
     setSearchQuery(query);
@@ -141,10 +161,13 @@ const History = () => {
     return () => clearTimeout(timeoutId);
   };
   
-  // Only fetch chat history once when component mounts
+  // Update dependency array to include authError to trigger a refresh if needed
   useEffect(() => {
-    fetchChatHistory();
-  }, [fetchChatHistory]);
+    // Only fetch if user is authenticated and not already loading
+    if (user && !authLoading) {
+      fetchChatHistory();
+    }
+  }, [fetchChatHistory, user, authLoading]);
 
   const handleDeleteConversation = async (id: string) => {
     if (!user) return;
@@ -192,6 +215,7 @@ const History = () => {
   // Handle retrying a conversation load if it failed
   const handleRetry = async () => {
     setIsRetrying(true);
+    setAuthError(null); // Clear any auth errors before retrying
     await fetchChatHistory();
     setIsRetrying(false);
   };
@@ -230,6 +254,35 @@ const History = () => {
   };
 
   // Show message if user is not authenticated
+  if (authLoading) {
+    return (
+      <SidebarProvider>
+        <div className="flex h-screen w-full overflow-hidden">
+          <AppSidebar className="w-64 flex-shrink-0" />
+          
+          <SidebarInset className="flex flex-1 flex-col overflow-hidden">
+            <div className="flex items-center justify-between border-b px-4 py-2">
+              <div className="flex gap-2 items-center">
+                <SidebarTrigger className="md:hidden" />
+                <h1 className="text-lg font-semibold">Chat History</h1>
+              </div>
+            </div>
+            
+            <div className="flex h-full flex-col items-center justify-center text-center p-4">
+              <div className="rounded-full bg-muted p-4">
+                <Loader2 className="h-6 w-6 animate-spin" />
+              </div>
+              <h3 className="mt-4 text-lg font-medium">Loading...</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Please wait while we verify your authentication
+              </p>
+            </div>
+          </SidebarInset>
+        </div>
+      </SidebarProvider>
+    );
+  }
+
   if (!user) {
     return (
       <SidebarProvider>
@@ -252,6 +305,49 @@ const History = () => {
               <p className="mt-2 text-sm text-muted-foreground">
                 Please sign in to view your chat history
               </p>
+            </div>
+          </SidebarInset>
+        </div>
+      </SidebarProvider>
+    );
+  }
+
+  // Show authentication error message if we have one
+  if (authError) {
+    return (
+      <SidebarProvider>
+        <div className="flex h-screen w-full overflow-hidden">
+          <AppSidebar className="w-64 flex-shrink-0" />
+          
+          <SidebarInset className="flex flex-1 flex-col overflow-hidden">
+            <div className="flex items-center justify-between border-b px-4 py-2">
+              <div className="flex gap-2 items-center">
+                <SidebarTrigger className="md:hidden" />
+                <h1 className="text-lg font-semibold">Chat History</h1>
+              </div>
+            </div>
+            
+            <div className="flex h-full flex-col items-center justify-center text-center p-4">
+              <div className="rounded-full bg-red-100 dark:bg-red-900/20 p-4">
+                <HistoryIcon className="h-6 w-6 text-red-500" />
+              </div>
+              <h3 className="mt-4 text-lg font-medium">Authentication Error</h3>
+              <p className="mt-2 text-sm text-muted-foreground max-w-md">
+                {authError}
+              </p>
+              <div className="mt-4 flex gap-4">
+                <Button variant="outline" onClick={handleRetry}>
+                  {isRetrying ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                  )}
+                  Retry
+                </Button>
+                <Button onClick={() => navigate("/auth")}>
+                  Sign in again
+                </Button>
+              </div>
             </div>
           </SidebarInset>
         </div>

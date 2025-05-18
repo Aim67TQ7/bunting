@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { v4 as uuidv4, validate as uuidValidate } from "https://esm.sh/uuid@9.0.0";
@@ -30,8 +29,22 @@ serve(async (req) => {
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     
-    if (userError || !user) {
-      throw new Error("Unauthorized user");
+    if (userError) {
+      console.error("Auth error:", userError);
+      return new Response(JSON.stringify({ 
+        error: "Authentication failed", 
+        details: userError.message 
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
+    }
+    
+    if (!user) {
+      return new Response(JSON.stringify({ error: "User not authenticated" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
     }
 
     let result;
