@@ -11,6 +11,9 @@ export default function PrivateRoute({ children }: PrivateRouteProps) {
   const { user, isLoading } = useAuth();
   const location = useLocation();
 
+  // Add console log to debug auth state
+  console.log("PrivateRoute render - loading:", isLoading, "user:", user);
+
   // Show loading state while checking authentication
   if (isLoading) {
     return (
