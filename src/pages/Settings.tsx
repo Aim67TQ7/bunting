@@ -14,8 +14,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
+// Modified schema to remove current password requirement since user is already authenticated
 const passwordSchema = z.object({
-  currentPassword: z.string().min(8, "Password must be at least 8 characters"),
   newPassword: z.string().min(8, "Password must be at least 8 characters"),
   confirmPassword: z.string().min(8, "Password must be at least 8 characters"),
 }).refine((data) => data.newPassword === data.confirmPassword, {
@@ -32,7 +32,6 @@ export default function Settings() {
   const passwordForm = useForm<z.infer<typeof passwordSchema>>({
     resolver: zodResolver(passwordSchema),
     defaultValues: {
-      currentPassword: "",
       newPassword: "",
       confirmPassword: "",
     },
@@ -106,19 +105,6 @@ export default function Settings() {
                               </DialogHeader>
                               <Form {...passwordForm}>
                                 <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4">
-                                  <FormField
-                                    control={passwordForm.control}
-                                    name="currentPassword"
-                                    render={({ field }) => (
-                                      <FormItem>
-                                        <FormLabel>Current Password</FormLabel>
-                                        <FormControl>
-                                          <Input type="password" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                      </FormItem>
-                                    )}
-                                  />
                                   <FormField
                                     control={passwordForm.control}
                                     name="newPassword"
