@@ -3,13 +3,14 @@ import { cn } from "@/lib/utils";
 import { BrandLogo } from "@/components/brand-logo";
 import { NavItem, NavSection } from "@/components/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { MessageSquare, History, Calculator, LineChart, Grid3X3, FileChartLine, Menu, User } from "lucide-react";
+import { MessageSquare, History, Calculator, LineChart, Grid3X3, FileChartLine, Menu, User, LogOut } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useNavigate } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface AppSidebarProps {
   className?: string;
@@ -18,10 +19,28 @@ interface AppSidebarProps {
 export function AppSidebar({ className }: AppSidebarProps) {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const { user, signOut } = useAuth();
 
   const handleSettingsClick = () => {
     navigate("/settings");
   };
+
+  const handleSignOutClick = async () => {
+    await signOut();
+    navigate("/auth");
+  };
+
+  // Extract email username for display
+  const userDisplayName = user?.email 
+    ? user.email.split('@')[0].split('.').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')
+    : "Guest User";
+
+  // Get initials for avatar
+  const userInitials = userDisplayName
+    .split(' ')
+    .map(name => name[0])
+    .join('')
+    .toUpperCase();
 
   // Use collapsible="icon" on desktop and collapsible="offcanvas" on mobile
   const collapsibleMode = isMobile ? "offcanvas" : "icon";
@@ -61,14 +80,14 @@ export function AppSidebar({ className }: AppSidebarProps) {
           <div className="rounded-md bg-sidebar-accent/50 p-3">
             <div className="flex items-center gap-3">
               <Avatar className="h-10 w-10 border-2 border-primary/10">
-                <AvatarFallback>U</AvatarFallback>
+                <AvatarFallback>{userInitials || "U"}</AvatarFallback>
               </Avatar>
               <div>
                 <div className="font-medium text-sm truncate max-w-[140px]">
-                  Guest User
+                  {userDisplayName}
                 </div>
                 <div className="text-xs text-sidebar-foreground/70 truncate max-w-[140px]">
-                  Bunting User
+                  {user?.email || "Bunting User"}
                 </div>
               </div>
             </div>
@@ -80,15 +99,27 @@ export function AppSidebar({ className }: AppSidebarProps) {
         <div className="flex justify-between items-center px-2 py-1">
           <ThemeToggle />
           
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-9 w-9" 
-            aria-label="Settings"
-            onClick={handleSettingsClick}
-          >
-            <User className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-9 w-9" 
+              aria-label="Settings"
+              onClick={handleSettingsClick}
+            >
+              <User className="h-4 w-4" />
+            </Button>
+            
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-9 w-9" 
+              aria-label="Sign out"
+              onClick={handleSignOutClick}
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </SidebarFooter>
     </Sidebar>

@@ -17,6 +17,8 @@ import Settings from "./pages/Settings";
 import BaqMto from "./pages/BaqMto";
 import NotFound from "./pages/NotFound";
 import AdminKnowledge from "./pages/AdminKnowledge";
+import Auth from "./pages/Auth";
+import PrivateRoute from "./components/PrivateRoute";
 
 function App() {
   return (
@@ -28,16 +30,87 @@ function App() {
           <Router>
             <SidebarProvider>
               <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/history" element={<History />} />
-                <Route path="/calculators" element={<Calculators />} />
-                <Route path="/iframe" element={<Iframe />} />
-                <Route path="/sales" element={<Sales />} />
-                <Route path="/apps" element={<Apps />} />
-                <Route path="/reports" element={<Reports />} />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="/baq-mto" element={<BaqMto />} />
-                <Route path="/admin/knowledge" element={<AdminKnowledge />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route 
+                  path="/" 
+                  element={
+                    <PrivateRoute>
+                      <Index />
+                    </PrivateRoute>
+                  } 
+                />
+                <Route 
+                  path="/history" 
+                  element={
+                    <PrivateRoute>
+                      <History />
+                    </PrivateRoute>
+                  } 
+                />
+                <Route 
+                  path="/calculators" 
+                  element={
+                    <PrivateRoute>
+                      <Calculators />
+                    </PrivateRoute>
+                  } 
+                />
+                <Route 
+                  path="/iframe" 
+                  element={
+                    <PrivateRoute>
+                      <Iframe />
+                    </PrivateRoute>
+                  } 
+                />
+                <Route 
+                  path="/sales" 
+                  element={
+                    <PrivateRoute>
+                      <Sales />
+                    </PrivateRoute>
+                  } 
+                />
+                <Route 
+                  path="/apps" 
+                  element={
+                    <PrivateRoute>
+                      <Apps />
+                    </PrivateRoute>
+                  } 
+                />
+                <Route 
+                  path="/reports" 
+                  element={
+                    <PrivateRoute>
+                      <Reports />
+                    </PrivateRoute>
+                  } 
+                />
+                <Route 
+                  path="/settings" 
+                  element={
+                    <PrivateRoute>
+                      <Settings />
+                    </PrivateRoute>
+                  } 
+                />
+                <Route 
+                  path="/baq-mto" 
+                  element={
+                    <PrivateRoute>
+                      <BaqMto />
+                    </PrivateRoute>
+                  } 
+                />
+                <Route 
+                  path="/admin/knowledge" 
+                  element={
+                    <PrivateRoute>
+                      <AdminKnowledge />
+                    </PrivateRoute>
+                  } 
+                />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </SidebarProvider>
