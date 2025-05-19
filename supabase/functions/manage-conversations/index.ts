@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { v4 as uuidv4, validate as uuidValidate } from "https://esm.sh/uuid@9.0.0";
@@ -23,28 +22,18 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     
     if (!authHeader) {
-      console.error("Missing Authorization header");
-      return new Response(JSON.stringify({ 
-        error: "Authentication required", 
-        message: "Missing Authorization header"
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 401,
-      });
+      throw new Error("Missing Authorization header");
     }
     
     // Get the user ID from the JWT token
     const token = authHeader.replace("Bearer ", "");
-    console.log("Token received, attempting to get user");
-    
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     
     if (userError) {
       console.error("Auth error:", userError);
       return new Response(JSON.stringify({ 
         error: "Authentication failed", 
-        message: userError.message,
-        status: 401
+        details: userError.message 
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 401,
@@ -52,12 +41,7 @@ serve(async (req) => {
     }
     
     if (!user) {
-      console.error("No user found with provided token");
-      return new Response(JSON.stringify({ 
-        error: "User not authenticated",
-        message: "No user found with provided token",
-        status: 401
-      }), {
+      return new Response(JSON.stringify({ error: "User not authenticated" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 401,
       });
@@ -123,21 +107,12 @@ serve(async (req) => {
   } catch (error) {
     console.error("Error processing request:", error);
     
-    // Determine if this is an auth error based on the error message
-    const isAuthError = error.message?.includes("auth") || 
-                       error.message?.includes("JWT") || 
-                       error.message?.includes("token") ||
-                       error.message?.includes("session");
-    
-    const statusCode = isAuthError ? 401 : 400;
-    
     return new Response(JSON.stringify({ 
       error: error.message,
-      stack: error.stack,
-      status: statusCode
+      stack: error.stack 
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: statusCode,
+      status: 400,
     });
   }
 });

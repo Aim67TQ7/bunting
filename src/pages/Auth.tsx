@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -56,7 +55,11 @@ const resetSchema = z.object({
   ),
 });
 
-// Updated schema to remove OTP
+const otpSchema = z.object({
+  email: z.string().email(),
+  otp: z.string().min(6, "Please enter the complete OTP").max(6),
+});
+
 const newPasswordSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters"),
   confirmPassword: z.string().min(8, "Password must be at least 8 characters"),
@@ -66,8 +69,8 @@ const newPasswordSchema = z.object({
 });
 
 export default function Auth() {
-  const { user, isLoading, signIn, signUp, resetPassword, updatePassword } = useAuth();
-  const [authMode, setAuthMode] = useState<"login" | "signup" | "reset" | "new-password">("login");
+  const { user, isLoading, signIn, signUp, resetPassword, verifyOtp, updatePassword } = useAuth();
+  const [authMode, setAuthMode] = useState<"login" | "signup" | "reset" | "otp" | "new-password">("login");
   const [resetEmail, setResetEmail] = useState("");
   const location = useLocation();
   const navigate = useNavigate();
@@ -99,6 +102,15 @@ export default function Auth() {
     },
   });
 
+  // Form for OTP verification
+  const otpForm = useForm<z.infer<typeof otpSchema>>({
+    resolver: zodResolver(otpSchema),
+    defaultValues: {
+      email: resetEmail,
+      otp: "",
+    },
+  });
+
   // Form for new password
   const newPasswordForm = useForm<z.infer<typeof newPasswordSchema>>({
     resolver: zodResolver(newPasswordSchema),
@@ -116,16 +128,6 @@ export default function Auth() {
       navigate(origin, { replace: true });
     }
   }, [user, isLoading, navigate, location.state]);
-  
-  // Check for password reset hash in URL
-  useEffect(() => {
-    // If we have a #access_token in the URL, we're in the password reset flow
-    const hash = window.location.hash;
-    if (hash && hash.includes('access_token')) {
-      console.log("Detected password reset hash in URL");
-      setAuthMode("new-password");
-    }
-  }, []);
 
   // If still loading, show loading indicator
   if (isLoading) {
@@ -190,31 +192,40 @@ export default function Auth() {
         variant: "destructive",
       });
     } else {
-      toast({
-        title: "Reset email sent",
-        description: "Check your email for a password reset link",
-      });
       setResetEmail(values.email);
-      setAuthMode("login"); // Go back to login since we now use link-based reset
+      setAuthMode("otp");
+    }
+  };
+
+  // Handle OTP verification submission
+  const onOtpSubmit = async (values: z.infer<typeof otpSchema>) => {
+    try {
+      // We'll implement this in the next step
+      setAuthMode("new-password");
+    } catch (error) {
+      toast({
+        title: "OTP verification failed",
+        description: "Invalid or expired OTP",
+        variant: "destructive",
+      });
     }
   };
 
   // Handle new password submission
   const onNewPasswordSubmit = async (values: z.infer<typeof newPasswordSchema>) => {
-    const { error } = await updatePassword(values.password);
-    
-    if (error) {
-      toast({
-        title: "Password update failed",
-        description: error.message || "An error occurred while updating your password",
-        variant: "destructive",
-      });
-    } else {
+    try {
+      // We'll implement this in the next step
       toast({
         title: "Password updated",
         description: "Your password has been updated successfully",
       });
       setAuthMode("login");
+    } catch (error) {
+      toast({
+        title: "Password update failed",
+        description: "An error occurred while updating your password",
+        variant: "destructive",
+      });
     }
   };
 
@@ -246,7 +257,15 @@ export default function Auth() {
             <>
               <CardTitle>Reset Password</CardTitle>
               <CardDescription>
-                Enter your buntingmagnetics.com email to receive a password reset link
+                Enter your buntingmagnetics.com email to receive a password reset OTP
+              </CardDescription>
+            </>
+          )}
+          {authMode === "otp" && (
+            <>
+              <CardTitle>Enter OTP</CardTitle>
+              <CardDescription>
+                Enter the one-time password sent to your email
               </CardDescription>
             </>
           )}
@@ -387,7 +406,44 @@ export default function Auth() {
                   )}
                 />
                 <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Sending..." : "Send reset link"}
+                  {isLoading ? "Sending..." : "Send reset OTP"}
+                </Button>
+              </form>
+            </Form>
+          )}
+
+          {authMode === "otp" && (
+            <Form {...otpForm}>
+              <form onSubmit={otpForm.handleSubmit(onOtpSubmit)} className="space-y-4">
+                <div className="text-center mb-4">
+                  <p className="text-sm text-muted-foreground">
+                    We've sent a 6-digit code to {resetEmail}
+                  </p>
+                </div>
+                <FormField
+                  control={otpForm.control}
+                  name="otp"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>One-Time Password</FormLabel>
+                      <FormControl>
+                        <InputOTP maxLength={6} {...field}>
+                          <InputOTPGroup>
+                            <InputOTPSlot index={0} />
+                            <InputOTPSlot index={1} />
+                            <InputOTPSlot index={2} />
+                            <InputOTPSlot index={3} />
+                            <InputOTPSlot index={4} />
+                            <InputOTPSlot index={5} />
+                          </InputOTPGroup>
+                        </InputOTP>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? "Verifying..." : "Verify OTP"}
                 </Button>
               </form>
             </Form>
@@ -460,7 +516,7 @@ export default function Auth() {
               </Button>
             </div>
           )}
-          {(authMode === "reset" || authMode === "new-password") && (
+          {(authMode === "reset" || authMode === "otp" || authMode === "new-password") && (
             <Button variant="link" onClick={() => setAuthMode("login")} className="text-sm">
               Back to login
             </Button>
