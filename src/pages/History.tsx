@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -49,15 +48,18 @@ const History = () => {
       setAuthError(null);
       
       // Use the edge function to get conversations
-      const { data, error, status } = await supabase.functions.invoke('manage-conversations', {
+      const { data, error } = await supabase.functions.invoke('manage-conversations', {
         body: {
           action: 'listConversations'
         }
       });
       
+      // Check if authentication error by examining the error object
       if (error) {
-        // Check if it's an authentication error
-        if (status === 401) {
+        // If the error response contains authentication error information
+        const errorStatus = error.message?.includes('401') ? 401 : null;
+        
+        if (errorStatus === 401) {
           setAuthError("Authentication error. Please try logging in again.");
           // Let the user know they should try to log in again
           toast({
