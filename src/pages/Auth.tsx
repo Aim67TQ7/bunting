@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -26,6 +27,7 @@ import {
 } from "@/components/ui/form";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { toast } from "@/hooks/use-toast";
+import { Eye, EyeOff } from "lucide-react";
 
 // Define schemas for form validation
 const loginSchema = z.object({
@@ -55,11 +57,6 @@ const resetSchema = z.object({
   ),
 });
 
-const otpSchema = z.object({
-  email: z.string().email(),
-  otp: z.string().min(6, "Please enter the complete OTP").max(6),
-});
-
 const newPasswordSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters"),
   confirmPassword: z.string().min(8, "Password must be at least 8 characters"),
@@ -69,9 +66,11 @@ const newPasswordSchema = z.object({
 });
 
 export default function Auth() {
-  const { user, isLoading, signIn, signUp, resetPassword, verifyOtp, updatePassword } = useAuth();
+  const { user, isLoading, signIn, signUp, resetPassword, updatePassword } = useAuth();
   const [authMode, setAuthMode] = useState<"login" | "signup" | "reset" | "otp" | "new-password">("login");
   const [resetEmail, setResetEmail] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -99,15 +98,6 @@ export default function Auth() {
     resolver: zodResolver(resetSchema),
     defaultValues: {
       email: "",
-    },
-  });
-
-  // Form for OTP verification
-  const otpForm = useForm<z.infer<typeof otpSchema>>({
-    resolver: zodResolver(otpSchema),
-    defaultValues: {
-      email: resetEmail,
-      otp: "",
     },
   });
 
@@ -192,40 +182,27 @@ export default function Auth() {
         variant: "destructive",
       });
     } else {
-      setResetEmail(values.email);
-      setAuthMode("otp");
-    }
-  };
-
-  // Handle OTP verification submission
-  const onOtpSubmit = async (values: z.infer<typeof otpSchema>) => {
-    try {
-      // We'll implement this in the next step
-      setAuthMode("new-password");
-    } catch (error) {
       toast({
-        title: "OTP verification failed",
-        description: "Invalid or expired OTP",
-        variant: "destructive",
+        title: "Password reset email sent",
+        description: "Check your email for a password reset link",
       });
+      // Switch back to login tab after successful reset request
+      setAuthMode("login");
     }
   };
 
   // Handle new password submission
   const onNewPasswordSubmit = async (values: z.infer<typeof newPasswordSchema>) => {
-    try {
-      // We'll implement this in the next step
-      toast({
-        title: "Password updated",
-        description: "Your password has been updated successfully",
-      });
-      setAuthMode("login");
-    } catch (error) {
+    const { error } = await updatePassword(values.password);
+    
+    if (error) {
       toast({
         title: "Password update failed",
-        description: "An error occurred while updating your password",
+        description: error.message,
         variant: "destructive",
       });
+    } else {
+      setAuthMode("login");
     }
   };
 
@@ -257,15 +234,7 @@ export default function Auth() {
             <>
               <CardTitle>Reset Password</CardTitle>
               <CardDescription>
-                Enter your buntingmagnetics.com email to receive a password reset OTP
-              </CardDescription>
-            </>
-          )}
-          {authMode === "otp" && (
-            <>
-              <CardTitle>Enter OTP</CardTitle>
-              <CardDescription>
-                Enter the one-time password sent to your email
+                Enter your buntingmagnetics.com email to receive a password reset link
               </CardDescription>
             </>
           )}
@@ -307,11 +276,25 @@ export default function Auth() {
                     <FormItem>
                       <FormLabel>Password</FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="••••••••" 
-                          type="password" 
-                          {...field} 
-                        />
+                        <div className="relative">
+                          <Input 
+                            placeholder="••••••••" 
+                            type={showPassword ? "text" : "password"} 
+                            {...field} 
+                          />
+                          <button 
+                            type="button"
+                            className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+                            onClick={() => setShowPassword(!showPassword)}
+                            tabIndex={-1}
+                          >
+                            {showPassword ? (
+                              <EyeOff className="h-5 w-5" aria-hidden="true" />
+                            ) : (
+                              <Eye className="h-5 w-5" aria-hidden="true" />
+                            )}
+                          </button>
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -351,11 +334,25 @@ export default function Auth() {
                     <FormItem>
                       <FormLabel>Password</FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="••••••••" 
-                          type="password" 
-                          {...field} 
-                        />
+                        <div className="relative">
+                          <Input 
+                            placeholder="••••••••" 
+                            type={showPassword ? "text" : "password"} 
+                            {...field} 
+                          />
+                          <button 
+                            type="button"
+                            className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+                            onClick={() => setShowPassword(!showPassword)}
+                            tabIndex={-1}
+                          >
+                            {showPassword ? (
+                              <EyeOff className="h-5 w-5" aria-hidden="true" />
+                            ) : (
+                              <Eye className="h-5 w-5" aria-hidden="true" />
+                            )}
+                          </button>
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -368,11 +365,25 @@ export default function Auth() {
                     <FormItem>
                       <FormLabel>Confirm Password</FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="••••••••" 
-                          type="password" 
-                          {...field} 
-                        />
+                        <div className="relative">
+                          <Input 
+                            placeholder="••••••••" 
+                            type={showConfirmPassword ? "text" : "password"} 
+                            {...field} 
+                          />
+                          <button 
+                            type="button"
+                            className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            tabIndex={-1}
+                          >
+                            {showConfirmPassword ? (
+                              <EyeOff className="h-5 w-5" aria-hidden="true" />
+                            ) : (
+                              <Eye className="h-5 w-5" aria-hidden="true" />
+                            )}
+                          </button>
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -406,44 +417,7 @@ export default function Auth() {
                   )}
                 />
                 <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Sending..." : "Send reset OTP"}
-                </Button>
-              </form>
-            </Form>
-          )}
-
-          {authMode === "otp" && (
-            <Form {...otpForm}>
-              <form onSubmit={otpForm.handleSubmit(onOtpSubmit)} className="space-y-4">
-                <div className="text-center mb-4">
-                  <p className="text-sm text-muted-foreground">
-                    We've sent a 6-digit code to {resetEmail}
-                  </p>
-                </div>
-                <FormField
-                  control={otpForm.control}
-                  name="otp"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>One-Time Password</FormLabel>
-                      <FormControl>
-                        <InputOTP maxLength={6} {...field}>
-                          <InputOTPGroup>
-                            <InputOTPSlot index={0} />
-                            <InputOTPSlot index={1} />
-                            <InputOTPSlot index={2} />
-                            <InputOTPSlot index={3} />
-                            <InputOTPSlot index={4} />
-                            <InputOTPSlot index={5} />
-                          </InputOTPGroup>
-                        </InputOTP>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Verifying..." : "Verify OTP"}
+                  {isLoading ? "Sending..." : "Send reset link"}
                 </Button>
               </form>
             </Form>
@@ -459,11 +433,25 @@ export default function Auth() {
                     <FormItem>
                       <FormLabel>New Password</FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="••••••••" 
-                          type="password" 
-                          {...field} 
-                        />
+                        <div className="relative">
+                          <Input 
+                            placeholder="••••••••" 
+                            type={showPassword ? "text" : "password"} 
+                            {...field} 
+                          />
+                          <button 
+                            type="button"
+                            className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+                            onClick={() => setShowPassword(!showPassword)}
+                            tabIndex={-1}
+                          >
+                            {showPassword ? (
+                              <EyeOff className="h-5 w-5" aria-hidden="true" />
+                            ) : (
+                              <Eye className="h-5 w-5" aria-hidden="true" />
+                            )}
+                          </button>
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -476,11 +464,25 @@ export default function Auth() {
                     <FormItem>
                       <FormLabel>Confirm New Password</FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="••••••••" 
-                          type="password" 
-                          {...field} 
-                        />
+                        <div className="relative">
+                          <Input 
+                            placeholder="••••••••" 
+                            type={showConfirmPassword ? "text" : "password"} 
+                            {...field} 
+                          />
+                          <button 
+                            type="button"
+                            className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            tabIndex={-1}
+                          >
+                            {showConfirmPassword ? (
+                              <EyeOff className="h-5 w-5" aria-hidden="true" />
+                            ) : (
+                              <Eye className="h-5 w-5" aria-hidden="true" />
+                            )}
+                          </button>
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -516,7 +518,7 @@ export default function Auth() {
               </Button>
             </div>
           )}
-          {(authMode === "reset" || authMode === "otp" || authMode === "new-password") && (
+          {(authMode === "reset" || authMode === "new-password") && (
             <Button variant="link" onClick={() => setAuthMode("login")} className="text-sm">
               Back to login
             </Button>
