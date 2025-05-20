@@ -155,6 +155,44 @@ export function useChatMessages() {
     [user, toast]
   );
 
+  const submitCorrection = useCallback(
+    async (messageId: string, correction: string) => {
+      if (!user || !conversationId) return;
+      
+      try {
+        setIsLoading(true);
+        const { data, error } = await supabase.functions.invoke('handle-corrections', {
+          body: {
+            correction,
+            messageId,
+            conversationId,
+            userId: user.id
+          }
+        });
+        
+        if (error) throw error;
+        
+        toast({
+          title: "Correction submitted",
+          description: "Your correction has been saved and will be used for future responses.",
+        });
+        
+        return true;
+      } catch (error) {
+        console.error("Error submitting correction:", error);
+        toast({
+          title: "Error submitting correction",
+          description: "There was a problem saving your correction.",
+          variant: "destructive"
+        });
+        return false;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [user, conversationId, toast]
+  );
+
   const sendMessage = useCallback(
     async (content: string, autoSummarize = false, queryType?: string, file?: File) => {
       if (!user || !content.trim()) return;
@@ -193,7 +231,9 @@ export function useChatMessages() {
             body: { 
               messages: updatedMessages.map(m => ({ role: m.role, content: m.content })),
               stream: false,
-              enableWeb: true  // Enable web search
+              enableWeb: true,  // Enable web search
+              conversationId: conversationId,
+              userId: user.id
             }
           });
             
@@ -208,7 +248,9 @@ export function useChatMessages() {
           const { data, error } = await supabase.functions.invoke('generate-with-groq', {
             body: { 
               messages: updatedMessages.map(m => ({ role: m.role, content: m.content })),
-              stream: false 
+              stream: false,
+              conversationId: conversationId,
+              userId: user.id
             }
           });
             
@@ -262,6 +304,7 @@ export function useChatMessages() {
     saveConversation,
     loadConversation,
     conversationId,
-    clearCurrentConversation
+    clearCurrentConversation,
+    submitCorrection
   };
 }

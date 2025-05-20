@@ -30,7 +30,8 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
     sendMessage, 
     loadConversation, 
     conversationId: activeConversationId,
-    clearCurrentConversation
+    clearCurrentConversation,
+    submitCorrection
   } = useChatMessages();
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -193,6 +194,7 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
           <MessageList 
             messages={messages} 
             isAiResponding={isAiResponding && !hasAttemptedLoad}
+            onSubmitCorrection={submitCorrection}
           />
         )}
         

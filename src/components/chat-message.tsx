@@ -1,6 +1,6 @@
 
 import { cn } from "@/lib/utils";
-import { User, Bot, Copy, Check, Cpu } from "lucide-react";
+import { User, Bot, Copy, Check, Cpu, Edit2 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { BrandLogo } from "@/components/brand-logo";
 import { forwardRef, useState } from "react";
@@ -8,6 +8,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import { Button } from "./ui/button";
+import { CorrectionDialog } from "./chat/correction-dialog";
 
 export type MessageRole = "user" | "assistant";
 
@@ -17,10 +18,12 @@ interface ChatMessageProps {
   timestamp: Date;
   isLoading?: boolean;
   model?: string;
+  messageId: string;
+  onSubmitCorrection?: (messageId: string, correction: string) => Promise<boolean>;
 }
 
 export const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>(
-  ({ role, content, timestamp, isLoading, model }, ref) => {
+  ({ role, content, timestamp, isLoading, model, messageId, onSubmitCorrection }, ref) => {
     const [copiedCode, setCopiedCode] = useState<string | null>(null);
     
     const copyToClipboard = (text: string) => {
@@ -134,16 +137,27 @@ export const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>(
           )}
         </div>
         <div className="flex-1 space-y-2">
-          <div className="flex items-center gap-2">
-            <div className="font-medium">{role === "user" ? "You" : "BuntingGPT"}</div>
-            <div className="text-xs text-muted-foreground">
-              {formatTime(timestamp)}
-            </div>
-            {model && role === "assistant" && (
-              <div className="text-xs px-1.5 py-0.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300 rounded-sm flex items-center gap-1">
-                <Cpu className="h-3 w-3" />
-                <span>{model}</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="font-medium">{role === "user" ? "You" : "BuntingGPT"}</div>
+              <div className="text-xs text-muted-foreground">
+                {formatTime(timestamp)}
               </div>
+              {model && role === "assistant" && (
+                <div className="text-xs px-1.5 py-0.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300 rounded-sm flex items-center gap-1">
+                  <Cpu className="h-3 w-3" />
+                  <span>{model}</span>
+                </div>
+              )}
+            </div>
+            
+            {/* Correction button only for assistant messages */}
+            {role === "assistant" && onSubmitCorrection && (
+              <CorrectionDialog 
+                messageId={messageId}
+                onSubmit={onSubmitCorrection}
+                disabled={isLoading}
+              />
             )}
           </div>
           <div className="prose prose-sm max-w-none">

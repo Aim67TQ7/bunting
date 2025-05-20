@@ -16,7 +16,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, stream = false, enableWeb = false } = await req.json();
+    const { messages, stream = false, enableWeb = false, conversationId = null, userId = null } = await req.json();
 
     if (!GROQ_API_KEY) {
       throw new Error("GROQ_API_KEY is not set");
@@ -26,6 +26,35 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     let contextualInfo = "";
+    let correctionContext = "";
+
+    // Get any user corrections for this conversation if we have a conversation ID
+    if (conversationId && userId && supabaseUrl && supabaseKey) {
+      try {
+        // Fetch corrections for this conversation
+        const correctionsResponse = await fetch(
+          `${supabaseUrl}/rest/v1/corrections?conversation_id=eq.${conversationId}&select=*&order=created_at.asc`, {
+          headers: {
+            'Authorization': `Bearer ${supabaseKey}`,
+            'apikey': supabaseKey
+          }
+        });
+
+        if (correctionsResponse.ok) {
+          const corrections = await correctionsResponse.json();
+          
+          if (corrections && corrections.length > 0) {
+            correctionContext = "IMPORTANT USER CORRECTIONS - Remember these and don't make the same mistakes again:\n\n" + 
+              corrections.map((c: any, index: number) => `${index + 1}. ${c.correction_text}`).join("\n");
+            
+            console.log("Found corrections for conversation:", correctionContext.substring(0, 200) + "...");
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching corrections:", error);
+        // Continue without corrections if there's an error
+      }
+    }
 
     if (supabaseUrl && supabaseKey && messages.length > 0) {
       try {
@@ -73,7 +102,7 @@ serve(async (req) => {
               if (searchResults && searchResults.length > 0) {
                 // Format the relevant knowledge for context
                 contextualInfo = "Relevant knowledge from our database:\n\n" + 
-                  searchResults.map(result => {
+                  searchResults.map((result: any) => {
                     return `${result.content.summary || result.content.title || "Information"}`;
                   }).join("\n\n");
                 
@@ -107,7 +136,7 @@ Bunting's product portfolio includes:
 8. Electromagnets with various coil voltages (12V, 24V, 48V, 120V, 240V), magnetic strengths up to 12,000 Gauss (1.2 Tesla), sizes ranging from 1 inch (25mm) to 12 inches (305mm) in diameter and 2 inches (50mm) to 24 inches (610mm) in length, with materials including copper, aluminum, and iron cores.
 `;
 
-    // Enhanced system message with follow-up instructions
+    // Enhanced system message with follow-up instructions and corrections if available
     const enhancedSystemMessage = { 
       role: "system", 
       content: `You are BuntingGPT, an executive assistant for Bunting employees. Provide direct, factual, and concise responses about magnetic solutions, products, and applications. Present information in a straightforward manner without phrases like 'As a Bunting employee' or other unnecessary qualifiers. If you don't have an answer, clearly state that and suggest specific resources where the information might be found or offer to help locate it. Never pretend to know information you don't have. Focus on accuracy and efficiency in all responses.
@@ -119,7 +148,9 @@ After providing your answer, do one of the following:
 
 Keep follow-ups concise and natural - they should feel like a helpful colleague checking in, not an interrogation.
 
-${productContext}`
+${productContext}
+
+${correctionContext ? correctionContext + "\n\n" : ""}`
     };
     
     // Create a new array with our updated system message
