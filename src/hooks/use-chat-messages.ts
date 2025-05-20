@@ -1,206 +1,46 @@
 
 import { useState, useCallback } from 'react';
-import { v4 as uuidv4 } from 'uuid';
 import { Message } from '../types/chat';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from './use-toast';
 
-// Helper function to prepare message for JSON storage
-const prepareMessagesForStorage = (messages: Message[]) => {
-  return messages.map(msg => ({
-    id: msg.id,
-    role: msg.role,
-    content: msg.content,
-    timestamp: msg.timestamp instanceof Date ? msg.timestamp.toISOString() : msg.timestamp,
-    autoSummarize: msg.autoSummarize || false,
-    queryType: msg.queryType || null,
-    model: msg.model || null // Include model in storage
-  }));
-};
+// Import our newly separated hooks
+import { useChatState } from './chat/use-chat-state';
+import { useConversationPersistence } from './chat/use-conversation-persistence';
+import { useCorrections } from './chat/use-corrections';
+import { useAutoSummary } from './chat/use-auto-summary';
+import { useMessageSending } from './chat/use-message-sending';
 
 export function useChatMessages() {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [conversationId, setConversationId] = useState<string | null>(null);
+  const { 
+    messages, 
+    setMessages, 
+    isLoading, 
+    setIsLoading, 
+    conversationId, 
+    setConversationId,
+    createUserMessage,
+    createAIMessage
+  } = useChatState();
+  
+  const { saveConversation, loadConversation } = useConversationPersistence();
+  const { submitCorrection: submitCorrectionBase } = useCorrections();
+  const { handleAutoSummary } = useAutoSummary();
+  const { sendMessageToAI } = useMessageSending();
+  
   const { user } = useAuth();
   const { toast } = useToast();
-
-  const saveConversation = useCallback(
-    async (messages: Message[], topic: string, isNew = false) => {
-      if (!user) return null;
-      
-      try {
-        // Create conversation entry or update
-        let convoId = conversationId;
-        const preparedMessages = prepareMessagesForStorage(messages);
-        
-        if (isNew || !convoId) {
-          // Use the manage-conversations edge function to save the conversation
-          const { data, error } = await supabase.functions.invoke('manage-conversations', {
-            body: {
-              action: 'saveConversation',
-              data: {
-                id: uuidv4(), // This will be a new conversation
-                messages: preparedMessages,
-                topic: topic
-              }
-            }
-          });
-          
-          if (error) throw error;
-          convoId = data.id;
-          setConversationId(convoId);
-        } else {
-          // Update existing conversation
-          const { data, error } = await supabase.functions.invoke('manage-conversations', {
-            body: {
-              action: 'saveConversation',
-              data: {
-                id: convoId,
-                messages: preparedMessages,
-                topic: topic
-              }
-            }
-          });
-            
-          if (error) throw error;
-        }
-        
-        return convoId;
-      } catch (error) {
-        console.error("Error saving conversation:", error);
-        toast({
-          title: "Error saving conversation",
-          description: "There was a problem saving your conversation.",
-          variant: "destructive"
-        });
-        return null;
-      }
-    },
-    [user, conversationId, toast]
-  );
-
-  const loadConversation = useCallback(
-    async (id: string) => {
-      if (!user) return;
-      
-      try {
-        const { data, error } = await supabase.functions.invoke('manage-conversations', {
-          body: {
-            action: 'loadConversation',
-            data: { id }
-          }
-        });
-          
-        if (error) throw error;
-        
-        if (data) {
-          // Transform ISO date strings back to Date objects
-          const loadedMessages = Array.isArray(data.messages) ? data.messages.map((msg: any) => ({
-            ...msg,
-            timestamp: new Date(msg.timestamp)
-          })) : [];
-          
-          setMessages(loadedMessages);
-          setConversationId(data.id);
-        }
-      } catch (error) {
-        console.error("Error loading conversation:", error);
-        toast({
-          title: "Error loading conversation",
-          description: "There was a problem loading your conversation.",
-          variant: "destructive"
-        });
-        throw error;
-      }
-    },
-    [user, toast]
-  );
 
   const clearCurrentConversation = useCallback(() => {
     setMessages([]);
     setConversationId(null);
-  }, []);
-
-  const handleAutoSummary = useCallback(
-    async (relevantMessages: Message[]) => {
-      if (!user) return;
-      
-      try {
-        const { data, error } = await supabase.functions.invoke('save-ai-summary', {
-          body: { 
-            messages: prepareMessagesForStorage(relevantMessages),
-            userId: user.id
-          }
-        });
-        
-        if (error) throw error;
-        
-        console.log('Summary generated:', data);
-        
-        toast({
-          title: "Knowledge Base Updated",
-          description: "The conversation has been summarized and added to the knowledge base.",
-        });
-      } catch (error) {
-        console.error("Error summarizing conversation:", error);
-        toast({
-          title: "Error creating summary",
-          description: "There was a problem adding this to the knowledge base.",
-          variant: "destructive"
-        });
-      }
-    },
-    [user, toast]
-  );
+  }, [setMessages, setConversationId]);
 
   const submitCorrection = useCallback(
     async (messageId: string, correction: string, isGlobal: boolean = false) => {
-      if (!user || !conversationId) return false;
-      
-      try {
-        setIsLoading(true);
-        const { data, error } = await supabase.functions.invoke('handle-corrections', {
-          body: {
-            correction,
-            messageId,
-            conversationId,
-            userId: user.id,
-            isGlobal
-          }
-        });
-        
-        if (error) {
-          console.error("Error from handle-corrections function:", error);
-          throw new Error(`Failed to submit correction: ${error.message || 'Unknown error'}`);
-        }
-        
-        if (!data || data.success === false) {
-          throw new Error(data?.error || 'Failed to submit correction');
-        }
-        
-        toast({
-          title: "Correction submitted",
-          description: isGlobal 
-            ? "Your correction has been saved globally and will be used for all future responses." 
-            : "Your correction has been saved and will be used for future responses in this conversation.",
-        });
-        
-        return true;
-      } catch (error) {
-        console.error("Error submitting correction:", error);
-        toast({
-          title: "Error submitting correction",
-          description: error.message || "There was a problem saving your correction.",
-          variant: "destructive"
-        });
-        return false;
-      } finally {
-        setIsLoading(false);
-      }
+      return submitCorrectionBase(messageId, correction, conversationId, isGlobal);
     },
-    [user, conversationId, toast]
+    [submitCorrectionBase, conversationId]
   );
 
   const sendMessage = useCallback(
@@ -208,15 +48,7 @@ export function useChatMessages() {
       if (!user || !content.trim()) return;
       
       // Add user message to chat
-      const userMessage: Message = {
-        id: uuidv4(),
-        role: 'user',
-        content,
-        timestamp: new Date(),
-        autoSummarize,
-        queryType
-      };
-      
+      const userMessage = createUserMessage(content, autoSummarize, queryType);
       const updatedMessages = [...messages, userMessage];
       setMessages(updatedMessages);
       setIsLoading(true);
@@ -226,66 +58,29 @@ export function useChatMessages() {
         const topic = updatedMessages[0]?.content.slice(0, 50) || "New Conversation";
         
         // If it's a new conversation, save it to get an ID
-        if (!conversationId) {
-          await saveConversation(updatedMessages, topic, true);
+        let currentConvoId = conversationId;
+        if (!currentConvoId) {
+          currentConvoId = await saveConversation(updatedMessages, topic, null, true);
+          if (currentConvoId) {
+            setConversationId(currentConvoId);
+          }
         }
         
-        // Call the appropriate Supabase function based on the query type
-        let aiResponse: any;
-        let modelUsed: string = "groq-llama3-70b"; // Default model name
+        // Get response from AI
+        const aiResponseData = await sendMessageToAI(updatedMessages, queryType, currentConvoId);
         
-        // Use the web-enabled endpoint if queryType is 'web'
-        if (queryType === 'web') {
-          console.log('Using web search for response');
-          const { data, error } = await supabase.functions.invoke('generate-with-groq', {
-            body: { 
-              messages: updatedMessages.map(m => ({ role: m.role, content: m.content })),
-              stream: false,
-              enableWeb: true,  // Enable web search
-              conversationId: conversationId,
-              userId: user.id
-            }
-          });
-            
-          if (error) throw error;
-          aiResponse = data.choices[0].message.content;
-          // Store the model name if provided in response
-          if (data.model) {
-            modelUsed = data.model;
-          }
-        } else {
-          // Default to the standard GROQ endpoint
-          const { data, error } = await supabase.functions.invoke('generate-with-groq', {
-            body: { 
-              messages: updatedMessages.map(m => ({ role: m.role, content: m.content })),
-              stream: false,
-              conversationId: conversationId,
-              userId: user.id
-            }
-          });
-            
-          if (error) throw error;
-          aiResponse = data.choices[0].message.content;
-          // Store the model name if provided in response
-          if (data.model) {
-            modelUsed = data.model;
-          }
+        if (!aiResponseData) {
+          throw new Error("Failed to get AI response");
         }
         
         // Add AI message to chat with model information
-        const aiMessage: Message = {
-          id: uuidv4(),
-          role: 'assistant',
-          content: aiResponse,
-          timestamp: new Date(),
-          model: modelUsed // Store which model was used
-        };
+        const aiMessage = createAIMessage(aiResponseData.content, aiResponseData.model);
         
         const finalMessages = [...updatedMessages, aiMessage];
         setMessages(finalMessages);
         
         // Save conversation update
-        await saveConversation(finalMessages, topic);
+        await saveConversation(finalMessages, topic, currentConvoId);
         
         // Handle auto-summarization if requested
         if (autoSummarize) {
@@ -304,15 +99,52 @@ export function useChatMessages() {
         setIsLoading(false);
       }
     },
-    [messages, user, conversationId, saveConversation, handleAutoSummary, toast]
+    [
+      messages, 
+      user, 
+      conversationId, 
+      setMessages, 
+      setIsLoading, 
+      setConversationId,
+      saveConversation, 
+      handleAutoSummary, 
+      createUserMessage,
+      createAIMessage,
+      sendMessageToAI,
+      toast
+    ]
+  );
+
+  // Modified load conversation function 
+  const loadConversationHandler = useCallback(
+    async (id: string) => {
+      if (!user) return;
+      
+      try {
+        setIsLoading(true);
+        const result = await loadConversation(id);
+        
+        if (result) {
+          setMessages(result.messages);
+          setConversationId(result.id);
+        }
+      } catch (error) {
+        console.error("Error loading conversation:", error);
+        throw error;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [user, loadConversation, setMessages, setConversationId, setIsLoading]
   );
 
   return {
     messages,
     isLoading,
     sendMessage,
-    saveConversation,
-    loadConversation,
+    saveConversation: (messages: Message[], topic: string) => 
+      saveConversation(messages, topic, conversationId),
+    loadConversation: loadConversationHandler,
     conversationId,
     clearCurrentConversation,
     submitCorrection
