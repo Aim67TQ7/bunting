@@ -283,7 +283,10 @@ export type Database = {
           correction_text: string
           created_at: string
           id: string
+          is_global: boolean | null
+          keywords: string[] | null
           message_id: string
+          topic: string | null
           user_id: string
         }
         Insert: {
@@ -292,7 +295,10 @@ export type Database = {
           correction_text: string
           created_at?: string
           id?: string
+          is_global?: boolean | null
+          keywords?: string[] | null
           message_id: string
+          topic?: string | null
           user_id: string
         }
         Update: {
@@ -301,8 +307,44 @@ export type Database = {
           correction_text?: string
           created_at?: string
           id?: string
+          is_global?: boolean | null
+          keywords?: string[] | null
           message_id?: string
+          topic?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      customerlocations: {
+        Row: {
+          address: string | null
+          contact_email: string | null
+          contact_person: string | null
+          contact_phone: string | null
+          created_at: string | null
+          id: string
+          name: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          contact_email?: string | null
+          contact_person?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          id?: string
+          name?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          contact_email?: string | null
+          contact_person?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          id?: string
+          name?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
