@@ -31,6 +31,7 @@ serve(async (req) => {
     // Get any user corrections for this conversation if we have a conversation ID
     if (conversationId && userId && supabaseUrl && supabaseKey) {
       try {
+        console.log(`Fetching corrections for conversation: ${conversationId}`);
         // Fetch corrections for this conversation
         const correctionsResponse = await fetch(
           `${supabaseUrl}/rest/v1/corrections?conversation_id=eq.${conversationId}&select=*&order=created_at.asc`, {
@@ -47,8 +48,13 @@ serve(async (req) => {
             correctionContext = "IMPORTANT USER CORRECTIONS - Remember these and don't make the same mistakes again:\n\n" + 
               corrections.map((c: any, index: number) => `${index + 1}. ${c.correction_text}`).join("\n");
             
-            console.log("Found corrections for conversation:", correctionContext.substring(0, 200) + "...");
+            console.log("Found corrections for conversation:", corrections.length);
+            console.log("Correction context:", correctionContext.substring(0, 200) + "...");
+          } else {
+            console.log("No corrections found for conversation:", conversationId);
           }
+        } else {
+          console.error("Error fetching corrections:", await correctionsResponse.text());
         }
       } catch (error) {
         console.error("Error fetching corrections:", error);
@@ -62,60 +68,9 @@ serve(async (req) => {
         const lastUserMessage = [...messages].reverse().find(msg => msg.role === "user");
         
         if (lastUserMessage) {
-          // Use the OpenAI embedding API to create a vector for the query
-          const embeddingResponse = await fetch("https://api.groq.com/openai/v1/embeddings", {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${GROQ_API_KEY}`,
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              model: "text-embedding-ada-002",  // Changed from text-embedding-3-small to a supported model
-              input: lastUserMessage.content
-            })
-          });
-
-          if (embeddingResponse.ok) {
-            const embeddingData = await embeddingResponse.json();
-            const embedding = embeddingData.data[0].embedding;
-            
-            // Use the embedding to search for relevant knowledge
-            const searchResponse = await fetch(`${supabaseUrl}/rest/v1/rpc/match_documents_with_scope`, {
-              method: "POST",
-              headers: {
-                "apikey": supabaseKey,
-                "Authorization": `Bearer ${supabaseKey}`,
-                "Content-Type": "application/json"
-              },
-              body: JSON.stringify({
-                query_embedding: embedding,
-                match_threshold: 0.7,
-                match_count: 3,
-                user_id: "00000000-0000-0000-0000-000000000000", // Use system user ID
-                include_user_scope: false // Only use global scope for now
-              })
-            });
-
-            if (searchResponse.ok) {
-              const searchResults = await searchResponse.json();
-              
-              if (searchResults && searchResults.length > 0) {
-                // Format the relevant knowledge for context
-                contextualInfo = "Relevant knowledge from our database:\n\n" + 
-                  searchResults.map((result: any) => {
-                    return `${result.content.summary || result.content.title || "Information"}`;
-                  }).join("\n\n");
-                
-                console.log("Found relevant context:", contextualInfo.substring(0, 200) + "...");
-              } else {
-                console.log("No relevant knowledge found for the query");
-              }
-            } else {
-              console.error("Error searching for knowledge:", await searchResponse.text());
-            }
-          } else {
-            console.error("Error generating embedding:", await embeddingResponse.text());
-          }
+          console.log("Will not attempt embedding search since the text-embedding-ada-002 model is not available");
+          // We skip the embedding search since the model is not available
+          // This would be the place to use a different embedding model if needed
         }
       } catch (error) {
         console.error("Error retrieving contextual information:", error);
@@ -126,13 +81,13 @@ serve(async (req) => {
     // Add additional product information context for factual responses
     const productContext = `
 Bunting's product portfolio includes:
-1. Magnetic separation equipment – drawer, grate and plate magnets, drum and pulley separators, and crossbelt or in-line suspended magnets for removing ferrous contamination from dry, wet or pneumatic flows. :contentReference[oaicite:0]{index=0}
-2. Eddy current separators that automatically eject non-ferrous metals such as aluminium or copper in recycling and processing lines. :contentReference[oaicite:1]{index=1}
-3. Metal detection systems – meTRON tunnel, gravity free-fall, pipeline/liquid detectors, and TN77 quarry belt units – for quality control and machinery protection. :contentReference[oaicite:2]{index=2}
-4. Magnetic material-handling conveyors, including MagSlide®, standard-frame, belt-less chip and steel-belt models for transferring or elevating ferrous parts and scrap. :contentReference[oaicite:3]{index=3}
-5. Wright Cylinders by Bunting – precision magnetic printing and die-cutting cylinders for flexo, offset, narrow-web and can-decorator presses. :contentReference[oaicite:4]{index=4}
-6. SSSC® Stainless-Steel Separation Conveyor™ for recovering fragmented stainless and other weakly magnetic metals missed by conventional magnets. :contentReference[oaicite:5]{index=5}
-7. Stock and custom permanent magnets (neodymium, ceramic, alnico, samarium-cobalt) and engineered magnetic assemblies built to OEM specifications. :contentReference[oaicite:6]{index=6}
+1. Magnetic separation equipment – drawer, grate and plate magnets, drum and pulley separators, and crossbelt or in-line suspended magnets for removing ferrous contamination from dry, wet or pneumatic flows.
+2. Eddy current separators that automatically eject non-ferrous metals such as aluminium or copper in recycling and processing lines.
+3. Metal detection systems – meTRON tunnel, gravity free-fall, pipeline/liquid detectors, and TN77 quarry belt units – for quality control and machinery protection.
+4. Magnetic material-handling conveyors, including MagSlide®, standard-frame, belt-less chip and steel-belt models for transferring or elevating ferrous parts and scrap.
+5. Wright Cylinders by Bunting – precision magnetic printing and die-cutting cylinders for flexo, offset, narrow-web and can-decorator presses.
+6. SSSC® Stainless-Steel Separation Conveyor™ for recovering fragmented stainless and other weakly magnetic metals missed by conventional magnets.
+7. Stock and custom permanent magnets (neodymium, ceramic, alnico, samarium-cobalt) and engineered magnetic assemblies built to OEM specifications.
 8. Electromagnets with various coil voltages (12V, 24V, 48V, 120V, 240V), magnetic strengths up to 12,000 Gauss (1.2 Tesla), sizes ranging from 1 inch (25mm) to 12 inches (305mm) in diameter and 2 inches (50mm) to 24 inches (610mm) in length, with materials including copper, aluminum, and iron cores.
 `;
 
@@ -176,6 +131,8 @@ ${correctionContext ? correctionContext + "\n\n" : ""}`
       
       console.log("Web search capability enabled for this query");
     }
+
+    console.log("Sending to GROQ with corrections context:", correctionContext ? "Yes" : "No");
 
     // Call the GROQ API
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {

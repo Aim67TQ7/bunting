@@ -18,7 +18,7 @@ export function MessageList({ messages, isAiResponding, onSubmitCorrection }: Me
           content={message.content}
           timestamp={message.timestamp}
           model={message.model}
-          messageId={message.id}
+          messageId={message.id as string}
           onSubmitCorrection={onSubmitCorrection}
         />
       ))}

@@ -17,6 +17,13 @@ serve(async (req) => {
     // Get request data
     const { correction, messageId, conversationId, userId } = await req.json();
     
+    console.log("Received correction request:", {
+      messageId,
+      conversationId,
+      userId,
+      correctionPreview: correction.substring(0, 50) + "..."
+    });
+    
     if (!correction || !messageId || !conversationId || !userId) {
       throw new Error('Missing required parameters');
     }
@@ -52,6 +59,8 @@ serve(async (req) => {
       throw new Error(`Failed to store correction: ${errorText}`);
     }
 
+    console.log("Correction stored successfully");
+
     // Retrieve all corrections for this conversation to include in future prompts
     const correctionsResponse = await fetch(
       `${supabaseUrl}/rest/v1/corrections?conversation_id=eq.${conversationId}&select=*&order=created_at.asc`, {
@@ -66,6 +75,7 @@ serve(async (req) => {
     }
 
     const corrections = await correctionsResponse.json();
+    console.log(`Found ${corrections.length} corrections for conversation ${conversationId}`);
     
     return new Response(JSON.stringify({
       success: true,

@@ -37,11 +37,23 @@ export function CorrectionDialog({ messageId, onSubmit, disabled }: CorrectionDi
 
     setIsSubmitting(true);
     try {
+      console.log(`Submitting correction for message ID: ${messageId}`);
       const success = await onSubmit(messageId, correction);
       if (success) {
+        toast({
+          title: "Correction submitted",
+          description: "Your correction has been saved and will be used for future responses."
+        });
         setCorrection('');
         setIsOpen(false);
       }
+    } catch (error) {
+      console.error("Error submitting correction:", error);
+      toast({
+        title: "Error submitting correction",
+        description: "There was a problem saving your correction.",
+        variant: "destructive"
+      });
     } finally {
       setIsSubmitting(false);
     }
