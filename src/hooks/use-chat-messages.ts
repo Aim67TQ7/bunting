@@ -171,7 +171,14 @@ export function useChatMessages() {
           }
         });
         
-        if (error) throw error;
+        if (error) {
+          console.error("Error from handle-corrections function:", error);
+          throw new Error(`Failed to submit correction: ${error.message || 'Unknown error'}`);
+        }
+        
+        if (!data || data.success === false) {
+          throw new Error(data?.error || 'Failed to submit correction');
+        }
         
         toast({
           title: "Correction submitted",
@@ -185,7 +192,7 @@ export function useChatMessages() {
         console.error("Error submitting correction:", error);
         toast({
           title: "Error submitting correction",
-          description: "There was a problem saving your correction.",
+          description: error.message || "There was a problem saving your correction.",
           variant: "destructive"
         });
         return false;

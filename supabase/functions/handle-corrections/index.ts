@@ -102,14 +102,12 @@ serve(async (req) => {
     console.log("Correction stored successfully");
 
     // Retrieve all corrections for this user - from current conversation and global ones
-    const correctionsQuery = `
-      conversation_id=eq.${conversationId}
-      or
-      (user_id=eq.${userId} and is_global=eq.true)
-    `;
+    // Fixed the query parameter format - this was causing the error
+    const correctionsQuery = new URLSearchParams();
+    correctionsQuery.append("or", `(conversation_id.eq.${conversationId},and(user_id.eq.${userId},is_global.eq.true))`);
     
     const correctionsResponse = await fetch(
-      `${supabaseUrl}/rest/v1/corrections?${correctionsQuery}&select=*&order=created_at.asc`, {
+      `${supabaseUrl}/rest/v1/corrections?${correctionsQuery.toString()}&select=*&order=created_at.asc`, {
       headers: {
         'Authorization': `Bearer ${supabaseServiceKey}`,
         'apikey': supabaseServiceKey
