@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { AppSidebar } from "@/components/app-sidebar";
-import { History as HistoryIcon, Loader2, Trash2, RefreshCw, Search } from "lucide-react";
+import { History as HistoryIcon, Loader2, Trash2, RefreshCw, Search, Cpu, MessageSquare } from "lucide-react";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -255,6 +255,27 @@ const History = () => {
     return "No preview available";
   };
 
+  // Get message count from conversation content
+  const getMessageCount = (content: any) => {
+    if (!content || !Array.isArray(content)) return 0;
+    return content.length;
+  };
+
+  // Get the last AI model used in the conversation
+  const getLastModelUsed = (content: any) => {
+    if (!content || !Array.isArray(content)) return null;
+    
+    // Look for the most recent assistant message with a model property
+    for (let i = content.length - 1; i >= 0; i--) {
+      const msg = content[i];
+      if (msg.role === "assistant" && msg.model) {
+        return msg.model;
+      }
+    }
+    
+    return null;
+  };
+
   // Show message if user is not authenticated
   if (authLoading) {
     return (
@@ -472,6 +493,23 @@ const History = () => {
                         </AlertDialog>
                       </div>
                     </div>
+
+                    <div className="flex items-center gap-2 mt-1 mb-1">
+                      {/* Message count badge */}
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground px-1.5 py-0.5 bg-muted rounded">
+                        <MessageSquare className="h-3 w-3" />
+                        <span>{getMessageCount(chat.content)} messages</span>
+                      </div>
+
+                      {/* Model label if available */}
+                      {getLastModelUsed(chat.content) && (
+                        <div className="flex items-center gap-1 text-xs px-1.5 py-0.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300 rounded">
+                          <Cpu className="h-3 w-3" />
+                          <span>{getLastModelUsed(chat.content)}</span>
+                        </div>
+                      )}
+                    </div>
+                    
                     <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
                       {getPreviewText(chat.content)}
                     </p>
