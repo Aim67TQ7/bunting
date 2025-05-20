@@ -8,6 +8,7 @@ export interface Message {
   timestamp: Date;
   autoSummarize?: boolean;
   queryType?: string;
+  model?: string; // Added model field to track which AI model was used
 }
 
 export interface StarterQuestion {
