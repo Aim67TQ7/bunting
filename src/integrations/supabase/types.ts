@@ -276,6 +276,36 @@ export type Database = {
         }
         Relationships: []
       }
+      corrections: {
+        Row: {
+          applied: boolean | null
+          conversation_id: string
+          correction_text: string
+          created_at: string
+          id: string
+          message_id: string
+          user_id: string
+        }
+        Insert: {
+          applied?: boolean | null
+          conversation_id: string
+          correction_text: string
+          created_at?: string
+          id?: string
+          message_id: string
+          user_id: string
+        }
+        Update: {
+          applied?: boolean | null
+          conversation_id?: string
+          correction_text?: string
+          created_at?: string
+          id?: string
+          message_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           address: string | null
