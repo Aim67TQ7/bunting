@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +12,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input"; 
 import { useNavigate } from "react-router-dom";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 
 interface ChatHistoryItem {
   id: string;
@@ -494,24 +497,25 @@ const History = () => {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 mt-1 mb-1">
-                      {/* Message count badge */}
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground px-1.5 py-0.5 bg-muted rounded">
-                        <MessageSquare className="h-3 w-3" />
-                        <span>{getMessageCount(chat.content)} messages</span>
-                      </div>
-
-                      {/* Model label if available */}
-                      {getLastModelUsed(chat.content) && (
-                        <div className="flex items-center gap-1 text-xs px-1.5 py-0.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300 rounded">
+                    {/* Model badge is still shown below the title */}
+                    {getLastModelUsed(chat.content) && (
+                      <div className="mt-1">
+                        <Badge 
+                          variant="secondary" 
+                          className="flex items-center gap-1 text-xs px-1.5 py-0.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300"
+                        >
                           <Cpu className="h-3 w-3" />
                           <span>{getLastModelUsed(chat.content)}</span>
-                        </div>
-                      )}
-                    </div>
+                        </Badge>
+                      </div>
+                    )}
                     
-                    <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
-                      {getPreviewText(chat.content)}
+                    <p className="text-sm text-muted-foreground line-clamp-2 mt-2 flex items-center">
+                      <span className="flex-1">{getPreviewText(chat.content)}</span>
+                      <span className="ml-2 flex items-center gap-1 text-xs px-1.5 py-0.5 bg-muted rounded whitespace-nowrap">
+                        <MessageSquare className="h-3 w-3" />
+                        <span>{getMessageCount(chat.content)} messages</span>
+                      </span>
                     </p>
                   </div>
                 ))}
