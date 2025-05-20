@@ -1,4 +1,3 @@
-
 import { cn } from "@/lib/utils";
 import { User, Bot, Copy, Check, Cpu, Edit2 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
@@ -19,7 +18,7 @@ interface ChatMessageProps {
   isLoading?: boolean;
   model?: string;
   messageId: string;
-  onSubmitCorrection?: (messageId: string, correction: string) => Promise<boolean>;
+  onSubmitCorrection?: (messageId: string, correction: string, isGlobal: boolean) => Promise<boolean>;
 }
 
 export const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>(

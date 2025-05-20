@@ -11,12 +11,14 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { AlertTriangle, Edit2 } from 'lucide-react';
+import { AlertTriangle, Edit2, Globe } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 interface CorrectionDialogProps {
   messageId: string;
-  onSubmit: (messageId: string, correction: string) => Promise<boolean>;
+  onSubmit: (messageId: string, correction: string, isGlobal: boolean) => Promise<boolean>;
   disabled?: boolean;
 }
 
@@ -24,6 +26,7 @@ export function CorrectionDialog({ messageId, onSubmit, disabled }: CorrectionDi
   const [isOpen, setIsOpen] = useState(false);
   const [correction, setCorrection] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGlobal, setIsGlobal] = useState(true);
 
   const handleSubmit = async () => {
     if (!correction.trim()) {
@@ -37,12 +40,14 @@ export function CorrectionDialog({ messageId, onSubmit, disabled }: CorrectionDi
 
     setIsSubmitting(true);
     try {
-      console.log(`Submitting correction for message ID: ${messageId}`);
-      const success = await onSubmit(messageId, correction);
+      console.log(`Submitting ${isGlobal ? 'global' : 'conversation-specific'} correction for message ID: ${messageId}`);
+      const success = await onSubmit(messageId, correction, isGlobal);
       if (success) {
         toast({
           title: "Correction submitted",
-          description: "Your correction has been saved and will be used for future responses."
+          description: isGlobal 
+            ? "Your correction has been saved globally and will be used for all future responses."
+            : "Your correction has been saved and will be used for future responses in this conversation."
         });
         setCorrection('');
         setIsOpen(false);
@@ -89,6 +94,23 @@ export function CorrectionDialog({ messageId, onSubmit, disabled }: CorrectionDi
             value={correction}
             onChange={(e) => setCorrection(e.target.value)}
           />
+          
+          <div className="flex items-center space-x-2">
+            <Switch 
+              id="global-correction" 
+              checked={isGlobal}
+              onCheckedChange={setIsGlobal}
+            />
+            <Label htmlFor="global-correction" className="flex items-center cursor-pointer">
+              <Globe className="h-3 w-3 mr-1 text-muted-foreground" />
+              <span>Apply this correction to all conversations</span>
+            </Label>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {isGlobal 
+              ? "This correction will be applied globally across all your conversations." 
+              : "This correction will only apply to the current conversation."}
+          </p>
         </div>
         <DialogFooter>
           <Button

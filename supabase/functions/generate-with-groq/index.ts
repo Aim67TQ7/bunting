@@ -9,6 +9,28 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Function to extract keywords from the last user message
+function extractKeywords(text: string): string[] {
+  if (!text) return [];
+  
+  // Remove common words and punctuation, lowercase everything
+  const cleanedText = text.toLowerCase()
+    .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '')
+    .replace(/\s{2,}/g, ' ');
+    
+  // Split into words and filter out common words and very short words
+  const commonWords = ['a', 'an', 'the', 'and', 'or', 'but', 'is', 'are', 'was', 
+                      'were', 'be', 'been', 'being', 'to', 'of', 'for', 'with', 
+                      'that', 'this', 'these', 'those', 'in', 'on', 'at', 'by'];
+  
+  const words = cleanedText.split(' ')
+    .filter(word => word.length > 2)  // Filter out very short words
+    .filter(word => !commonWords.includes(word)); // Filter out common words
+  
+  // Return unique keywords (up to 10)
+  return [...new Set(words)].slice(0, 10);
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -28,33 +50,67 @@ serve(async (req) => {
     let contextualInfo = "";
     let correctionContext = "";
 
-    // Get any user corrections for this conversation if we have a conversation ID
-    if (conversationId && userId && supabaseUrl && supabaseKey) {
+    // Get relevant corrections for this user
+    if (userId && supabaseUrl && supabaseKey) {
       try {
-        console.log(`Fetching corrections for conversation: ${conversationId}`);
-        // Fetch corrections for this conversation
+        // Extract keywords from the last user message for better correction matching
+        const lastUserMessage = [...messages].reverse().find(msg => msg.role === "user");
+        const userMessageKeywords = lastUserMessage ? extractKeywords(lastUserMessage.content) : [];
+        
+        // Build our query for corrections
+        const correctionQueries = [];
+        
+        // 1. First priority: Corrections from this conversation
+        if (conversationId) {
+          correctionQueries.push(`conversation_id=eq.${conversationId}`);
+        }
+        
+        // 2. Second priority: Global corrections from this user
+        correctionQueries.push(`(user_id=eq.${userId} and is_global=eq.true)`);
+        
+        // 3. If we have keywords, try to find corrections with matching keywords
+        if (userMessageKeywords.length > 0 && userMessageKeywords.length < 1000) {
+          // We need to be careful with the query complexity here
+          // This is a simplified approach - in production, you might want a more sophisticated matching strategy
+          const keywordList = userMessageKeywords.slice(0, 3); // Limit to top 3 keywords
+          
+          const keywordQuery = keywordList
+            .map(keyword => `correction_text.ilike.%${encodeURIComponent(keyword)}%`)
+            .join('&');
+            
+          if (keywordQuery) {
+            correctionQueries.push(`(${keywordQuery})`);
+          }
+        }
+        
+        // Combine all queries with OR logic
+        const fullQuery = correctionQueries.join('&or=');
+        
+        console.log(`Looking for corrections using query: ${fullQuery}`);
+        
+        // Fetch corrections
         const correctionsResponse = await fetch(
-          `${supabaseUrl}/rest/v1/corrections?conversation_id=eq.${conversationId}&select=*&order=created_at.asc`, {
+          `${supabaseUrl}/rest/v1/corrections?${fullQuery}&select=*&order=created_at.desc&limit=10`, {
           headers: {
             'Authorization': `Bearer ${supabaseKey}`,
             'apikey': supabaseKey
           }
         });
 
-        if (correctionsResponse.ok) {
-          const corrections = await correctionsResponse.json();
+        if (!correctionsResponse.ok) {
+          throw new Error("Failed to retrieve corrections: " + await correctionsResponse.text());
+        }
+
+        const corrections = await correctionsResponse.json();
+        
+        if (corrections && corrections.length > 0) {
+          correctionContext = "IMPORTANT USER CORRECTIONS - Remember these and don't make the same mistakes again:\n\n" + 
+            corrections.map((c: any, index: number) => `${index + 1}. ${c.correction_text}`).join("\n");
           
-          if (corrections && corrections.length > 0) {
-            correctionContext = "IMPORTANT USER CORRECTIONS - Remember these and don't make the same mistakes again:\n\n" + 
-              corrections.map((c: any, index: number) => `${index + 1}. ${c.correction_text}`).join("\n");
-            
-            console.log("Found corrections for conversation:", corrections.length);
-            console.log("Correction context:", correctionContext.substring(0, 200) + "...");
-          } else {
-            console.log("No corrections found for conversation:", conversationId);
-          }
+          console.log("Found corrections:", corrections.length);
+          console.log("Applying corrections context:", correctionContext.substring(0, 200) + "...");
         } else {
-          console.error("Error fetching corrections:", await correctionsResponse.text());
+          console.log("No applicable corrections found for user:", userId);
         }
       } catch (error) {
         console.error("Error fetching corrections:", error);

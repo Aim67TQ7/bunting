@@ -5,7 +5,7 @@ import { ChatMessage } from "@/components/chat-message";
 interface MessageListProps {
   messages: Message[];
   isAiResponding?: boolean;
-  onSubmitCorrection?: (messageId: string, correction: string) => Promise<boolean>;
+  onSubmitCorrection?: (messageId: string, correction: string, isGlobal: boolean) => Promise<boolean>;
 }
 
 export function MessageList({ messages, isAiResponding, onSubmitCorrection }: MessageListProps) {

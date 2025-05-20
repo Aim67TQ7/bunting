@@ -156,8 +156,8 @@ export function useChatMessages() {
   );
 
   const submitCorrection = useCallback(
-    async (messageId: string, correction: string) => {
-      if (!user || !conversationId) return;
+    async (messageId: string, correction: string, isGlobal: boolean = false) => {
+      if (!user || !conversationId) return false;
       
       try {
         setIsLoading(true);
@@ -166,7 +166,8 @@ export function useChatMessages() {
             correction,
             messageId,
             conversationId,
-            userId: user.id
+            userId: user.id,
+            isGlobal
           }
         });
         
@@ -174,7 +175,9 @@ export function useChatMessages() {
         
         toast({
           title: "Correction submitted",
-          description: "Your correction has been saved and will be used for future responses.",
+          description: isGlobal 
+            ? "Your correction has been saved globally and will be used for all future responses." 
+            : "Your correction has been saved and will be used for future responses in this conversation.",
         });
         
         return true;

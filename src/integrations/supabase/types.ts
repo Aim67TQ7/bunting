@@ -477,6 +477,24 @@ export type Database = {
         }
         Relationships: []
       }
+      entities: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       market_research_reports: {
         Row: {
           competitive_landscape: Json
@@ -875,6 +893,41 @@ export type Database = {
         }
         Relationships: []
       }
+      photos: {
+        Row: {
+          content_type: string
+          created_at: string | null
+          filename: string
+          id: string
+          test_result_id: string
+          url: string
+        }
+        Insert: {
+          content_type: string
+          created_at?: string | null
+          filename: string
+          id: string
+          test_result_id: string
+          url: string
+        }
+        Update: {
+          content_type?: string
+          created_at?: string | null
+          filename?: string
+          id?: string
+          test_result_id?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "photos_test_result_id_fkey"
+            columns: ["test_result_id"]
+            isOneToOne: false
+            referencedRelation: "test_results"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -982,6 +1035,74 @@ export type Database = {
           video_url?: string | null
         }
         Relationships: []
+      }
+      test_results: {
+        Row: {
+          attachment: string | null
+          comments: string | null
+          created_at: string | null
+          entity_id: string | null
+          equipment: string
+          expected_max: string | null
+          expected_min: string | null
+          id: string
+          inspector_name: string
+          is_passed: boolean | null
+          location: string | null
+          photo_urls: string[] | null
+          serial_number: string
+          test_average: string
+          test_type: string
+          test_values: string[]
+          updated_at: string | null
+        }
+        Insert: {
+          attachment?: string | null
+          comments?: string | null
+          created_at?: string | null
+          entity_id?: string | null
+          equipment: string
+          expected_max?: string | null
+          expected_min?: string | null
+          id?: string
+          inspector_name: string
+          is_passed?: boolean | null
+          location?: string | null
+          photo_urls?: string[] | null
+          serial_number: string
+          test_average: string
+          test_type: string
+          test_values: string[]
+          updated_at?: string | null
+        }
+        Update: {
+          attachment?: string | null
+          comments?: string | null
+          created_at?: string | null
+          entity_id?: string | null
+          equipment?: string
+          expected_max?: string | null
+          expected_min?: string | null
+          id?: string
+          inspector_name?: string
+          is_passed?: boolean | null
+          location?: string | null
+          photo_urls?: string[] | null
+          serial_number?: string
+          test_average?: string
+          test_type?: string
+          test_values?: string[]
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "test_results_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       training_data: {
         Row: {
