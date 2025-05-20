@@ -22,7 +22,7 @@ import PrivateRoute from "./components/PrivateRoute";
 
 function App() {
   return (
-    <ThemeProvider>
+    <ThemeProvider defaultTheme="dark">
       <TooltipProvider>
         <Toaster />
         <Sonner />
