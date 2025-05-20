@@ -2,7 +2,7 @@
 import React, { useRef, useEffect } from "react";
 import { ChatMessage } from "@/components/chat-message";
 import { Message } from "@/types/chat";
-import { Database, File, Search } from "lucide-react";
+import { Database, File, Search, Cpu } from "lucide-react";
 
 interface MessageListProps {
   messages: Message[];
@@ -29,7 +29,7 @@ export function MessageList({ messages, isAiResponding }: MessageListProps) {
           bgClass: "bg-blue-100 dark:bg-blue-900/30",
           textClass: "text-blue-800 dark:text-blue-300"
         };
-      case 'search':
+      case 'web':
         return {
           icon: <Search className="h-4 w-4" />,
           label: "Web Search Query",
@@ -77,6 +77,13 @@ export function MessageList({ messages, isAiResponding }: MessageListProps) {
                 </div>
               );
             })()
+          )}
+          
+          {message.model && message.role === "assistant" && (
+            <div className="px-4 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-xs text-indigo-800 dark:text-indigo-300 rounded-t-md ml-12 flex items-center gap-1">
+              <Cpu className="h-3 w-3" />
+              <span>Model: {message.model}</span>
+            </div>
           )}
           
           <ChatMessage

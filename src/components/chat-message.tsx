@@ -1,6 +1,6 @@
 
 import { cn } from "@/lib/utils";
-import { User, Bot, Copy, Check } from "lucide-react";
+import { User, Bot, Copy, Check, Cpu } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { BrandLogo } from "@/components/brand-logo";
 import { forwardRef, useState } from "react";
@@ -16,10 +16,11 @@ interface ChatMessageProps {
   content: string;
   timestamp: Date;
   isLoading?: boolean;
+  model?: string;
 }
 
 export const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>(
-  ({ role, content, timestamp, isLoading }, ref) => {
+  ({ role, content, timestamp, isLoading, model }, ref) => {
     const [copiedCode, setCopiedCode] = useState<string | null>(null);
     
     const copyToClipboard = (text: string) => {
@@ -138,6 +139,12 @@ export const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>(
             <div className="text-xs text-muted-foreground">
               {formatTime(timestamp)}
             </div>
+            {model && role === "assistant" && (
+              <div className="text-xs px-1.5 py-0.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300 rounded-sm flex items-center gap-1">
+                <Cpu className="h-3 w-3" />
+                <span>{model}</span>
+              </div>
+            )}
           </div>
           <div className="prose prose-sm max-w-none">
             {isLoading ? (

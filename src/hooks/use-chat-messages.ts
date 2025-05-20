@@ -14,7 +14,8 @@ const prepareMessagesForStorage = (messages: Message[]) => {
     content: msg.content,
     timestamp: msg.timestamp instanceof Date ? msg.timestamp.toISOString() : msg.timestamp,
     autoSummarize: msg.autoSummarize || false,
-    queryType: msg.queryType || null
+    queryType: msg.queryType || null,
+    model: msg.model || null // Include model in storage
   }));
 };
 
@@ -183,6 +184,7 @@ export function useChatMessages() {
         
         // Call the appropriate Supabase function based on the query type
         let aiResponse: any;
+        let modelUsed: string = "groq-llama3-70b"; // Default model name
         
         // Use the web-enabled endpoint if queryType is 'web'
         if (queryType === 'web') {
@@ -197,6 +199,10 @@ export function useChatMessages() {
             
           if (error) throw error;
           aiResponse = data.choices[0].message.content;
+          // Store the model name if provided in response
+          if (data.model) {
+            modelUsed = data.model;
+          }
         } else {
           // Default to the standard GROQ endpoint
           const { data, error } = await supabase.functions.invoke('generate-with-groq', {
@@ -208,14 +214,19 @@ export function useChatMessages() {
             
           if (error) throw error;
           aiResponse = data.choices[0].message.content;
+          // Store the model name if provided in response
+          if (data.model) {
+            modelUsed = data.model;
+          }
         }
         
-        // Add AI message to chat
+        // Add AI message to chat with model information
         const aiMessage: Message = {
           id: uuidv4(),
           role: 'assistant',
           content: aiResponse,
-          timestamp: new Date()
+          timestamp: new Date(),
+          model: modelUsed // Store which model was used
         };
         
         const finalMessages = [...updatedMessages, aiMessage];
