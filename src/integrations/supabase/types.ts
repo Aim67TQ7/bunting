@@ -315,111 +315,21 @@ export type Database = {
         }
         Relationships: []
       }
-      customerlocations: {
+      embeddings: {
         Row: {
-          address: string | null
-          contact_email: string | null
-          contact_person: string | null
-          contact_phone: string | null
-          created_at: string | null
-          id: string
-          name: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          address?: string | null
-          contact_email?: string | null
-          contact_person?: string | null
-          contact_phone?: string | null
-          created_at?: string | null
-          id?: string
-          name?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          address?: string | null
-          contact_email?: string | null
-          contact_person?: string | null
-          contact_phone?: string | null
-          created_at?: string | null
-          id?: string
-          name?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      customers: {
-        Row: {
-          address: string | null
-          city: string | null
-          contact_info: string | null
-          country: string | null
-          customer_name: string
-          customer_number: number | null
           embedding: string | null
-          Epicor_Primary: string
-          facility_type: string | null
-          lat: string | null
-          lng: string | null
           narrative_text: string | null
-          prodcode: string | null
-          sales_2022: string | null
-          sales_2023: string | null
-          sales_2024: string | null
-          sales_rep: string | null
-          state: string | null
-          territory: string | null
-          total_sales: number | null
           uuid: string
-          zip: string | null
         }
         Insert: {
-          address?: string | null
-          city?: string | null
-          contact_info?: string | null
-          country?: string | null
-          customer_name: string
-          customer_number?: number | null
           embedding?: string | null
-          Epicor_Primary: string
-          facility_type?: string | null
-          lat?: string | null
-          lng?: string | null
           narrative_text?: string | null
-          prodcode?: string | null
-          sales_2022?: string | null
-          sales_2023?: string | null
-          sales_2024?: string | null
-          sales_rep?: string | null
-          state?: string | null
-          territory?: string | null
-          total_sales?: number | null
           uuid: string
-          zip?: string | null
         }
         Update: {
-          address?: string | null
-          city?: string | null
-          contact_info?: string | null
-          country?: string | null
-          customer_name?: string
-          customer_number?: number | null
           embedding?: string | null
-          Epicor_Primary?: string
-          facility_type?: string | null
-          lat?: string | null
-          lng?: string | null
           narrative_text?: string | null
-          prodcode?: string | null
-          sales_2022?: string | null
-          sales_2023?: string | null
-          sales_2024?: string | null
-          sales_rep?: string | null
-          state?: string | null
-          territory?: string | null
-          total_sales?: number | null
           uuid?: string
-          zip?: string | null
         }
         Relationships: []
       }
@@ -905,36 +815,6 @@ export type Database = {
         }
         Relationships: []
       }
-      mto_shipments: {
-        Row: {
-          budgetAmount: number | null
-          created_at: string | null
-          id: string
-          monthTotal: number | null
-          productGroup: string
-          shipAmount: number | null
-          shipNotInvoiced: number | null
-        }
-        Insert: {
-          budgetAmount?: number | null
-          created_at?: string | null
-          id?: string
-          monthTotal?: number | null
-          productGroup: string
-          shipAmount?: number | null
-          shipNotInvoiced?: number | null
-        }
-        Update: {
-          budgetAmount?: number | null
-          created_at?: string | null
-          id?: string
-          monthTotal?: number | null
-          productGroup?: string
-          shipAmount?: number | null
-          shipNotInvoiced?: number | null
-        }
-        Relationships: []
-      }
       photos: {
         Row: {
           content_type: string
@@ -997,6 +877,196 @@ export type Database = {
           first_name?: string | null
           id?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      pt_entities: {
+        Row: {
+          address: string | null
+          contact_email: string | null
+          contact_person: string | null
+          contact_phone: string | null
+          created_at: string | null
+          id: string
+          name: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          contact_email?: string | null
+          contact_person?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          id: string
+          name?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          contact_email?: string | null
+          contact_person?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          id?: string
+          name?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      pt_locations: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          entity_id: string | null
+          id: string
+          name: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          entity_id?: string | null
+          id: string
+          name?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          entity_id?: string | null
+          id?: string
+          name?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pt_locations_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "pt_entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pt_test_results: {
+        Row: {
+          attachment: string | null
+          avg_pull: number | null
+          comment: string | null
+          created_at: string | null
+          expected_max: number | null
+          expected_min: number | null
+          id: string
+          inspector_name: string | null
+          location_id: string | null
+          magnet_id: string | null
+          photo_path: string | null
+          photo_url: string | null
+          pull_test_1: number | null
+          pull_test_2: number | null
+          pull_test_3: number | null
+          pull_test_4: number | null
+          pull_test_5: number | null
+          pull_test_6: number | null
+          serial_number: string | null
+          status: string | null
+          test_date: string | null
+          test_equipment: string | null
+          test_type: string | null
+          user_id: string | null
+        }
+        Insert: {
+          attachment?: string | null
+          avg_pull?: number | null
+          comment?: string | null
+          created_at?: string | null
+          expected_max?: number | null
+          expected_min?: number | null
+          id: string
+          inspector_name?: string | null
+          location_id?: string | null
+          magnet_id?: string | null
+          photo_path?: string | null
+          photo_url?: string | null
+          pull_test_1?: number | null
+          pull_test_2?: number | null
+          pull_test_3?: number | null
+          pull_test_4?: number | null
+          pull_test_5?: number | null
+          pull_test_6?: number | null
+          serial_number?: string | null
+          status?: string | null
+          test_date?: string | null
+          test_equipment?: string | null
+          test_type?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          attachment?: string | null
+          avg_pull?: number | null
+          comment?: string | null
+          created_at?: string | null
+          expected_max?: number | null
+          expected_min?: number | null
+          id?: string
+          inspector_name?: string | null
+          location_id?: string | null
+          magnet_id?: string | null
+          photo_path?: string | null
+          photo_url?: string | null
+          pull_test_1?: number | null
+          pull_test_2?: number | null
+          pull_test_3?: number | null
+          pull_test_4?: number | null
+          pull_test_5?: number | null
+          pull_test_6?: number | null
+          serial_number?: string | null
+          status?: string | null
+          test_date?: string | null
+          test_equipment?: string | null
+          test_type?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pt_test_results_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "pt_locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pulltest_entities: {
+        Row: {
+          address: string | null
+          contact_email: string | null
+          contact_person: string | null
+          contact_phone: string | null
+          created_at: string | null
+          id: string
+          name: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          contact_email?: string | null
+          contact_person?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          id?: string
+          name?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          contact_email?: string | null
+          contact_person?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          id?: string
+          name?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
