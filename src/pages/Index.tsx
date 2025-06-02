@@ -11,7 +11,7 @@ const Index = () => {
   const isMobile = useIsMobile();
   
   return (
-    <div className="flex h-screen w-full overflow-hidden">
+    <div className={`flex h-screen w-full overflow-hidden safe-area-top safe-area-bottom ${isMobile ? 'safe-area-left safe-area-right' : ''}`}>
       <AppSidebar className={`${isMobile ? 'w-full fixed z-50' : 'w-64'} flex-shrink-0`} />
       
       <SidebarInset className="flex flex-1 flex-col overflow-hidden">
