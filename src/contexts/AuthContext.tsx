@@ -1,4 +1,3 @@
-
 import { createContext, useContext, ReactNode, useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -120,7 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin + '/auth/update-password',
+        redirectTo: window.location.origin + '/reset-password',
       });
 
       if (error) {
@@ -129,7 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       toast({
         title: "Password reset email sent",
-        description: "Check your email for the OTP code",
+        description: "Check your email for the reset link",
       });
       
       return { error: null };
