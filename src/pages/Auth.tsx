@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -56,11 +55,25 @@ const resetSchema = z.object({
   ),
 });
 
+const otpResetSchema = z.object({
+  email: z.string().email().refine(
+    (email) => email.endsWith('@buntingmagnetics.com'), 
+    { message: "Only buntingmagnetics.com emails are allowed" }
+  ),
+  otp: z.string().length(6, "OTP must be 6 digits"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  confirmPassword: z.string().min(8, "Password must be at least 8 characters"),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
 export default function Auth() {
-  const { user, isLoading, signIn, signUp, resetPassword } = useAuth();
-  const [authMode, setAuthMode] = useState<"login" | "signup" | "reset">("login");
+  const { user, isLoading, signIn, signUp, resetPassword, verifyOtpAndUpdatePassword } = useAuth();
+  const [authMode, setAuthMode] = useState<"login" | "signup" | "reset" | "otp-reset">("login");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
   const location = useLocation();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -89,6 +102,17 @@ export default function Auth() {
     resolver: zodResolver(resetSchema),
     defaultValues: {
       email: "",
+    },
+  });
+
+  // Form for OTP password reset
+  const otpResetForm = useForm<z.infer<typeof otpResetSchema>>({
+    resolver: zodResolver(otpResetSchema),
+    defaultValues: {
+      email: "",
+      otp: "",
+      password: "",
+      confirmPassword: "",
     },
   });
 
@@ -165,10 +189,32 @@ export default function Auth() {
       });
     } else {
       toast({
-        title: "Reset email sent",
-        description: "Check your email for the password reset link",
+        title: "Reset code sent",
+        description: "Check your email for the 6-digit reset code",
       });
-      // Switch back to login after successful reset email
+      // Store email and switch to OTP entry
+      setResetEmail(values.email);
+      otpResetForm.setValue("email", values.email);
+      setAuthMode("otp-reset");
+    }
+  };
+
+  // Handle OTP reset submission
+  const onOtpResetSubmit = async (values: z.infer<typeof otpResetSchema>) => {
+    const { error } = await verifyOtpAndUpdatePassword(values.email, values.otp, values.password);
+    
+    if (error) {
+      toast({
+        title: "Password reset failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Password updated",
+        description: "Your password has been successfully updated",
+      });
+      // Switch back to login
       setAuthMode("login");
     }
   };
@@ -201,7 +247,15 @@ export default function Auth() {
             <>
               <CardTitle className={isMobile ? 'text-lg' : ''}>Reset Password</CardTitle>
               <CardDescription className={isMobile ? 'text-sm' : ''}>
-                Enter your buntingmagnetics.com email to receive a password reset link
+                Enter your email to receive a 6-digit reset code
+              </CardDescription>
+            </>
+          )}
+          {authMode === "otp-reset" && (
+            <>
+              <CardTitle className={isMobile ? 'text-lg' : ''}>Enter Reset Code</CardTitle>
+              <CardDescription className={isMobile ? 'text-sm' : ''}>
+                Enter the 6-digit code sent to {resetEmail} and your new password
               </CardDescription>
             </>
           )}
@@ -378,7 +432,114 @@ export default function Auth() {
                   )}
                 />
                 <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Sending..." : "Send reset email"}
+                  {isLoading ? "Sending..." : "Send reset code"}
+                </Button>
+              </form>
+            </Form>
+          )}
+
+          {authMode === "otp-reset" && (
+            <Form {...otpResetForm}>
+              <form onSubmit={otpResetForm.handleSubmit(onOtpResetSubmit)} className="space-y-4">
+                <FormField
+                  control={otpResetForm.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="you@buntingmagnetics.com" 
+                          type="email" 
+                          disabled
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={otpResetForm.control}
+                  name="otp"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>6-Digit Code</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="123456" 
+                          maxLength={6}
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={otpResetForm.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>New Password</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Input 
+                            placeholder="••••••••" 
+                            type={showPassword ? "text" : "password"} 
+                            {...field} 
+                          />
+                          <button 
+                            type="button"
+                            className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+                            onClick={() => setShowPassword(!showPassword)}
+                            tabIndex={-1}
+                          >
+                            {showPassword ? (
+                              <EyeOff className="h-5 w-5" aria-hidden="true" />
+                            ) : (
+                              <Eye className="h-5 w-5" aria-hidden="true" />
+                            )}
+                          </button>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={otpResetForm.control}
+                  name="confirmPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Confirm New Password</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Input 
+                            placeholder="••••••••" 
+                            type={showConfirmPassword ? "text" : "password"} 
+                            {...field} 
+                          />
+                          <button 
+                            type="button"
+                            className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            tabIndex={-1}
+                          >
+                            {showConfirmPassword ? (
+                              <EyeOff className="h-5 w-5" aria-hidden="true" />
+                            ) : (
+                              <Eye className="h-5 w-5" aria-hidden="true" />
+                            )}
+                          </button>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? "Updating..." : "Update password"}
                 </Button>
               </form>
             </Form>
@@ -411,6 +572,16 @@ export default function Auth() {
             <Button variant="link" onClick={() => setAuthMode("login")} className={`${isMobile ? 'text-sm h-auto p-2' : 'text-sm'}`}>
               Back to login
             </Button>
+          )}
+          {authMode === "otp-reset" && (
+            <div className="flex flex-col space-y-2 w-full">
+              <Button variant="link" onClick={() => setAuthMode("reset")} className={`${isMobile ? 'text-sm h-auto p-2' : 'text-sm'}`}>
+                Resend code
+              </Button>
+              <Button variant="link" onClick={() => setAuthMode("login")} className={`${isMobile ? 'text-sm h-auto p-2' : 'text-sm'}`}>
+                Back to login
+              </Button>
+            </div>
           )}
         </CardFooter>
       </Card>
