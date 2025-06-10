@@ -11,8 +11,6 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: any | null }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: any | null }>;
-  verifyOtp: (email: string, token: string) => Promise<{ error: any | null }>;
-  updatePassword: (newPassword: string) => Promise<{ error: any | null }>;
 }
 
 // Create context with default values
@@ -23,8 +21,6 @@ const AuthContext = createContext<AuthContextType>({
   signIn: async () => ({ error: null }),
   signOut: async () => {},
   resetPassword: async () => ({ error: null }),
-  verifyOtp: async () => ({ error: null }),
-  updatePassword: async () => ({ error: null }),
 });
 
 // Helper function to validate email domain
@@ -112,7 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(false);
   };
 
-  // Reset password with email validation
+  // Reset password with email validation - sends email with link
   const resetPassword = async (email: string) => {
     if (!isValidBuntingEmail(email)) {
       return { error: { message: "Only buntingmagnetics.com email addresses are allowed" } };
@@ -120,62 +116,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: 'https://buntinggpt.com/reset-password',
+        redirectTo: `${window.location.origin}/reset-password.html`,
       });
 
       if (error) {
         return { error };
       }
-
-      toast({
-        title: "Password reset email sent",
-        description: "Check your email for the reset link",
-      });
-      
-      return { error: null };
-    } catch (error) {
-      return { error };
-    }
-  };
-
-  // Verify OTP token
-  const verifyOtp = async (email: string, token: string) => {
-    if (!isValidBuntingEmail(email)) {
-      return { error: { message: "Only buntingmagnetics.com email addresses are allowed" } };
-    }
-
-    try {
-      const { error } = await supabase.auth.verifyOtp({
-        email,
-        token,
-        type: 'recovery',
-      });
-
-      if (error) {
-        return { error };
-      }
-
-      return { error: null };
-    } catch (error) {
-      return { error };
-    }
-  };
-
-  // Update password
-  const updatePassword = async (newPassword: string) => {
-    try {
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword,
-      });
-
-      if (error) {
-        return { error };
-      }
-
-      toast({
-        title: "Password updated",
-        description: "Your password has been updated successfully",
-      });
       
       return { error: null };
     } catch (error) {
@@ -190,8 +136,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signIn,
     signOut,
     resetPassword,
-    verifyOtp,
-    updatePassword,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
