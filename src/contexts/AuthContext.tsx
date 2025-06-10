@@ -12,6 +12,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: any | null }>;
   verifyOtpAndUpdatePassword: (email: string, token: string, password: string) => Promise<{ error: any | null }>;
+  updatePassword: (password: string) => Promise<{ error: any | null }>;
 }
 
 // Create context with default values
@@ -23,6 +24,7 @@ const AuthContext = createContext<AuthContextType>({
   signOut: async () => {},
   resetPassword: async () => ({ error: null }),
   verifyOtpAndUpdatePassword: async () => ({ error: null }),
+  updatePassword: async () => ({ error: null }),
 });
 
 // Helper function to validate email domain
@@ -160,6 +162,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Update password for authenticated users
+  const updatePassword = async (password: string) => {
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: password
+      });
+
+      if (error) {
+        return { error };
+      }
+      
+      return { error: null };
+    } catch (error) {
+      return { error };
+    }
+  };
+
   const value = {
     user,
     isLoading,
@@ -168,6 +187,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signOut,
     resetPassword,
     verifyOtpAndUpdatePassword,
+    updatePassword,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
