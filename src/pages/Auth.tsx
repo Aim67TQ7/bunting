@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -57,6 +58,10 @@ const resetSchema = z.object({
   ),
 });
 
+const otpSchema = z.object({
+  otp: z.string().min(6, "OTP must be 6 characters"),
+});
+
 const newPasswordSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters"),
   confirmPassword: z.string().min(8, "Password must be at least 8 characters"),
@@ -66,7 +71,7 @@ const newPasswordSchema = z.object({
 });
 
 export default function Auth() {
-  const { user, isLoading, signIn, signUp, resetPassword, updatePassword } = useAuth();
+  const { user, isLoading, signIn, signUp, resetPassword, verifyOtp, updatePassword } = useAuth();
   const [authMode, setAuthMode] = useState<"login" | "signup" | "reset" | "otp" | "new-password">("login");
   const [resetEmail, setResetEmail] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -99,6 +104,14 @@ export default function Auth() {
     resolver: zodResolver(resetSchema),
     defaultValues: {
       email: "",
+    },
+  });
+
+  // Form for OTP verification
+  const otpForm = useForm<z.infer<typeof otpSchema>>({
+    resolver: zodResolver(otpSchema),
+    defaultValues: {
+      otp: "",
     },
   });
 
@@ -183,12 +196,30 @@ export default function Auth() {
         variant: "destructive",
       });
     } else {
+      // Store email for OTP verification
+      setResetEmail(values.email);
+      // Switch to OTP mode
+      setAuthMode("otp");
+    }
+  };
+
+  // Handle OTP verification submission
+  const onOtpSubmit = async (values: z.infer<typeof otpSchema>) => {
+    const { error } = await verifyOtp(resetEmail, values.otp);
+    
+    if (error) {
       toast({
-        title: "Password reset email sent",
-        description: "Check your email for a password reset link",
+        title: "OTP verification failed",
+        description: error.message,
+        variant: "destructive",
       });
-      // Switch back to login tab after successful reset request
-      setAuthMode("login");
+    } else {
+      toast({
+        title: "OTP verified",
+        description: "You can now set a new password",
+      });
+      // Switch to new password mode
+      setAuthMode("new-password");
     }
   };
 
@@ -235,7 +266,15 @@ export default function Auth() {
             <>
               <CardTitle className={isMobile ? 'text-lg' : ''}>Reset Password</CardTitle>
               <CardDescription className={isMobile ? 'text-sm' : ''}>
-                Enter your buntingmagnetics.com email to receive a password reset link
+                Enter your buntingmagnetics.com email to receive a password reset code
+              </CardDescription>
+            </>
+          )}
+          {authMode === "otp" && (
+            <>
+              <CardTitle className={isMobile ? 'text-lg' : ''}>Enter Verification Code</CardTitle>
+              <CardDescription className={isMobile ? 'text-sm' : ''}>
+                Enter the 6-digit code sent to {resetEmail}
               </CardDescription>
             </>
           )}
@@ -420,7 +459,39 @@ export default function Auth() {
                   )}
                 />
                 <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Sending..." : "Send reset link"}
+                  {isLoading ? "Sending..." : "Send reset code"}
+                </Button>
+              </form>
+            </Form>
+          )}
+
+          {authMode === "otp" && (
+            <Form {...otpForm}>
+              <form onSubmit={otpForm.handleSubmit(onOtpSubmit)} className="space-y-4">
+                <FormField
+                  control={otpForm.control}
+                  name="otp"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Verification Code</FormLabel>
+                      <FormControl>
+                        <InputOTP maxLength={6} {...field}>
+                          <InputOTPGroup>
+                            <InputOTPSlot index={0} />
+                            <InputOTPSlot index={1} />
+                            <InputOTPSlot index={2} />
+                            <InputOTPSlot index={3} />
+                            <InputOTPSlot index={4} />
+                            <InputOTPSlot index={5} />
+                          </InputOTPGroup>
+                        </InputOTP>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? "Verifying..." : "Verify Code"}
                 </Button>
               </form>
             </Form>
@@ -521,7 +592,7 @@ export default function Auth() {
               </Button>
             </div>
           )}
-          {(authMode === "reset" || authMode === "new-password") && (
+          {(authMode === "reset" || authMode === "otp" || authMode === "new-password") && (
             <Button variant="link" onClick={() => setAuthMode("login")} className={`${isMobile ? 'text-sm h-auto p-2' : 'text-sm'}`}>
               Back to login
             </Button>

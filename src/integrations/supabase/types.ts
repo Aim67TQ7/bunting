@@ -317,17 +317,23 @@ export type Database = {
       }
       embeddings: {
         Row: {
+          customer_uuid: string | null
           embedding: string | null
+          id: string | null
           narrative_text: string | null
           uuid: string
         }
         Insert: {
+          customer_uuid?: string | null
           embedding?: string | null
+          id?: string | null
           narrative_text?: string | null
           uuid: string
         }
         Update: {
+          customer_uuid?: string | null
           embedding?: string | null
+          id?: string | null
           narrative_text?: string | null
           uuid?: string
         }
@@ -812,6 +818,36 @@ export type Database = {
           rel?: string | null
           shipBy?: string | null
           startDate?: string | null
+        }
+        Relationships: []
+      }
+      mto_shipments: {
+        Row: {
+          budgetamount: number
+          created_at: string
+          id: string
+          monthtotal: number
+          productgroup: string
+          shipamount: number
+          shipnotinvoiced: number
+        }
+        Insert: {
+          budgetamount?: number
+          created_at?: string
+          id?: string
+          monthtotal?: number
+          productgroup: string
+          shipamount?: number
+          shipnotinvoiced?: number
+        }
+        Update: {
+          budgetamount?: number
+          created_at?: string
+          id?: string
+          monthtotal?: number
+          productgroup?: string
+          shipamount?: number
+          shipnotinvoiced?: number
         }
         Relationships: []
       }
