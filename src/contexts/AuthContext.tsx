@@ -118,7 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `https://your-deployed-domain.com/reset-password.html`,
+        redirectTo: `https://buntinggpt.com/reset-password.html`,
       });
 
       if (error) {
