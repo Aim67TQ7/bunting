@@ -34,6 +34,68 @@ function extractTopic(text: string): string {
   return keywords.slice(0, 3).join(' ');
 }
 
+// Function to create training submission from correction
+async function createTrainingSubmission(
+  supabaseUrl: string,
+  supabaseServiceKey: string,
+  correction: string,
+  userId: string,
+  messageId: string,
+  conversationId: string
+) {
+  try {
+    console.log("Creating training submission from correction");
+    
+    // Extract topic and create a structured knowledge entry
+    const topic = extractTopic(correction);
+    const keywords = extractKeywords(correction);
+    
+    // Create training content based on the correction
+    const trainingContent = {
+      title: `Correction: ${topic}`,
+      summary: correction.length > 200 ? correction.substring(0, 200) + "..." : correction,
+      content: correction,
+      category: "user_correction",
+      keywords: keywords,
+      source: "user_correction",
+      original_message_id: messageId,
+      original_conversation_id: conversationId,
+      correction_date: new Date().toISOString()
+    };
+
+    // Submit to user_training_submissions table for approval
+    const response = await fetch(`${supabaseUrl}/rest/v1/user_training_submissions`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${supabaseServiceKey}`,
+        'apikey': supabaseServiceKey,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        document_type: 'correction',
+        content: trainingContent,
+        status: 'pending'
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Failed to create training submission: ${errorText}`);
+      // Don't throw here - we don't want to break the correction flow
+      return false;
+    }
+
+    console.log("Successfully created training submission from correction");
+    return true;
+  } catch (error) {
+    console.error("Error creating training submission:", error);
+    // Don't throw here - we don't want to break the correction flow
+    return false;
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -101,6 +163,23 @@ serve(async (req) => {
 
     console.log("Correction stored successfully");
 
+    // NEW: Automatically create training submission from correction
+    // This runs in the background and doesn't affect the correction flow if it fails
+    const trainingSubmissionCreated = await createTrainingSubmission(
+      supabaseUrl,
+      supabaseServiceKey,
+      correction,
+      userId,
+      messageId,
+      conversationId
+    );
+
+    if (trainingSubmissionCreated) {
+      console.log("Training submission created successfully from correction");
+    } else {
+      console.log("Training submission creation failed, but correction was saved");
+    }
+
     // Retrieve all corrections for this user - from current conversation and global ones
     // Fixed the query parameter format - this was causing the error
     const correctionsQuery = new URLSearchParams();
@@ -124,6 +203,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       success: true,
       message: "Correction stored successfully",
+      training_submission_created: trainingSubmissionCreated,
       corrections: corrections
     }), {
       status: 200,
