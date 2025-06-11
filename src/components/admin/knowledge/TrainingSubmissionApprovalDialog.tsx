@@ -49,12 +49,18 @@ export function TrainingSubmissionApprovalDialog({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
+      // Map the document type to a valid enum value or default to 'company'
+      const validDocumentTypes = ['contact', 'company', 'sales', 'purchase_order'] as const;
+      const documentType = validDocumentTypes.includes(submission.document_type as any) 
+        ? submission.document_type as typeof validDocumentTypes[number]
+        : 'company';
+
       // Create the training data entry
       const { error: trainingError } = await supabase
         .from('training_data')
         .insert({
           user_id: selectedScope === 'global' ? '00000000-0000-0000-0000-000000000000' : submission.user_id,
-          document_type: submission.document_type,
+          document_type: documentType,
           scope: selectedScope,
           content: {
             ...editableContent,
