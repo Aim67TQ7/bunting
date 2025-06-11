@@ -8,6 +8,7 @@ import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import { Button } from "./ui/button";
 import { CorrectionDialog } from "./chat/correction-dialog";
+import { toast } from "@/hooks/use-toast";
 
 export type MessageRole = "user" | "assistant";
 
@@ -24,11 +25,22 @@ interface ChatMessageProps {
 export const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>(
   ({ role, content, timestamp, isLoading, model, messageId, onSubmitCorrection }, ref) => {
     const [copiedCode, setCopiedCode] = useState<string | null>(null);
+    const [copiedMessage, setCopiedMessage] = useState(false);
     
     const copyToClipboard = (text: string) => {
       navigator.clipboard.writeText(text);
       setCopiedCode(text);
       setTimeout(() => setCopiedCode(null), 2000);
+    };
+
+    const copyMessage = () => {
+      navigator.clipboard.writeText(content);
+      setCopiedMessage(true);
+      setTimeout(() => setCopiedMessage(false), 2000);
+      toast({
+        title: "Message copied!",
+        description: "Message content has been copied to clipboard.",
+      });
     };
     
     // Custom components for markdown rendering
@@ -150,14 +162,32 @@ export const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>(
               )}
             </div>
             
-            {/* Correction button only for assistant messages */}
-            {role === "assistant" && onSubmitCorrection && (
-              <CorrectionDialog 
-                messageId={messageId}
-                onSubmit={onSubmitCorrection}
+            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              {/* Copy message button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground hover:text-foreground h-7 w-7 p-0"
+                onClick={copyMessage}
                 disabled={isLoading}
-              />
-            )}
+                title="Copy message"
+              >
+                {copiedMessage ? (
+                  <Check className="h-3 w-3 text-green-500" />
+                ) : (
+                  <Copy className="h-3 w-3" />
+                )}
+              </Button>
+              
+              {/* Correction button only for assistant messages */}
+              {role === "assistant" && onSubmitCorrection && (
+                <CorrectionDialog 
+                  messageId={messageId}
+                  onSubmit={onSubmitCorrection}
+                  disabled={isLoading}
+                />
+              )}
+            </div>
           </div>
           <div className="prose prose-sm max-w-none">
             {isLoading ? (

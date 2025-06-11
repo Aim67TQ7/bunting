@@ -317,23 +317,17 @@ export type Database = {
       }
       embeddings: {
         Row: {
-          customer_uuid: string | null
           embedding: string | null
-          id: string | null
           narrative_text: string | null
           uuid: string
         }
         Insert: {
-          customer_uuid?: string | null
           embedding?: string | null
-          id?: string | null
           narrative_text?: string | null
           uuid: string
         }
         Update: {
-          customer_uuid?: string | null
           embedding?: string | null
-          id?: string | null
           narrative_text?: string | null
           uuid?: string
         }
