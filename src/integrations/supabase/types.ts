@@ -1450,6 +1450,7 @@ export type Database = {
           document_type: string
           embedding: string | null
           id: string
+          scope: Database["public"]["Enums"]["training_data_scope"] | null
           status: string
           submitted_at: string
           user_id: string
@@ -1461,6 +1462,7 @@ export type Database = {
           document_type: string
           embedding?: string | null
           id?: string
+          scope?: Database["public"]["Enums"]["training_data_scope"] | null
           status?: string
           submitted_at?: string
           user_id: string
@@ -1472,6 +1474,7 @@ export type Database = {
           document_type?: string
           embedding?: string | null
           id?: string
+          scope?: Database["public"]["Enums"]["training_data_scope"] | null
           status?: string
           submitted_at?: string
           user_id?: string

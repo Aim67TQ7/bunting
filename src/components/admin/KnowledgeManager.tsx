@@ -11,6 +11,7 @@ import { KnowledgeList } from './knowledge/KnowledgeList';
 import { KnowledgeForm } from './knowledge/KnowledgeForm';
 import { KnowledgePipeline } from './KnowledgePipeline';
 import { KnowledgeAnalytics } from './knowledge/KnowledgeAnalytics';
+import { TrainingSubmissionsList } from './knowledge/TrainingSubmissionsList';
 
 export const KnowledgeManager = () => {
   const { toast } = useToast();
@@ -23,10 +24,12 @@ export const KnowledgeManager = () => {
     withEmbedding: 0,
     withoutEmbedding: 0
   });
+  const [pendingSubmissions, setPendingSubmissions] = useState(0);
 
   useEffect(() => {
     checkAdminStatus();
     checkEmbeddingStatus();
+    checkPendingSubmissions();
   }, []);
 
   const checkAdminStatus = async () => {
@@ -73,6 +76,20 @@ export const KnowledgeManager = () => {
         description: "Could not check embedding status",
         variant: "destructive"
       });
+    }
+  };
+
+  const checkPendingSubmissions = async () => {
+    try {
+      const { count, error } = await supabase
+        .from('user_training_submissions')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending');
+      
+      if (error) throw error;
+      setPendingSubmissions(count || 0);
+    } catch (error) {
+      console.error('Error checking pending submissions:', error);
     }
   };
 
@@ -130,6 +147,11 @@ export const KnowledgeManager = () => {
     checkEmbeddingStatus();
   };
 
+  const handleUpdate = async () => {
+    await checkEmbeddingStatus();
+    await checkPendingSubmissions();
+  };
+
   return (
     <div className="container max-w-7xl py-6 space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -172,10 +194,28 @@ export const KnowledgeManager = () => {
         </Alert>
       )}
 
+      {pendingSubmissions > 0 && (
+        <Alert className="mb-4 bg-blue-50 border-blue-200">
+          <AlertCircle className="h-4 w-4 text-blue-600" />
+          <AlertTitle>Pending Approvals</AlertTitle>
+          <AlertDescription>
+            {pendingSubmissions} training submission{pendingSubmissions > 1 ? 's' : ''} waiting for review and approval.
+          </AlertDescription>
+        </Alert>
+      )}
+
       <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="browse">Browse</TabsTrigger>
           <TabsTrigger value="add">Add Entry</TabsTrigger>
+          <TabsTrigger value="approvals" className="relative">
+            Approvals
+            {pendingSubmissions > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                {pendingSubmissions}
+              </span>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
           <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
         </TabsList>
@@ -193,9 +233,21 @@ export const KnowledgeManager = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {/* Removed the onSuccess prop since KnowledgeForm doesn't accept it */}
               <KnowledgeForm />
-              {/* Add a listener for form submission events if needed */}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="approvals" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Training Submission Approvals</CardTitle>
+              <CardDescription>
+                Review and approve user-submitted training data with scope selection
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <TrainingSubmissionsList onUpdate={handleUpdate} />
             </CardContent>
           </Card>
         </TabsContent>
