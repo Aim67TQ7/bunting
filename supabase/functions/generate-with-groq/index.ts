@@ -31,6 +31,113 @@ function extractKeywords(text: string): string[] {
   return [...new Set(words)].slice(0, 10);
 }
 
+// Function to generate embedding for text using GROQ
+async function generateEmbedding(text: string): Promise<number[] | null> {
+  try {
+    console.log("Generating embedding for text:", text.substring(0, 100) + "...");
+    
+    // Note: GROQ doesn't have embedding models, so we'll use a simple keyword-based fallback
+    // In production, you'd want to use OpenAI's embedding API or another embedding service
+    console.log("Warning: Using keyword-based similarity instead of embeddings");
+    return null;
+  } catch (error) {
+    console.error("Error generating embedding:", error);
+    return null;
+  }
+}
+
+// Function to search training data using text similarity (fallback when embeddings aren't available)
+async function searchTrainingDataByKeywords(
+  supabaseUrl: string, 
+  supabaseKey: string, 
+  userText: string, 
+  userId: string,
+  limit: number = 5
+): Promise<any[]> {
+  try {
+    const keywords = extractKeywords(userText);
+    if (keywords.length === 0) return [];
+    
+    console.log("Searching training data with keywords:", keywords);
+    
+    // Build a query that searches for matching keywords in title and summary
+    const keywordQueries = keywords.slice(0, 5).map(keyword => 
+      `or(content->>title.ilike.%${encodeURIComponent(keyword)}%,content->>summary.ilike.%${encodeURIComponent(keyword)}%)`
+    );
+    
+    const query = keywordQueries.join(',');
+    console.log("Training data search query:", query);
+    
+    const response = await fetch(
+      `${supabaseUrl}/rest/v1/training_data?or=(${query})&select=id,content,document_type,scope&order=created_at.desc&limit=${limit}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${supabaseKey}`,
+          'apikey': supabaseKey,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Training data search failed: ${response.statusText}`);
+    }
+
+    const results = await response.json();
+    console.log(`Found ${results.length} relevant training data entries`);
+    
+    return results || [];
+  } catch (error) {
+    console.error("Error searching training data:", error);
+    return [];
+  }
+}
+
+// Function to search training data using vector similarity (when embeddings are available)
+async function searchTrainingDataByVector(
+  supabaseUrl: string, 
+  supabaseKey: string, 
+  embedding: number[], 
+  userId: string,
+  limit: number = 5
+): Promise<any[]> {
+  try {
+    console.log("Searching training data using vector similarity");
+    
+    // Call the match_documents_with_scope function
+    const response = await fetch(
+      `${supabaseUrl}/rest/v1/rpc/match_documents_with_scope`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${supabaseKey}`,
+          'apikey': supabaseKey,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          query_embedding: `[${embedding.join(',')}]`,
+          match_threshold: 0.7,
+          match_count: limit,
+          user_id: userId,
+          include_user_scope: true
+        })
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Vector search failed: ${response.statusText}`);
+    }
+
+    const results = await response.json();
+    console.log(`Found ${results.length} relevant training data entries via vector search`);
+    
+    return results || [];
+  } catch (error) {
+    console.error("Error in vector search:", error);
+    return [];
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -118,19 +225,60 @@ serve(async (req) => {
       }
     }
 
-    if (supabaseUrl && supabaseKey && messages.length > 0) {
+    // NEW: Search for relevant training data using RAG
+    if (supabaseUrl && supabaseKey && messages.length > 0 && userId) {
       try {
         // Get the last user message for context search
         const lastUserMessage = [...messages].reverse().find(msg => msg.role === "user");
         
         if (lastUserMessage) {
-          console.log("Will not attempt embedding search since the text-embedding-ada-002 model is not available");
-          // We skip the embedding search since the model is not available
-          // This would be the place to use a different embedding model if needed
+          console.log("Searching for relevant training data for query:", lastUserMessage.content.substring(0, 100));
+          
+          // Try to generate embedding first
+          const embedding = await generateEmbedding(lastUserMessage.content);
+          let trainingResults = [];
+          
+          if (embedding && embedding.length > 0) {
+            // Use vector similarity search if embedding is available
+            trainingResults = await searchTrainingDataByVector(
+              supabaseUrl, 
+              supabaseKey, 
+              embedding, 
+              userId, 
+              3
+            );
+          } else {
+            // Fall back to keyword-based search
+            trainingResults = await searchTrainingDataByKeywords(
+              supabaseUrl, 
+              supabaseKey, 
+              lastUserMessage.content, 
+              userId, 
+              3
+            );
+          }
+          
+          if (trainingResults.length > 0) {
+            // Format the training data as contextual information
+            const trainingContext = trainingResults.map((result: any, index: number) => {
+              const content = result.content || {};
+              const title = content.title || 'Untitled';
+              const summary = content.summary || 'No summary available';
+              const similarity = result.similarity ? ` (${Math.round(result.similarity * 100)}% match)` : '';
+              
+              return `${index + 1}. ${title}${similarity}\n   ${summary}`;
+            }).join('\n\n');
+            
+            contextualInfo = `RELEVANT KNOWLEDGE FROM TRAINING DATA:\n\n${trainingContext}\n\nUse this information to provide more accurate and detailed responses when relevant to the user's question.`;
+            
+            console.log("Added training data context:", contextualInfo.substring(0, 200) + "...");
+          } else {
+            console.log("No relevant training data found for user query");
+          }
         }
       } catch (error) {
-        console.error("Error retrieving contextual information:", error);
-        // Continue without contextual info if there's an error
+        console.error("Error retrieving training data:", error);
+        // Continue without training data if there's an error
       }
     }
 
@@ -147,7 +295,7 @@ Bunting's product portfolio includes:
 8. Electromagnets with various coil voltages (12V, 24V, 48V, 120V, 240V), magnetic strengths up to 12,000 Gauss (1.2 Tesla), sizes ranging from 1 inch (25mm) to 12 inches (305mm) in diameter and 2 inches (50mm) to 24 inches (610mm) in length, with materials including copper, aluminum, and iron cores.
 `;
 
-    // Enhanced system message with follow-up instructions and corrections if available
+    // Enhanced system message with follow-up instructions, corrections, and training data if available
     const enhancedSystemMessage = { 
       role: "system", 
       content: `You are BuntingGPT, an executive assistant for Bunting employees. Provide direct, factual, and concise responses about magnetic solutions, products, and applications. Present information in a straightforward manner without phrases like 'As a Bunting employee' or other unnecessary qualifiers. If you don't have an answer, clearly state that and suggest specific resources where the information might be found or offer to help locate it. Never pretend to know information you don't have. Focus on accuracy and efficiency in all responses.
@@ -161,19 +309,11 @@ Keep follow-ups concise and natural - they should feel like a helpful colleague 
 
 ${productContext}
 
-${correctionContext ? correctionContext + "\n\n" : ""}`
+${correctionContext ? correctionContext + "\n\n" : ""}${contextualInfo ? contextualInfo + "\n\n" : ""}`
     };
     
     // Create a new array with our updated system message
     const messagesWithSystem = [enhancedSystemMessage];
-    
-    // Add contextual information if available
-    if (contextualInfo) {
-      messagesWithSystem.push({
-        role: "system",
-        content: contextualInfo
-      });
-    }
     
     // Add user messages (filtering out any existing system messages)
     messagesWithSystem.push(...messages.filter(msg => msg.role !== "system"));
@@ -189,6 +329,7 @@ ${correctionContext ? correctionContext + "\n\n" : ""}`
     }
 
     console.log("Sending to GROQ with corrections context:", correctionContext ? "Yes" : "No");
+    console.log("Sending to GROQ with training data context:", contextualInfo ? "Yes" : "No");
 
     // Call the GROQ API
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
