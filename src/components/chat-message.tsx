@@ -6,8 +6,9 @@ import { forwardRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
-import { Button } from "./ui/button";
+import { Button } from "@/components/ui/button";
 import { CorrectionDialog } from "./chat/correction-dialog";
+import { KnowledgeFeedback } from "./chat/knowledge-feedback";
 import { toast } from "@/hooks/use-toast";
 
 export type MessageRole = "user" | "assistant";
@@ -175,7 +176,7 @@ export const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>(
                 {copiedMessage ? (
                   <Check className="h-3 w-3 text-green-500" />
                 ) : (
-                  <Copy className="h-3 w-3" />
+                  <Copy className="h-3 w-4" />
                 )}
               </Button>
               

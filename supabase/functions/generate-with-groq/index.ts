@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
@@ -46,8 +45,8 @@ async function generateEmbedding(text: string): Promise<number[] | null> {
   }
 }
 
-// Function to search training data using text similarity (fallback when embeddings aren't available)
-async function searchTrainingDataByKeywords(
+// Enhanced function to search training data with adaptive scoring
+async function searchTrainingDataWithAdaptiveScoring(
   supabaseUrl: string, 
   supabaseKey: string, 
   userText: string, 
@@ -58,18 +57,36 @@ async function searchTrainingDataByKeywords(
     const keywords = extractKeywords(userText);
     if (keywords.length === 0) return [];
     
-    console.log("Searching training data with keywords:", keywords);
+    console.log("Searching training data with adaptive scoring, keywords:", keywords);
     
-    // Build a query that searches for matching keywords in title and summary
+    // Get user's positive feedback documents for boosting
+    const feedbackResponse = await fetch(
+      `${supabaseUrl}/rest/v1/match_feedback?user_id=eq.${userId}&feedback_type=eq.helpful&select=document_id`,
+      {
+        headers: {
+          'Authorization': `Bearer ${supabaseKey}`,
+          'apikey': supabaseKey,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    let positiveDocuments = [];
+    if (feedbackResponse.ok) {
+      const feedbackData = await feedbackResponse.json();
+      positiveDocuments = feedbackData.map((item: any) => item.document_id);
+    }
+
+    // Build enhanced query with keyword matching
     const keywordQueries = keywords.slice(0, 5).map(keyword => 
       `or(content->>title.ilike.%${encodeURIComponent(keyword)}%,content->>summary.ilike.%${encodeURIComponent(keyword)}%)`
     );
     
     const query = keywordQueries.join(',');
-    console.log("Training data search query:", query);
+    console.log("Enhanced training data search query:", query);
     
     const response = await fetch(
-      `${supabaseUrl}/rest/v1/training_data?or=(${query})&select=id,content,document_type,scope&order=created_at.desc&limit=${limit}`,
+      `${supabaseUrl}/rest/v1/training_data?or=(${query})&select=id,content,document_type,scope,user_id&order=created_at.desc&limit=${limit * 2}`,
       {
         headers: {
           'Authorization': `Bearer ${supabaseKey}`,
@@ -83,12 +100,24 @@ async function searchTrainingDataByKeywords(
       throw new Error(`Training data search failed: ${response.statusText}`);
     }
 
-    const results = await response.json();
-    console.log(`Found ${results.length} relevant training data entries`);
+    let results = await response.json() || [];
     
-    return results || [];
+    // Apply adaptive scoring based on user feedback
+    if (positiveDocuments.length > 0) {
+      results = results.map((result: any) => ({
+        ...result,
+        adaptiveScore: positiveDocuments.includes(result.id) ? 1.5 : 1.0
+      })).sort((a: any, b: any) => (b.adaptiveScore || 1.0) - (a.adaptiveScore || 1.0));
+    }
+    
+    // Limit to requested number after scoring
+    results = results.slice(0, limit);
+    
+    console.log(`Found ${results.length} relevant training data entries with adaptive scoring`);
+    
+    return results;
   } catch (error) {
-    console.error("Error searching training data:", error);
+    console.error("Error in adaptive training data search:", error);
     return [];
   }
 }
@@ -177,9 +206,7 @@ serve(async (req) => {
         
         // 3. If we have keywords, try to find corrections with matching keywords
         if (userMessageKeywords.length > 0 && userMessageKeywords.length < 1000) {
-          // We need to be careful with the query complexity here
-          // This is a simplified approach - in production, you might want a more sophisticated matching strategy
-          const keywordList = userMessageKeywords.slice(0, 3); // Limit to top 3 keywords
+          const keywordList = userMessageKeywords.slice(0, 3);
           
           const keywordQuery = keywordList
             .map(keyword => `correction_text.ilike.%${encodeURIComponent(keyword)}%`)
@@ -225,14 +252,14 @@ serve(async (req) => {
       }
     }
 
-    // NEW: Search for relevant training data using RAG
+    // Enhanced: Search for relevant training data using adaptive RAG
     if (supabaseUrl && supabaseKey && messages.length > 0 && userId) {
       try {
         // Get the last user message for context search
         const lastUserMessage = [...messages].reverse().find(msg => msg.role === "user");
         
         if (lastUserMessage) {
-          console.log("Searching for relevant training data for query:", lastUserMessage.content.substring(0, 100));
+          console.log("Searching for relevant training data with adaptive scoring for query:", lastUserMessage.content.substring(0, 100));
           
           // Try to generate embedding first
           const embedding = await generateEmbedding(lastUserMessage.content);
@@ -248,8 +275,8 @@ serve(async (req) => {
               3
             );
           } else {
-            // Fall back to keyword-based search
-            trainingResults = await searchTrainingDataByKeywords(
+            // Fall back to adaptive keyword-based search
+            trainingResults = await searchTrainingDataWithAdaptiveScoring(
               supabaseUrl, 
               supabaseKey, 
               lastUserMessage.content, 
@@ -265,13 +292,14 @@ serve(async (req) => {
               const title = content.title || 'Untitled';
               const summary = content.summary || 'No summary available';
               const similarity = result.similarity ? ` (${Math.round(result.similarity * 100)}% match)` : '';
+              const adaptiveBoost = result.adaptiveScore > 1.0 ? ' [Personalized]' : '';
               
-              return `${index + 1}. ${title}${similarity}\n   ${summary}`;
+              return `${index + 1}. ${title}${similarity}${adaptiveBoost}\n   ${summary}`;
             }).join('\n\n');
             
-            contextualInfo = `RELEVANT KNOWLEDGE FROM TRAINING DATA:\n\n${trainingContext}\n\nUse this information to provide more accurate and detailed responses when relevant to the user's question.`;
+            contextualInfo = `RELEVANT KNOWLEDGE FROM TRAINING DATA:\n\n${trainingContext}\n\nUse this information to provide more accurate and detailed responses when relevant to the user's question. Items marked [Personalized] are prioritized based on your previous helpful interactions.`;
             
-            console.log("Added training data context:", contextualInfo.substring(0, 200) + "...");
+            console.log("Added adaptive training data context:", contextualInfo.substring(0, 200) + "...");
           } else {
             console.log("No relevant training data found for user query");
           }
@@ -329,7 +357,7 @@ ${correctionContext ? correctionContext + "\n\n" : ""}${contextualInfo ? context
     }
 
     console.log("Sending to GROQ with corrections context:", correctionContext ? "Yes" : "No");
-    console.log("Sending to GROQ with training data context:", contextualInfo ? "Yes" : "No");
+    console.log("Sending to GROQ with adaptive training data context:", contextualInfo ? "Yes" : "No");
 
     // Call the GROQ API
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
