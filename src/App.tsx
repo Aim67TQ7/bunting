@@ -18,7 +18,6 @@ import BaqMto from "./pages/BaqMto";
 import NotFound from "./pages/NotFound";
 import AdminKnowledge from "./pages/AdminKnowledge";
 import Auth from "./pages/Auth";
-import Signup from "./pages/Signup";
 import ResetPassword from "./pages/ResetPassword";
 import PrivateRoute from "./components/PrivateRoute";
 
@@ -33,7 +32,6 @@ function App() {
             <SidebarProvider>
               <Routes>
                 <Route path="/auth" element={<Auth />} />
-                <Route path="/signup" element={<Signup />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route 
                   path="/" 
