@@ -315,6 +315,54 @@ export type Database = {
         }
         Relationships: []
       }
+      customer: {
+        Row: {
+          company: string
+          corrected_address: string
+          created_at: string | null
+          customer_name: string | null
+          email: string | null
+          latitude: number | null
+          longitude: number | null
+          phone: string | null
+          sales_18_month: string | null
+          sales_2024: string | null
+          sales_2025: string | null
+          territory: string | null
+          uuid: string
+        }
+        Insert: {
+          company: string
+          corrected_address: string
+          created_at?: string | null
+          customer_name?: string | null
+          email?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          phone?: string | null
+          sales_18_month?: string | null
+          sales_2024?: string | null
+          sales_2025?: string | null
+          territory?: string | null
+          uuid?: string
+        }
+        Update: {
+          company?: string
+          corrected_address?: string
+          created_at?: string | null
+          customer_name?: string | null
+          email?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          phone?: string | null
+          sales_18_month?: string | null
+          sales_2024?: string | null
+          sales_2025?: string | null
+          territory?: string | null
+          uuid?: string
+        }
+        Relationships: []
+      }
       embeddings: {
         Row: {
           embedding: string | null

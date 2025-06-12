@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -36,18 +37,6 @@ const loginSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters"),
 });
 
-const signupSchema = z.object({
-  email: z.string().email().refine(
-    (email) => email.endsWith('@buntingmagnetics.com'), 
-    { message: "Only buntingmagnetics.com emails are allowed" }
-  ),
-  password: z.string().min(8, "Password must be at least 8 characters"),
-  confirmPassword: z.string().min(8, "Password must be at least 8 characters"),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
-
 const resetSchema = z.object({
   email: z.string().email().refine(
     (email) => email.endsWith('@buntingmagnetics.com'), 
@@ -69,8 +58,8 @@ const otpResetSchema = z.object({
 });
 
 export default function Auth() {
-  const { user, isLoading, signIn, signUp, resetPassword, verifyOtpAndUpdatePassword } = useAuth();
-  const [authMode, setAuthMode] = useState<"login" | "signup" | "reset" | "otp-reset">("login");
+  const { user, isLoading, signIn, resetPassword, verifyOtpAndUpdatePassword } = useAuth();
+  const [authMode, setAuthMode] = useState<"login" | "reset" | "otp-reset">("login");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
@@ -84,16 +73,6 @@ export default function Auth() {
     defaultValues: {
       email: "",
       password: "",
-    },
-  });
-
-  // Form for signup
-  const signupForm = useForm<z.infer<typeof signupSchema>>({
-    resolver: zodResolver(signupSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-      confirmPassword: "",
     },
   });
 
@@ -157,26 +136,6 @@ export default function Auth() {
     }
   };
 
-  // Handle signup submission
-  const onSignupSubmit = async (values: z.infer<typeof signupSchema>) => {
-    const { error } = await signUp(values.email, values.password);
-    
-    if (error) {
-      toast({
-        title: "Signup failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "Account created",
-        description: "Your account has been created successfully",
-      });
-      // Switch back to login tab
-      setAuthMode("login");
-    }
-  };
-
   // Handle password reset submission
   const onResetSubmit = async (values: z.infer<typeof resetSchema>) => {
     const { error } = await resetPassword(values.email);
@@ -232,14 +191,6 @@ export default function Auth() {
               <CardTitle className={isMobile ? 'text-lg' : ''}>Login</CardTitle>
               <CardDescription className={isMobile ? 'text-sm' : ''}>
                 Enter your buntingmagnetics.com email to sign in to your account
-              </CardDescription>
-            </>
-          )}
-          {authMode === "signup" && (
-            <>
-              <CardTitle className={isMobile ? 'text-lg' : ''}>Create an account</CardTitle>
-              <CardDescription className={isMobile ? 'text-sm' : ''}>
-                Enter your buntingmagnetics.com email to create a new account
               </CardDescription>
             </>
           )}
@@ -317,95 +268,6 @@ export default function Auth() {
                 />
                 <Button type="submit" className={`w-full ${isMobile ? 'h-12 text-base' : ''}`} disabled={isLoading}>
                   {isLoading ? "Signing in..." : "Sign in"}
-                </Button>
-              </form>
-            </Form>
-          )}
-
-          {authMode === "signup" && (
-            <Form {...signupForm}>
-              <form onSubmit={signupForm.handleSubmit(onSignupSubmit)} className={`space-y-${isMobile ? '3' : '4'}`}>
-                <FormField
-                  control={signupForm.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="you@buntingmagnetics.com" 
-                          type="email" 
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={signupForm.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Password</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Input 
-                            placeholder="••••••••" 
-                            type={showPassword ? "text" : "password"} 
-                            {...field} 
-                          />
-                          <button 
-                            type="button"
-                            className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
-                            onClick={() => setShowPassword(!showPassword)}
-                            tabIndex={-1}
-                          >
-                            {showPassword ? (
-                              <EyeOff className="h-5 w-5" aria-hidden="true" />
-                            ) : (
-                              <Eye className="h-5 w-5" aria-hidden="true" />
-                            )}
-                          </button>
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={signupForm.control}
-                  name="confirmPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Confirm Password</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Input 
-                            placeholder="••••••••" 
-                            type={showConfirmPassword ? "text" : "password"} 
-                            {...field} 
-                          />
-                          <button 
-                            type="button"
-                            className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
-                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                            tabIndex={-1}
-                          >
-                            {showConfirmPassword ? (
-                              <EyeOff className="h-5 w-5" aria-hidden="true" />
-                            ) : (
-                              <Eye className="h-5 w-5" aria-hidden="true" />
-                            )}
-                          </button>
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <Button type="submit" className={`w-full ${isMobile ? 'h-12 text-base' : ''}`} disabled={isLoading}>
-                  {isLoading ? "Creating account..." : "Create account"}
                 </Button>
               </form>
             </Form>
@@ -554,19 +416,11 @@ export default function Auth() {
               </Button>
               <div className={`text-center ${isMobile ? 'text-sm' : 'text-sm'}`}>
                 Don't have an account?{" "}
-                <Button variant="link" onClick={() => setAuthMode("signup")} className={`p-0 ${isMobile ? 'text-sm h-auto' : ''}`}>
+                <Button variant="link" onClick={() => navigate("/signup")} className={`p-0 ${isMobile ? 'text-sm h-auto' : ''}`}>
                   Sign up
                 </Button>
               </div>
             </>
-          )}
-          {authMode === "signup" && (
-            <div className={`text-center ${isMobile ? 'text-sm' : 'text-sm'}`}>
-              Already have an account?{" "}
-              <Button variant="link" onClick={() => setAuthMode("login")} className={`p-0 ${isMobile ? 'text-sm h-auto' : ''}`}>
-                Sign in
-              </Button>
-            </div>
           )}
           {authMode === "reset" && (
             <Button variant="link" onClick={() => setAuthMode("login")} className={`${isMobile ? 'text-sm h-auto p-2' : 'text-sm'}`}>
