@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Info, Send, Upload, Plus, Globe } from "lucide-react";
@@ -195,7 +194,7 @@ export function ChatInputEnhanced({
         <Textarea
           placeholder={getPlaceholder()}
           className={cn(
-            "min-h-12 resize-none pl-28",
+            "min-h-20 resize-none pl-28",
             willAutoSummarize ? "border-secondary focus-visible:ring-secondary" : "",
             webEnabled && !willAutoSummarize ? "border-blue-400 focus-visible:ring-blue-400" : ""
           )}
@@ -203,7 +202,7 @@ export function ChatInputEnhanced({
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={handleKeyDown}
           disabled={isDisabled || isUploading}
-          rows={1}
+          rows={2}
         />
         
         <Button 
