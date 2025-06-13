@@ -1,4 +1,3 @@
-
 import { createContext, useContext, ReactNode, useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -39,23 +38,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<any>(null);
 
   useEffect(() => {
+    let mounted = true;
+
     // Set up authentication state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, currentSession) => {
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
+      async (event, currentSession) => {
+        console.log('Auth state change:', event, currentSession?.user?.email);
+        
+        if (!mounted) return;
+
+        if (event === 'SIGNED_OUT') {
+          setSession(null);
+          setUser(null);
+        } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          setSession(currentSession);
+          setUser(currentSession?.user ?? null);
+        } else if (event === 'USER_UPDATED') {
+          setUser(currentSession?.user ?? null);
+        }
+        
         setIsLoading(false);
       }
     );
 
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
-      setIsLoading(false);
-    });
+    // Check for existing session with better error handling
+    const initializeAuth = async () => {
+      try {
+        const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.warn('Session recovery error:', error.message);
+          // Clear potentially corrupted session data
+          await supabase.auth.signOut();
+        } else if (currentSession && mounted) {
+          setSession(currentSession);
+          setUser(currentSession.user);
+        }
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+      } finally {
+        if (mounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    initializeAuth();
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
@@ -70,6 +101,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth`
+        }
       });
 
       if (error) {
@@ -78,11 +112,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       return { error: null };
     } catch (error) {
+      console.error('Sign up error:', error);
       return { error };
     }
   };
 
-  // Sign in with email validation
+  // Sign in with email validation and better error handling
   const signIn = async (email: string, password: string) => {
     if (!isValidBuntingEmail(email)) {
       return { error: { message: "Only buntingmagnetics.com email addresses are allowed" } };
@@ -95,21 +130,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (error) {
+        // Handle specific error cases
+        if (error.message === 'fetch' || error.message.includes('fetch')) {
+          return { error: { message: "Network error. Please check your connection and try again." } };
+        }
         return { error };
       }
 
       return { error: null };
     } catch (error) {
-      return { error };
+      console.error('Sign in error:', error);
+      return { error: { message: "An unexpected error occurred. Please try again." } };
     }
   };
 
-  // Sign out
+  // Sign out with cleanup
   const signOut = async () => {
     setIsLoading(true);
-    await supabase.auth.signOut();
-    setUser(null);
-    setIsLoading(false);
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+      setSession(null);
+    } catch (error) {
+      console.error('Sign out error:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Reset password with OTP - sends 6-digit code via email
