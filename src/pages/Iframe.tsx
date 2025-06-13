@@ -57,7 +57,8 @@ const Iframe = () => {
               src={url}
               className="w-full h-full border-none"
               title={title || "Embedded content"}
-              sandbox="allow-same-origin allow-scripts allow-forms"
+              sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-downloads allow-presentation allow-top-navigation-by-user-activation"
+              allow="camera; microphone; geolocation; payment; usb; accelerometer; gyroscope; magnetometer; clipboard-read; clipboard-write; web-share"
               loading="lazy"
             />
           ) : (
