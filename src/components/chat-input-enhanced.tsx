@@ -144,7 +144,7 @@ export function ChatInputEnhanced({
           className
         )}
       >
-        <div className="flex items-center gap-2 absolute left-6 z-10">
+        <div className="flex items-center gap-1 absolute left-6 z-10">
           <Button 
             type="button" 
             variant="ghost" 
