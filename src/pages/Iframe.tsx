@@ -4,7 +4,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Download } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 const Iframe = () => {
   const location = useLocation();
@@ -30,6 +31,16 @@ const Iframe = () => {
     navigate(-1);
   };
 
+  const handleDirectDownload = () => {
+    if (url) {
+      window.open(url, '_blank');
+      toast({
+        title: "Download initiated",
+        description: "File download should start in a new tab",
+      });
+    }
+  };
+
   return (
     <div className="flex h-screen w-full overflow-hidden">
       <AppSidebar className="w-64 flex-shrink-0" />
@@ -49,6 +60,15 @@ const Iframe = () => {
             </Button>
             {title && <span className="ml-2 text-sm font-medium">{title}</span>}
           </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleDirectDownload}
+            className="flex items-center"
+          >
+            <Download className="h-4 w-4 mr-1" />
+            <span>Direct Download</span>
+          </Button>
         </div>
         
         <div className="flex-1 overflow-hidden">
@@ -57,8 +77,8 @@ const Iframe = () => {
               src={url}
               className="w-full h-full border-none"
               title={title || "Embedded content"}
-              sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-downloads allow-presentation allow-top-navigation-by-user-activation"
-              allow="camera; microphone; geolocation; payment; usb; accelerometer; gyroscope; magnetometer; clipboard-read; clipboard-write; web-share"
+              sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-downloads allow-presentation allow-top-navigation-by-user-activation allow-popups-to-escape-sandbox"
+              allow="camera; microphone; geolocation; payment; usb; accelerometer; gyroscope; magnetometer; clipboard-read; clipboard-write; web-share; downloads"
               loading="lazy"
             />
           ) : (
