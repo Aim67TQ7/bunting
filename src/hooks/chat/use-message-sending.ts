@@ -17,8 +17,23 @@ export function useMessageSending() {
         let aiResponse: any;
         let modelUsed: string = "groq-llama3-70b"; // Default model name
         
+        // Use GPT-o3 endpoint if queryType is 'gpt-o3'
+        if (queryType === 'gpt-o3') {
+          console.log('Using GPT-o3 for deep thinking response');
+          const { data, error } = await supabase.functions.invoke('generate-with-openai-o3', {
+            body: { 
+              messages: messages.map(m => ({ role: m.role, content: m.content })),
+              conversationId: conversationId,
+              userId: user.id
+            }
+          });
+            
+          if (error) throw error;
+          aiResponse = data.content;
+          modelUsed = data.model || "gpt-o3-mini";
+        }
         // Use the web-enabled endpoint if queryType is 'web'
-        if (queryType === 'web') {
+        else if (queryType === 'web') {
           console.log('Using web search for response');
           const { data, error } = await supabase.functions.invoke('generate-with-groq', {
             body: { 

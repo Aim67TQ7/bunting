@@ -1,3 +1,4 @@
+
 import { useRef, useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useChatMessages } from "@/hooks/use-chat-messages";
@@ -22,6 +23,7 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [hasAttemptedLoad, setHasAttemptedLoad] = useState(false);
   const [webEnabled, setWebEnabled] = useState(false);
+  const [o3Enabled, setO3Enabled] = useState(false);
   
   const { 
     messages, 
@@ -87,8 +89,13 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
       shouldAutoSummarize = true;
     }
     
-    // Add web access flag if enabled
-    const actualQueryType = webEnabled ? "web" : queryType;
+    // Determine query type based on enabled modes
+    let actualQueryType = queryType;
+    if (o3Enabled) {
+      actualQueryType = "gpt-o3";
+    } else if (webEnabled) {
+      actualQueryType = "web";
+    }
     
     sendMessage(finalContent, shouldAutoSummarize, actualQueryType, file);
   };
@@ -108,12 +115,29 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
   };
 
   const toggleWebAccess = () => {
+    if (o3Enabled) {
+      setO3Enabled(false);
+    }
     setWebEnabled(!webEnabled);
     toast({
       title: webEnabled ? "Web access disabled" : "Web access enabled",
       description: webEnabled 
         ? "The AI will no longer search the web for information."
         : "The AI will now search the web for up-to-date information.",
+      duration: 3000
+    });
+  };
+
+  const toggleO3Mode = () => {
+    if (webEnabled) {
+      setWebEnabled(false);
+    }
+    setO3Enabled(!o3Enabled);
+    toast({
+      title: o3Enabled ? "Deep thinking mode disabled" : "Deep thinking mode enabled",
+      description: o3Enabled 
+        ? "The AI will use standard processing for faster responses."
+        : "The AI will use deep reasoning for enhanced analysis and problem-solving.",
       duration: 3000
     });
   };
@@ -212,6 +236,8 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
           conversationId={activeConversationId}
           webEnabled={webEnabled}
           onWebToggle={toggleWebAccess}
+          o3Enabled={o3Enabled}
+          onO3Toggle={toggleO3Mode}
           onNewChat={handleStartNewChat}
         />
       </div>
