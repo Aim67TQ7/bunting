@@ -24,6 +24,8 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
   const [hasAttemptedLoad, setHasAttemptedLoad] = useState(false);
   const [webEnabled, setWebEnabled] = useState(false);
   const [o3Enabled, setO3Enabled] = useState(false);
+  const [serverEnabled, setServerEnabled] = useState(false);
+  const [visionEnabled, setVisionEnabled] = useState(false);
   
   const { 
     messages, 
@@ -132,12 +134,58 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
     if (webEnabled) {
       setWebEnabled(false);
     }
+    if (serverEnabled) {
+      setServerEnabled(false);
+    }
+    if (visionEnabled) {
+      setVisionEnabled(false);
+    }
     setO3Enabled(!o3Enabled);
     toast({
       title: o3Enabled ? "Deep thinking mode disabled" : "Deep thinking mode enabled",
       description: o3Enabled 
         ? "The AI will use standard processing for faster responses."
         : "The AI will use deep reasoning for enhanced analysis and problem-solving.",
+      duration: 3000
+    });
+  };
+
+  const toggleServerMode = () => {
+    if (webEnabled) {
+      setWebEnabled(false);
+    }
+    if (o3Enabled) {
+      setO3Enabled(false);
+    }
+    if (visionEnabled) {
+      setVisionEnabled(false);
+    }
+    setServerEnabled(!serverEnabled);
+    toast({
+      title: serverEnabled ? "Server embeddings mode disabled" : "Server embeddings mode enabled",
+      description: serverEnabled 
+        ? "The AI will use standard processing without knowledge retrieval."
+        : "The AI will query the embeddings database for relevant knowledge before responding.",
+      duration: 3000
+    });
+  };
+
+  const toggleVisionMode = () => {
+    if (webEnabled) {
+      setWebEnabled(false);
+    }
+    if (o3Enabled) {
+      setO3Enabled(false);
+    }
+    if (serverEnabled) {
+      setServerEnabled(false);
+    }
+    setVisionEnabled(!visionEnabled);
+    toast({
+      title: visionEnabled ? "Vision analysis mode disabled" : "Vision analysis mode enabled",
+      description: visionEnabled 
+        ? "The AI will use standard text processing."
+        : "The AI will use Claude for advanced vision analysis of images and documents.",
       duration: 3000
     });
   };
@@ -236,6 +284,10 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
           o3Enabled={o3Enabled}
           onO3Toggle={toggleO3Mode}
           onNewChat={handleStartNewChat}
+          serverEnabled={serverEnabled}
+          onServerToggle={toggleServerMode}
+          visionEnabled={visionEnabled}
+          onVisionToggle={toggleVisionMode}
         />
       </div>
     </div>

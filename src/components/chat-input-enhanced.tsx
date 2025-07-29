@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Info, Send, Upload, Plus, Globe, Brain } from "lucide-react";
+import { Info, Send, Upload, Plus, Globe, Brain, Server, Eye } from "lucide-react";
 import { useState, FormEvent, useRef, ChangeEvent, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -17,6 +17,10 @@ interface ChatInputEnhancedProps {
   o3Enabled?: boolean;
   onO3Toggle?: () => void;
   onNewChat?: () => void;
+  serverEnabled?: boolean;
+  onServerToggle?: () => void;
+  visionEnabled?: boolean;
+  onVisionToggle?: () => void;
 }
 
 export function ChatInputEnhanced({ 
@@ -28,7 +32,11 @@ export function ChatInputEnhanced({
   onWebToggle,
   o3Enabled = false,
   onO3Toggle,
-  onNewChat
+  onNewChat,
+  serverEnabled = false,
+  onServerToggle,
+  visionEnabled = false,
+  onVisionToggle
 }: ChatInputEnhancedProps) {
   const [message, setMessage] = useState("");
   const [isUploading, setIsUploading] = useState(false);
@@ -115,11 +123,17 @@ export function ChatInputEnhanced({
   };
   
   const getPlaceholder = () => {
+    if (visionEnabled) {
+      return "Send a message (vision analysis mode enabled)...";
+    }
     if (o3Enabled) {
       return "Send a message (deep thinking mode enabled)...";
     }
     if (webEnabled) {
       return "Send a message (web search enabled)...";
+    }
+    if (serverEnabled) {
+      return "Send a message (server embeddings mode enabled)...";
     }
     return "Send a message... (& to auto-summarize)";
   };
@@ -143,6 +157,18 @@ export function ChatInputEnhanced({
       onO3Toggle();
     }
   };
+
+  const handleServerToggle = () => {
+    if (onServerToggle) {
+      onServerToggle();
+    }
+  };
+
+  const handleVisionToggle = () => {
+    if (onVisionToggle) {
+      onVisionToggle();
+    }
+  };
   
   return (
     <div className="flex flex-col w-full">
@@ -153,65 +179,131 @@ export function ChatInputEnhanced({
         </div>
       )}
       
-      {o3Enabled && !willAutoSummarize && (
+      {visionEnabled && !willAutoSummarize && (
+        <div className="flex items-center px-4 py-2 text-xs bg-emerald-100 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-300 rounded-t-md mx-4 mb-0 mt-2">
+          <Info className="h-3 w-3 mr-1.5" />
+          <span>Vision analysis mode is enabled for image and document analysis</span>
+        </div>
+      )}
+
+      {o3Enabled && !willAutoSummarize && !visionEnabled && (
         <div className="flex items-center px-4 py-2 text-xs bg-purple-100 dark:bg-purple-900/20 text-purple-800 dark:text-purple-300 rounded-t-md mx-4 mb-0 mt-2">
           <Info className="h-3 w-3 mr-1.5" />
           <span>Deep thinking mode is enabled for enhanced analysis</span>
         </div>
       )}
       
-      {webEnabled && !willAutoSummarize && !o3Enabled && (
+      {webEnabled && !willAutoSummarize && !o3Enabled && !visionEnabled && (
         <div className="flex items-center px-4 py-2 text-xs bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 rounded-t-md mx-4 mb-0 mt-2">
           <Info className="h-3 w-3 mr-1.5" />
           <span>Web search is enabled for this message</span>
+        </div>
+      )}
+
+      {serverEnabled && !willAutoSummarize && !o3Enabled && !visionEnabled && !webEnabled && (
+        <div className="flex items-center px-4 py-2 text-xs bg-orange-100 dark:bg-orange-900/20 text-orange-800 dark:text-orange-300 rounded-t-md mx-4 mb-0 mt-2">
+          <Info className="h-3 w-3 mr-1.5" />
+          <span>Server embeddings mode is enabled for knowledge retrieval</span>
         </div>
       )}
       
       <form
         onSubmit={handleSubmit}
         className={cn(
-          "relative flex w-full items-center gap-2 p-4", 
-          (willAutoSummarize || webEnabled || o3Enabled) ? "pt-2" : "",
+          "relative flex w-full items-start gap-3 p-4", 
+          (willAutoSummarize || webEnabled || o3Enabled || visionEnabled || serverEnabled) ? "pt-2" : "",
           className
         )}
       >
-        <div className="flex items-center gap-1 absolute left-6 z-10">
+        {/* Left side controls */}
+        <div className="flex flex-col gap-2">
+          {/* 2x2 Mode Selection Grid */}
+          <div className="grid grid-cols-2 gap-1">
+            {/* Top row */}
+            <Button 
+              type="button" 
+              variant="ghost" 
+              size="icon"
+              onClick={handleO3Toggle}
+              className={cn("h-8 w-8", o3Enabled ? "bg-purple-100 text-purple-600 dark:bg-purple-900/40 dark:text-purple-400" : "")}
+              title={o3Enabled ? "Deep Thinking Mode Enabled" : "Enable Deep Thinking Mode"}
+            >
+              <Brain className="h-4 w-4" />
+              <span className="sr-only">Deep Thinking</span>
+            </Button>
+
+            <Button 
+              type="button" 
+              variant="ghost" 
+              size="icon"
+              onClick={handleVisionToggle}
+              className={cn("h-8 w-8", visionEnabled ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400" : "")}
+              title={visionEnabled ? "Vision Analysis Mode Enabled" : "Enable Vision Analysis Mode"}
+            >
+              <Eye className="h-4 w-4" />
+              <span className="sr-only">Vision Analysis</span>
+            </Button>
+
+            {/* Bottom row */}
+            <Button 
+              type="button" 
+              variant="ghost" 
+              size="icon"
+              onClick={handleWebToggle}
+              className={cn("h-8 w-8", webEnabled ? "bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400" : "")}
+              title={webEnabled ? "Web Access Enabled" : "Enable Web Access"}
+            >
+              <Globe className="h-4 w-4" />
+              <span className="sr-only">Web Access</span>
+            </Button>
+
+            <Button 
+              type="button" 
+              variant="ghost" 
+              size="icon"
+              onClick={handleServerToggle}
+              className={cn("h-8 w-8", serverEnabled ? "bg-orange-100 text-orange-600 dark:bg-orange-900/40 dark:text-orange-400" : "")}
+              title={serverEnabled ? "Server Embeddings Mode Enabled" : "Enable Server Embeddings Mode"}
+            >
+              <Server className="h-4 w-4" />
+              <span className="sr-only">Server Mode</span>
+            </Button>
+          </div>
+
+          {/* Standalone Plus button */}
           <Button 
             type="button" 
             variant="ghost" 
             size="icon"
             onClick={handleNewChat}
-            className="h-8 w-8"
+            className="h-8 w-8 self-center"
             title="New Chat"
           >
             <Plus className="h-4 w-4" />
             <span className="sr-only">New Chat</span>
           </Button>
+        </div>
+        
+        {/* Textarea - 3 lines tall */}
+        <Textarea
+          placeholder={getPlaceholder()}
+          className={cn(
+            "min-h-[120px] resize-none flex-1",
+            willAutoSummarize ? "border-secondary focus-visible:ring-secondary" : "",
+            visionEnabled && !willAutoSummarize ? "border-emerald-400 focus-visible:ring-emerald-400" : "",
+            o3Enabled && !willAutoSummarize && !visionEnabled ? "border-purple-400 focus-visible:ring-purple-400" : "",
+            webEnabled && !willAutoSummarize && !o3Enabled && !visionEnabled ? "border-blue-400 focus-visible:ring-blue-400" : "",
+            serverEnabled && !willAutoSummarize && !o3Enabled && !visionEnabled && !webEnabled ? "border-orange-400 focus-visible:ring-orange-400" : ""
+          )}
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          onKeyDown={handleKeyDown}
+          disabled={isDisabled || isUploading}
+          rows={3}
+        />
 
-          <Button 
-            type="button" 
-            variant="ghost" 
-            size="icon"
-            onClick={handleWebToggle}
-            className={cn("h-8 w-8", webEnabled ? "text-blue-500" : "")}
-            title={webEnabled ? "Web Access Enabled" : "Enable Web Access"}
-          >
-            <Globe className="h-4 w-4" />
-            <span className="sr-only">Web Access</span>
-          </Button>
-
-          <Button 
-            type="button" 
-            variant="ghost" 
-            size="icon"
-            onClick={handleO3Toggle}
-            className={cn("h-8 w-8", o3Enabled ? "text-purple-500" : "")}
-            title={o3Enabled ? "Deep Thinking Mode Enabled" : "Enable Deep Thinking Mode"}
-          >
-            <Brain className="h-4 w-4" />
-            <span className="sr-only">Deep Thinking</span>
-          </Button>
-          
+        {/* Right side controls */}
+        <div className="flex flex-col gap-2 items-center">
           <Button 
             type="button" 
             variant="ghost" 
@@ -225,39 +317,24 @@ export function ChatInputEnhanced({
             <span className="sr-only">Upload file</span>
           </Button>
           
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            className="hidden"
-            accept=".pdf,.doc,.docx,.txt,.csv,.xlsx,.json,.md"
-          />
+          <Button 
+            type="submit" 
+            size="icon" 
+            disabled={!message.trim() || isDisabled || isUploading}
+            className="h-8 w-8"
+          >
+            <Send className="h-4 w-4" />
+            <span className="sr-only">Send message</span>
+          </Button>
         </div>
         
-        <Textarea
-          placeholder={getPlaceholder()}
-          className={cn(
-            "min-h-20 resize-none pl-40",
-            willAutoSummarize ? "border-secondary focus-visible:ring-secondary" : "",
-            o3Enabled && !willAutoSummarize ? "border-purple-400 focus-visible:ring-purple-400" : "",
-            webEnabled && !willAutoSummarize && !o3Enabled ? "border-blue-400 focus-visible:ring-blue-400" : ""
-          )}
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          onKeyDown={handleKeyDown}
-          disabled={isDisabled || isUploading}
-          rows={2}
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileChange}
+          className="hidden"
+          accept=".pdf,.doc,.docx,.txt,.csv,.xlsx,.json,.md,.png,.jpg,.jpeg,.gif,.webp"
         />
-        
-        <Button 
-          type="submit" 
-          size="icon" 
-          disabled={!message.trim() || isDisabled || isUploading}
-          variant={willAutoSummarize ? "secondary" : o3Enabled ? "default" : webEnabled ? "default" : "default"}
-        >
-          <Send className="h-4 w-4" />
-          <span className="sr-only">Send message</span>
-        </Button>
       </form>
     </div>
   );
