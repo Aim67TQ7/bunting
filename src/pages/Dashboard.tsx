@@ -8,7 +8,7 @@ const Dashboard = () => {
       
       <SidebarInset className="flex flex-1 flex-col overflow-hidden">
         <iframe
-          src="https://meek-youtiao-9c73db.netlify.app/"
+          src="https://dashboard.buntinggpt.com"
           className="w-full h-full border-0"
           title="Dashboard"
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads"
