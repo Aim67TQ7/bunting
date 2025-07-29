@@ -95,6 +95,8 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
     let actualQueryType = queryType;
     if (o3Enabled) {
       actualQueryType = "gpt-o3";
+    } else if (serverEnabled) {
+      actualQueryType = "server";
     } else if (webEnabled) {
       actualQueryType = "web";
     }

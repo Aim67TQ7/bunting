@@ -32,6 +32,21 @@ export function useMessageSending() {
           aiResponse = data.content;
           modelUsed = data.model || "gpt-o3-mini";
         }
+        // Use OpenAI 4o with embeddings if queryType is 'server'
+        else if (queryType === 'server') {
+          console.log('Using OpenAI 4o with embeddings for server response');
+          const { data, error } = await supabase.functions.invoke('generate-with-openai-embeddings', {
+            body: { 
+              messages: messages.map(m => ({ role: m.role, content: m.content })),
+              conversationId: conversationId,
+              userId: user.id
+            }
+          });
+            
+          if (error) throw error;
+          aiResponse = data.content;
+          modelUsed = data.model || "gpt-4o";
+        }
         // Use the web-enabled endpoint if queryType is 'web'
         else if (queryType === 'web') {
           console.log('Using web search for response');
