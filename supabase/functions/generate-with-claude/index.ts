@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
-const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
+const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,13 +14,13 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, stream = false, enableWeb = false, conversationId = null, userId = null } = await req.json();
+    const { messages, conversationId = null, userId = null } = await req.json();
 
-    if (!GROQ_API_KEY) {
-      throw new Error("GROQ_API_KEY is not set");
+    if (!ANTHROPIC_API_KEY) {
+      throw new Error("ANTHROPIC_API_KEY is not set");
     }
 
-    console.log(`Processing request for user ${userId}, conversation ${conversationId || 'new'}, web: ${enableWeb}`);
+    console.log(`Processing Claude request for user ${userId}, conversation ${conversationId || 'new'}`);
 
     // Product information context
     const productContext = `
@@ -36,9 +36,7 @@ Bunting's product portfolio includes:
 `;
 
     // Simple system message
-    const enhancedSystemMessage = { 
-      role: "system", 
-      content: `You are BuntingGPT, a helpful AI assistant. You can discuss any topic and provide information on a wide range of subjects. Be helpful, informative, and conversational. You are not restricted to only Bunting-related topics and can engage in open dialogue about various subjects.
+    const systemMessage = `You are BuntingGPT, a helpful AI assistant. You can discuss any topic and provide information on a wide range of subjects. Be helpful, informative, and conversational. You are not restricted to only Bunting-related topics and can engage in open dialogue about various subjects.
 
 After providing your answer, do one of the following:
 1. Ask a relevant follow-up question to deepen the conversation if the topic has more depth to explore.
@@ -47,34 +45,28 @@ After providing your answer, do one of the following:
 
 Keep follow-ups concise and natural - they should feel like a helpful colleague checking in, not an interrogation.
 
-${productContext}`
-    };
+${productContext}`;
     
-    const messagesWithSystem = [enhancedSystemMessage];
-    messagesWithSystem.push(...messages.filter(msg => msg.role !== "system"));
+    // Prepare messages for Claude API format
+    const claudeMessages = messages.filter(msg => msg.role !== "system").map(msg => ({
+      role: msg.role,
+      content: msg.content
+    }));
 
-    if (enableWeb) {
-      messagesWithSystem.push({
-        role: "system",
-        content: "IMPORTANT: You now have access to web search capabilities. If the user asks about current information like prices, market data, news, or events, you should use this capability to provide up-to-date information. Acknowledge when you're using web search and cite your sources clearly."
-      });
-      
-      console.log("Web search capability enabled for this query");
-    }
+    console.log("Sending to Claude API");
 
-    console.log("Sending to GROQ API");
-
-    // Call the GROQ API
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    // Call the Claude API
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${GROQ_API_KEY}`,
-        "Content-Type": "application/json"
+        "Authorization": `Bearer ${ANTHROPIC_API_KEY}`,
+        "Content-Type": "application/json",
+        "anthropic-version": "2023-06-01"
       },
       body: JSON.stringify({
-        model: "llama3-70b-8192",
-        messages: messagesWithSystem,
-        stream,
+        model: "claude-3-5-sonnet-20241022",
+        system: systemMessage,
+        messages: claudeMessages,
         temperature: 0.1,
         max_tokens: 1024
       })
@@ -82,21 +74,19 @@ ${productContext}`
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(`GROQ API error: ${error.message || response.statusText}`);
+      throw new Error(`Claude API error: ${error.message || response.statusText}`);
     }
 
-    if (stream) {
-      return new Response(response.body, {
-        headers: { ...corsHeaders, 'Content-Type': 'text/event-stream' }
-      });
-    } else {
-      const data = await response.json();
-      return new Response(JSON.stringify(data), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
+    const data = await response.json();
+    
+    return new Response(JSON.stringify({
+      content: data.content[0].text,
+      model: "claude-3-5-sonnet"
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
   } catch (error) {
-    console.error("Error in generate-with-groq function:", error);
+    console.error("Error in generate-with-claude function:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
