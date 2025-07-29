@@ -142,10 +142,7 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
     });
   };
 
-  // Handler for submitting corrections
-  const handleSubmitCorrection = async (messageId: string, correction: string, isGlobal: boolean) => {
-    return await submitCorrection(messageId, correction, isGlobal);
-  };
+  // Corrections disabled - conversations are open
 
   // If auth is still loading, show loading indicator
   if (authLoading) {
@@ -222,7 +219,7 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
           <MessageList 
             messages={messages} 
             isAiResponding={isAiResponding && !hasAttemptedLoad}
-            onSubmitCorrection={handleSubmitCorrection}
+            onSubmitCorrection={undefined}
           />
         )}
         

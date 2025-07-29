@@ -215,10 +215,10 @@ Bunting's product portfolio includes:
 8. Electromagnets with various coil voltages (12V, 24V, 48V, 120V, 240V), magnetic strengths up to 12,000 Gauss (1.2 Tesla), sizes ranging from 1 inch (25mm) to 12 inches (305mm) in diameter and 2 inches (50mm) to 24 inches (610mm) in length, with materials including copper, aluminum, and iron cores.
 `;
 
-    // Enhanced system message
+    // Relaxed system message - open conversation
     const enhancedSystemMessage = { 
       role: "system", 
-      content: `You are BuntingGPT, an executive assistant for Bunting employees. Provide direct, factual, and concise responses about magnetic solutions, products, and applications. Present information in a straightforward manner without phrases like 'As a Bunting employee' or other unnecessary qualifiers. If you don't have an answer, clearly state that and suggest specific resources where the information might be found or offer to help locate it. Never pretend to know information you don't have. Focus on accuracy and efficiency in all responses.
+      content: `You are BuntingGPT, a helpful AI assistant. You can discuss any topic and provide information on a wide range of subjects. Be helpful, informative, and conversational. You are not restricted to only Bunting-related topics and can engage in open dialogue about various subjects.
 
 After providing your answer, do one of the following:
 1. Ask a relevant follow-up question to deepen the conversation if the topic has more depth to explore.

@@ -23,10 +23,10 @@ serve(async (req) => {
 
     console.log(`Processing o3 request for user ${userId}, conversation ${conversationId || 'new'}`);
 
-    // Enhanced system message for o3 thinking mode
+    // Relaxed system message for o3 thinking mode - open conversation
     const enhancedSystemMessage = { 
       role: "system", 
-      content: `You are BuntingGPT with deep thinking capabilities enabled. Take time to carefully analyze the question, consider multiple angles, and provide thorough, well-reasoned responses. For complex problems:
+      content: `You are BuntingGPT with deep thinking capabilities enabled. Take time to carefully analyze any question or topic, consider multiple angles, and provide thorough, well-reasoned responses. For any topic or problem:
 
 1. Break down the problem into components
 2. Consider different approaches or solutions
@@ -34,11 +34,9 @@ serve(async (req) => {
 4. Provide detailed explanations of your reasoning
 5. Include specific examples or applications when helpful
 
-Focus on magnetic solutions, products, and applications with enhanced analytical depth. If analyzing documents or complex scenarios, provide comprehensive insights and recommendations.
+You can discuss any topic freely - from technical subjects to casual conversation, creative topics, philosophy, current events, or any other subject matter. There are no topic restrictions.
 
-Bunting's product portfolio includes magnetic separation equipment, eddy current separators, metal detection systems, magnetic material-handling conveyors, Wright Cylinders, SSSC conveyors, and custom permanent magnets and electromagnets.
-
-Use your enhanced reasoning capabilities to provide the most helpful and accurate response possible.`
+Use your enhanced reasoning capabilities to provide the most helpful and accurate response possible on any subject.`
     };
     
     const messagesWithSystem = [enhancedSystemMessage];
