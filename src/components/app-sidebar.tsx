@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { BrandLogo } from "@/components/brand-logo";
 import { NavItem, NavSection } from "@/components/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { MessageSquare, History, Calculator, LineChart, Grid3X3, FileChartLine, Menu, User, LogOut } from "lucide-react";
+import { MessageSquare, History, Calculator, LineChart, Grid3X3, FileChartLine, Menu, User, LogOut, BarChart3 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
@@ -63,7 +63,8 @@ export function AppSidebar({ className }: AppSidebarProps) {
       
       <SidebarContent className="px-2">
         <NavSection title="Assistant">
-          <NavItem icon={MessageSquare} title="Chat" href="/" />
+          <NavItem icon={BarChart3} title="Dashboard" href="/" />
+          <NavItem icon={MessageSquare} title="Chat" href="/chat" />
           <NavItem icon={History} title="History" href="/history" />
         </NavSection>
         

@@ -7,6 +7,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
+import Dashboard from "./pages/Dashboard";
 import History from "./pages/History";
 import Calculators from "./pages/Calculators";
 import Iframe from "./pages/Iframe";
@@ -35,6 +36,14 @@ function App() {
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route 
                   path="/" 
+                  element={
+                    <PrivateRoute>
+                      <Dashboard />
+                    </PrivateRoute>
+                  } 
+                />
+                <Route 
+                  path="/chat" 
                   element={
                     <PrivateRoute>
                       <Index />
