@@ -30,7 +30,7 @@ function App() {
         <Sonner />
         <AuthProvider>
           <Router>
-            <SidebarProvider>
+            <SidebarProvider defaultOpen={true}>
               <Routes>
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/reset-password" element={<ResetPassword />} />

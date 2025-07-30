@@ -12,9 +12,10 @@ interface NavItemProps {
 
 export function NavItem({ icon: Icon, title, href }: NavItemProps) {
   const { pathname } = useLocation();
-  const { state } = useSidebar();
+  const { state, isMobile, open } = useSidebar();
   const isActive = pathname === href;
-  const isCollapsed = state === "collapsed";
+  // For icon collapsible mode, the sidebar shows collapsed when closed
+  const isCollapsed = !isMobile && (!open || state === "collapsed");
   
   return (
     <Link
@@ -42,8 +43,8 @@ export function NavItem({ icon: Icon, title, href }: NavItemProps) {
 }
 
 export function NavSection({ children, title }: { children: React.ReactNode; title: string }) {
-  const { state } = useSidebar();
-  const isCollapsed = state === "collapsed";
+  const { state, isMobile, open } = useSidebar();
+  const isCollapsed = !isMobile && (!open || state === "collapsed");
   
   return (
     <div className={cn(

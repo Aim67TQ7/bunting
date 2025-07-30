@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useNavigate } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSidebar } from "@/components/ui/sidebar";
 
 interface AppSidebarProps {
   className?: string;
@@ -20,6 +21,7 @@ export function AppSidebar({ className }: AppSidebarProps) {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { user, signOut } = useAuth();
+  const { state, open } = useSidebar();
 
   const handleSettingsClick = () => {
     navigate("/settings");
@@ -42,8 +44,9 @@ export function AppSidebar({ className }: AppSidebarProps) {
     .join('')
     .toUpperCase();
 
-  // Use collapsible="icon" on desktop and collapsible="offcanvas" on mobile
+  // Use collapsible="icon" on desktop and collapsible="offcanvas" on mobile  
   const collapsibleMode = isMobile ? "offcanvas" : "icon";
+  const isCollapsed = !isMobile && (!open || state === "collapsed");
 
   return (
     <Sidebar 
@@ -64,7 +67,7 @@ export function AppSidebar({ className }: AppSidebarProps) {
           </div>
           <div className={cn(
             "transition-opacity duration-200",
-            collapsibleMode === "icon" && !isMobile ? "opacity-0" : "opacity-100"
+            isCollapsed ? "opacity-0" : "opacity-100"
           )}>
             <h1 className="font-semibold text-base">BuntingGPT</h1>
             <p className="text-xs text-muted-foreground">Magnetic Solutions</p>
@@ -99,9 +102,9 @@ export function AppSidebar({ className }: AppSidebarProps) {
           <div className="mb-3">
             <div className={cn(
               "rounded-xl bg-card border shadow-sm p-3 transition-all duration-200",
-              collapsibleMode === "icon" && !isMobile ? "flex justify-center" : ""
+              isCollapsed ? "flex justify-center" : ""
             )}>
-              {collapsibleMode === "icon" && !isMobile ? (
+              {isCollapsed ? (
                 <Avatar className="h-8 w-8 border-2 border-primary/10">
                   <AvatarFallback className="text-xs">{userInitials || "U"}</AvatarFallback>
                 </Avatar>
@@ -126,7 +129,7 @@ export function AppSidebar({ className }: AppSidebarProps) {
           {/* Action Cards */}
           <div className={cn(
             "flex gap-2",
-            collapsibleMode === "icon" && !isMobile ? "flex-col items-center" : "justify-between"
+            isCollapsed ? "flex-col items-center" : "justify-between"
           )}>
             <div className="p-2 rounded-lg bg-card border shadow-sm hover:shadow-md transition-all duration-200 hover:scale-[1.02]">
               <ThemeToggle />
