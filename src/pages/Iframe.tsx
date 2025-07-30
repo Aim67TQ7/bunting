@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
@@ -8,12 +8,21 @@ import { ArrowLeft, Download } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
+interface TokenMessage {
+  type: 'PROVIDE_TOKEN' | 'REQUEST_TOKEN' | 'TOKEN_RECEIVED';
+  token?: string;
+  origin: string;
+  timestamp: number;
+}
+
 const Iframe = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [url, setUrl] = useState<string>("");
   const [title, setTitle] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
+  const [token, setToken] = useState<string | null>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   
   useEffect(() => {
     const loadUrlWithToken = async () => {
@@ -33,7 +42,7 @@ const Iframe = () => {
         // If we have source table and ID, try to get token from database
         if (id && sourceTable) {
           try {
-            let token = null;
+            let fetchedToken = null;
             
             // Handle different table schemas
             if (sourceTable === 'reports') {
@@ -44,7 +53,7 @@ const Iframe = () => {
                 .single();
               
               if (!error && data && 'access_token' in data) {
-                token = (data as any).access_token;
+                fetchedToken = (data as any).access_token;
               }
             } else if (sourceTable === 'sales_tools') {
               const { data, error } = await supabase
@@ -54,21 +63,20 @@ const Iframe = () => {
                 .single();
               
               if (!error && data && 'token' in data) {
-                token = (data as any).token;
+                fetchedToken = (data as any).token;
               }
             }
             
-            if (token) {
-              // Append token to URL
-              const separator = finalUrl.includes('?') ? '&' : '?';
-              finalUrl = `${finalUrl}${separator}token=${encodeURIComponent(token)}`;
+            if (fetchedToken) {
+              setToken(fetchedToken);
             }
           } catch (error) {
             console.warn('Error fetching token:', error);
           }
         }
         
-        setUrl(finalUrl);
+        // Set URL without token parameter
+        setUrl(urlParam);
       }
       
       setLoading(false);
@@ -76,6 +84,61 @@ const Iframe = () => {
     
     loadUrlWithToken();
   }, [location]);
+
+  // Handle iframe load and send token via postMessage
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    
+    const handleIframeLoad = () => {
+      if (token && iframe?.contentWindow) {
+        try {
+          const message: TokenMessage = {
+            type: 'PROVIDE_TOKEN',
+            token: token,
+            origin: window.location.origin,
+            timestamp: Date.now()
+          };
+          
+          iframe.contentWindow.postMessage(message, '*');
+          console.log('Token sent to iframe via postMessage');
+        } catch (error) {
+          console.warn('Failed to send token via postMessage:', error);
+        }
+      }
+    };
+
+    if (iframe) {
+      iframe.addEventListener('load', handleIframeLoad);
+      return () => iframe.removeEventListener('load', handleIframeLoad);
+    }
+  }, [token]);
+
+  // Listen for messages from iframe
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent<TokenMessage>) => {
+      // Basic origin validation (could be more strict)
+      if (event.data?.type === 'REQUEST_TOKEN' && token) {
+        const message: TokenMessage = {
+          type: 'PROVIDE_TOKEN',
+          token: token,
+          origin: window.location.origin,
+          timestamp: Date.now()
+        };
+        
+        (event.source as Window)?.postMessage(message, event.origin);
+        console.log('Token provided in response to request');
+      } else if (event.data?.type === 'TOKEN_RECEIVED') {
+        console.log('Token received confirmation from iframe');
+        toast({
+          title: "Authentication successful",
+          description: "Token has been provided to the application",
+        });
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [token]);
   
   const handleBack = () => {
     navigate(-1);
@@ -128,6 +191,7 @@ const Iframe = () => {
             </div>
           ) : url ? (
             <iframe
+              ref={iframeRef}
               src={url}
               className="w-full h-full border-none"
               title={title || "Embedded content"}
