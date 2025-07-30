@@ -67,7 +67,7 @@ export function useChatMessages() {
         }
         
         // Get response from AI
-        const aiResponseData = await sendMessageToAI(updatedMessages, queryType, currentConvoId);
+        const aiResponseData = await sendMessageToAI(updatedMessages, queryType, currentConvoId, file);
         
         if (!aiResponseData) {
           throw new Error("Failed to get AI response");

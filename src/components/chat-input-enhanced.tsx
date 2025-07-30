@@ -90,35 +90,52 @@ export function ChatInputEnhanced({
     fileInputRef.current?.click();
   };
   
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     
     setIsUploading(true);
     
-    // Check file size (10MB limit)
-    if (file.size > 10 * 1024 * 1024) {
+    // Check file size (25MB limit for documents/PDFs)
+    if (file.size > 25 * 1024 * 1024) {
       toast({
         title: "File too large",
-        description: "Please upload files smaller than 10MB",
+        description: "Please upload files smaller than 25MB",
         variant: "destructive",
       });
       setIsUploading(false);
       return;
     }
     
-    // Auto-enable o3 mode for file uploads if available
-    if (onO3Toggle && !o3Enabled) {
-      onO3Toggle();
+    // Check if vision mode is enabled - if not, enable it for file uploads
+    if (!visionEnabled && onVisionToggle) {
+      onVisionToggle();
       toast({
-        title: "Deep thinking mode enabled",
-        description: "o3 mode activated for file analysis",
+        title: "Vision analysis enabled",
+        description: "Automatically enabled for document processing",
         duration: 2000
       });
     }
     
-    // Submit with the file
-    onSubmit("Analyzing file: " + file.name, false, "file", file);
+    // Determine file type and processing approach
+    const fileType = file.type;
+    const isImage = fileType.startsWith('image/');
+    const isPDF = fileType === 'application/pdf';
+    const isDocument = fileType.includes('document') || fileType.includes('text') || 
+                      file.name.endsWith('.txt') || file.name.endsWith('.md') || 
+                      file.name.endsWith('.csv');
+    
+    let processingMessage = "Analyzing file: " + file.name;
+    if (isPDF) {
+      processingMessage = "Processing PDF for OCR and analysis: " + file.name;
+    } else if (isDocument) {
+      processingMessage = "Processing document for analysis: " + file.name;
+    } else if (isImage) {
+      processingMessage = "Analyzing image with vision capabilities: " + file.name;
+    }
+    
+    // Submit with the file - this will automatically route to Claude
+    onSubmit(processingMessage, false, "vision", file);
     
     // Reset the file input
     if (fileInputRef.current) {

@@ -91,9 +91,17 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
       shouldAutoSummarize = true;
     }
     
-    // Determine query type based on enabled modes
+    // Determine query type based on enabled modes and file uploads
     let actualQueryType = queryType;
-    if (o3Enabled) {
+    
+    // If a file is uploaded or vision mode is explicitly set, force Claude
+    if (file || queryType === 'vision' || visionEnabled) {
+      actualQueryType = "vision";
+      // Auto-enable vision mode if file is uploaded
+      if (file && !visionEnabled) {
+        setVisionEnabled(true);
+      }
+    } else if (o3Enabled) {
       actualQueryType = "gpt-o3";
     } else if (serverEnabled) {
       actualQueryType = "server";
