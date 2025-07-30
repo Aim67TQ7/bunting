@@ -725,6 +725,45 @@ export type Database = {
         }
         Relationships: []
       }
+      escalations: {
+        Row: {
+          assigned_to: string | null
+          created_at: string
+          days_overdue: number | null
+          escalation_type: string
+          id: string
+          order_id: string | null
+          po_number: string | null
+          resolved_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string
+          days_overdue?: number | null
+          escalation_type: string
+          id?: string
+          order_id?: string | null
+          po_number?: string | null
+          resolved_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string
+          days_overdue?: number | null
+          escalation_type?: string
+          id?: string
+          order_id?: string | null
+          po_number?: string | null
+          resolved_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       iframe_sessions: {
         Row: {
           created_at: string
@@ -798,6 +837,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      interaction_analytics: {
+        Row: {
+          created_at: string
+          id: string
+          order_found: boolean
+          query_type: string
+          response_time: number
+          satisfaction_score: number | null
+          updated_at: string
+          urgency_level: string
+          user_role: string
+          user_session: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          order_found?: boolean
+          query_type: string
+          response_time: number
+          satisfaction_score?: number | null
+          updated_at?: string
+          urgency_level?: string
+          user_role?: string
+          user_session: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          order_found?: boolean
+          query_type?: string
+          response_time?: number
+          satisfaction_score?: number | null
+          updated_at?: string
+          urgency_level?: string
+          user_role?: string
+          user_session?: string
+        }
+        Relationships: []
       }
       market_research_reports: {
         Row: {
@@ -1188,6 +1266,78 @@ export type Database = {
         }
         Relationships: []
       }
+      mto_status: {
+        Row: {
+          Country: string | null
+          "Cr Override": boolean | null
+          "Credit Hold": boolean | null
+          "Credit Hold Source": string | null
+          "Credit Limit": number | null
+          "Cust. ID": string | null
+          dd: string
+          Description: string | null
+          "Entry Person": string | null
+          FOB: string | null
+          "Memo Description": string | null
+          Name: string | null
+          NextRelDt: string | null
+          "On Hold": boolean | null
+          Order: number | null
+          "Order Amount": number | null
+          "Order Date": string | null
+          PO: string | null
+          "Ship By": string | null
+          Site: number | null
+          Terms: string | null
+        }
+        Insert: {
+          Country?: string | null
+          "Cr Override"?: boolean | null
+          "Credit Hold"?: boolean | null
+          "Credit Hold Source"?: string | null
+          "Credit Limit"?: number | null
+          "Cust. ID"?: string | null
+          dd?: string
+          Description?: string | null
+          "Entry Person"?: string | null
+          FOB?: string | null
+          "Memo Description"?: string | null
+          Name?: string | null
+          NextRelDt?: string | null
+          "On Hold"?: boolean | null
+          Order?: number | null
+          "Order Amount"?: number | null
+          "Order Date"?: string | null
+          PO?: string | null
+          "Ship By"?: string | null
+          Site?: number | null
+          Terms?: string | null
+        }
+        Update: {
+          Country?: string | null
+          "Cr Override"?: boolean | null
+          "Credit Hold"?: boolean | null
+          "Credit Hold Source"?: string | null
+          "Credit Limit"?: number | null
+          "Cust. ID"?: string | null
+          dd?: string
+          Description?: string | null
+          "Entry Person"?: string | null
+          FOB?: string | null
+          "Memo Description"?: string | null
+          Name?: string | null
+          NextRelDt?: string | null
+          "On Hold"?: boolean | null
+          Order?: number | null
+          "Order Amount"?: number | null
+          "Order Date"?: string | null
+          PO?: string | null
+          "Ship By"?: string | null
+          Site?: number | null
+          Terms?: string | null
+        }
+        Relationships: []
+      }
       photos: {
         Row: {
           content_type: string
@@ -1487,6 +1637,7 @@ export type Database = {
       }
       reports: {
         Row: {
+          access_token: string | null
           coming_soon: boolean | null
           created_at: string | null
           description: string
@@ -1499,6 +1650,7 @@ export type Database = {
           video_url: string | null
         }
         Insert: {
+          access_token?: string | null
           coming_soon?: boolean | null
           created_at?: string | null
           description: string
@@ -1511,6 +1663,7 @@ export type Database = {
           video_url?: string | null
         }
         Update: {
+          access_token?: string | null
           coming_soon?: boolean | null
           created_at?: string | null
           description?: string
