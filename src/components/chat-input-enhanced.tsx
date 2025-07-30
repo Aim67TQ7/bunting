@@ -6,6 +6,7 @@ import { useState, FormEvent, useRef, ChangeEvent, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { DocumentIntentDialog } from "@/components/chat/document-intent-dialog";
 
 interface ChatInputEnhancedProps {
   onSubmit: (message: string, autoSummarize: boolean, queryType?: string, file?: File) => void;
@@ -41,6 +42,8 @@ export function ChatInputEnhanced({
   const [message, setMessage] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [willAutoSummarize, setWillAutoSummarize] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [showIntentDialog, setShowIntentDialog] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
@@ -117,32 +120,50 @@ export function ChatInputEnhanced({
       });
     }
     
-    // Determine file type and processing approach
-    const fileType = file.type;
-    const isImage = fileType.startsWith('image/');
-    const isPDF = fileType === 'application/pdf';
-    const isDocument = fileType.includes('document') || fileType.includes('text') || 
-                      file.name.endsWith('.txt') || file.name.endsWith('.md') || 
-                      file.name.endsWith('.csv');
-    
-    let processingMessage = "Analyzing file: " + file.name;
-    if (isPDF) {
-      processingMessage = "Processing PDF for OCR and analysis: " + file.name;
-    } else if (isDocument) {
-      processingMessage = "Processing document for analysis: " + file.name;
-    } else if (isImage) {
-      processingMessage = "Analyzing image with vision capabilities: " + file.name;
-    }
-    
-    // Submit with the file - this will automatically route to Claude
-    onSubmit(processingMessage, false, "vision", file);
+    // Store the file and show intent dialog
+    setPendingFile(file);
+    setShowIntentDialog(true);
+    setIsUploading(false);
     
     // Reset the file input
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
+  };
+
+  const handleDocumentIntent = (intent: 'summarize' | 'analyze' | 'parse') => {
+    if (!pendingFile) return;
     
-    setIsUploading(false);
+    const file = pendingFile;
+    let processingMessage = "";
+    let intentMessage = "";
+    
+    switch (intent) {
+      case 'summarize':
+        processingMessage = `Summarizing document: ${file.name}`;
+        intentMessage = "Please provide a comprehensive summary of this document, highlighting the key points, main findings, and important information.";
+        break;
+      case 'analyze':
+        processingMessage = `Analyzing document: ${file.name}`;
+        intentMessage = "Please perform a detailed analysis of this document, extracting insights, identifying patterns, and providing analytical commentary on the content.";
+        break;
+      case 'parse':
+        processingMessage = `Processing document for Q&A: ${file.name}`;
+        intentMessage = "Please parse this document thoroughly so I can ask specific questions about its content. Extract and organize all relevant information for future reference.";
+        break;
+    }
+    
+    // Submit with the file and intent
+    onSubmit(intentMessage, false, "vision", file);
+    
+    // Clean up
+    setPendingFile(null);
+    setShowIntentDialog(false);
+  };
+
+  const handleIntentDialogClose = () => {
+    setShowIntentDialog(false);
+    setPendingFile(null);
   };
   
   const getPlaceholder = () => {
@@ -358,6 +379,13 @@ export function ChatInputEnhanced({
           onChange={handleFileChange}
           className="hidden"
           accept=".pdf,.doc,.docx,.txt,.csv,.xlsx,.json,.md,.png,.jpg,.jpeg,.gif,.webp"
+        />
+        
+        <DocumentIntentDialog
+          open={showIntentDialog}
+          onClose={handleIntentDialogClose}
+          fileName={pendingFile?.name || ""}
+          onIntent={handleDocumentIntent}
         />
       </form>
     </div>
