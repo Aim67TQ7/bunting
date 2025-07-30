@@ -42,6 +42,7 @@ export function ChatInputEnhanced({
   const [isUploading, setIsUploading] = useState(false);
   const [willAutoSummarize, setWillAutoSummarize] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
   
@@ -71,6 +72,11 @@ export function ChatInputEnhanced({
     
     onSubmit(finalMessage, autoSummarize, queryType, null);
     setMessage("");
+    
+    // Focus back to textarea after a brief delay
+    setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 100);
   };
   
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -217,9 +223,35 @@ export function ChatInputEnhanced({
       >
         {/* Left side controls */}
         <div className="flex flex-col gap-2">
-          {/* 2x2 Mode Selection Grid */}
+          {/* 2x3 Mode Selection Grid with Plus and Upload at top */}
           <div className="grid grid-cols-2 gap-1">
-            {/* Top row */}
+            {/* Top row - Plus and Upload */}
+            <Button 
+              type="button" 
+              variant="ghost" 
+              size="icon"
+              onClick={handleNewChat}
+              className="h-8 w-8"
+              title="New Chat"
+            >
+              <Plus className="h-4 w-4" />
+              <span className="sr-only">New Chat</span>
+            </Button>
+
+            <Button 
+              type="button" 
+              variant="ghost" 
+              size="icon"
+              onClick={handleFileUpload}
+              className="h-8 w-8"
+              title="Upload file"
+              disabled={isUploading}
+            >
+              <Upload className="h-4 w-4" />
+              <span className="sr-only">Upload file</span>
+            </Button>
+
+            {/* Middle row - Brain and Eye */}
             <Button 
               type="button" 
               variant="ghost" 
@@ -244,7 +276,7 @@ export function ChatInputEnhanced({
               <span className="sr-only">Vision Analysis</span>
             </Button>
 
-            {/* Bottom row */}
+            {/* Bottom row - Globe and Server */}
             <Button 
               type="button" 
               variant="ghost" 
@@ -269,23 +301,11 @@ export function ChatInputEnhanced({
               <span className="sr-only">Server Mode</span>
             </Button>
           </div>
-
-          {/* Standalone Plus button */}
-          <Button 
-            type="button" 
-            variant="ghost" 
-            size="icon"
-            onClick={handleNewChat}
-            className="h-8 w-8 self-center"
-            title="New Chat"
-          >
-            <Plus className="h-4 w-4" />
-            <span className="sr-only">New Chat</span>
-          </Button>
         </div>
         
         {/* Textarea - 3 lines tall */}
         <Textarea
+          ref={textareaRef}
           placeholder={getPlaceholder()}
           className={cn(
             "min-h-[120px] resize-none flex-1",
@@ -302,21 +322,8 @@ export function ChatInputEnhanced({
           rows={3}
         />
 
-        {/* Right side controls */}
+        {/* Right side controls - Send button only */}
         <div className="flex flex-col gap-2 items-center">
-          <Button 
-            type="button" 
-            variant="ghost" 
-            size="icon"
-            onClick={handleFileUpload}
-            className="h-8 w-8"
-            title="Upload file"
-            disabled={isUploading}
-          >
-            <Upload className="h-4 w-4" />
-            <span className="sr-only">Upload file</span>
-          </Button>
-          
           <Button 
             type="submit" 
             size="icon" 

@@ -52,7 +52,7 @@ Use your enhanced reasoning capabilities to provide the most helpful and accurat
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "o3-mini",
         messages: messagesWithSystem,
         temperature: 0.1,
         max_tokens: 2048
@@ -68,7 +68,7 @@ Use your enhanced reasoning capabilities to provide the most helpful and accurat
     
     return new Response(JSON.stringify({
       content: data.choices[0].message.content,
-      model: "gpt-4o-mini"
+      model: "o3-mini"
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
