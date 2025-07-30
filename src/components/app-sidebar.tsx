@@ -6,7 +6,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { MessageSquare, History, Calculator, LineChart, Grid3X3, FileChartLine, Menu, User, LogOut, BarChart3 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
+import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarTrigger } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useNavigate } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -66,12 +66,15 @@ export function AppSidebar({ className }: AppSidebarProps) {
             <BrandLogo size="sm" />
           </div>
           <div className={cn(
-            "transition-opacity duration-200",
+            "flex-1 transition-opacity duration-200",
             isCollapsed ? "opacity-0" : "opacity-100"
           )}>
             <h1 className="font-semibold text-base">BuntingGPT</h1>
             <p className="text-xs text-muted-foreground">Magnetic Solutions</p>
           </div>
+          {!isMobile && (
+            <SidebarTrigger className="h-8 w-8 rounded-lg hover:bg-accent/50" />
+          )}
         </div>
       </SidebarHeader>
       

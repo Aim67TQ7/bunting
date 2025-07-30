@@ -23,7 +23,7 @@ export function NavItem({ icon: Icon, title, href }: NavItemProps) {
       className={cn(
         "group relative flex flex-col items-center justify-center rounded-xl transition-all duration-200 hover:scale-[1.02]",
         "bg-card border shadow-sm hover:shadow-md",
-        isCollapsed ? "h-12 w-12 p-2" : "h-16 w-full p-3",
+        isCollapsed ? "h-12 w-12 p-2" : "h-12 w-full p-3 flex-row",
         isActive 
           ? "bg-primary/10 border-primary/20 text-primary shadow-lg" 
           : "text-card-foreground hover:bg-accent/50 hover:border-accent"
@@ -31,10 +31,10 @@ export function NavItem({ icon: Icon, title, href }: NavItemProps) {
     >
       <Icon className={cn(
         "transition-all duration-200",
-        isCollapsed ? "h-5 w-5" : "h-6 w-6 mb-1"
+        isCollapsed ? "h-5 w-5" : "h-5 w-5 mr-3"
       )} />
       {!isCollapsed && (
-        <span className="text-xs font-medium text-center leading-tight">
+        <span className="text-sm font-medium">
           {title}
         </span>
       )}
@@ -59,7 +59,7 @@ export function NavSection({ children, title }: { children: React.ReactNode; tit
       <div className={cn(
         isCollapsed 
           ? "flex flex-col items-center gap-2" 
-          : "grid grid-cols-2 gap-2"
+          : "flex flex-col gap-2"
       )}>
         {children}
       </div>
