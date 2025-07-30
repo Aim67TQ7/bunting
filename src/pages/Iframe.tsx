@@ -9,8 +9,9 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 interface TokenMessage {
-  type: 'PROVIDE_TOKEN' | 'REQUEST_TOKEN' | 'TOKEN_RECEIVED';
+  type: 'PROVIDE_TOKEN' | 'REQUEST_TOKEN' | 'TOKEN_RECEIVED' | 'REQUEST_PASSWORD' | 'PROVIDE_PASSWORD';
   token?: string;
+  password?: string;
   origin: string;
   timestamp: number;
 }
@@ -127,6 +128,21 @@ const Iframe = () => {
         
         (event.source as Window)?.postMessage(message, event.origin);
         console.log('Token provided in response to request');
+      } else if (event.data?.type === 'REQUEST_PASSWORD' && token) {
+        // Auto-populate password field with access token
+        const message: TokenMessage = {
+          type: 'PROVIDE_PASSWORD',
+          password: token,
+          origin: window.location.origin,
+          timestamp: Date.now()
+        };
+        
+        (event.source as Window)?.postMessage(message, event.origin);
+        console.log('Password auto-populated with access token');
+        toast({
+          title: "Password auto-filled",
+          description: "Access token has been provided as password",
+        });
       } else if (event.data?.type === 'TOKEN_RECEIVED') {
         console.log('Token received confirmation from iframe');
         toast({
