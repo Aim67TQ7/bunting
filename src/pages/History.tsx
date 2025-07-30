@@ -214,7 +214,7 @@ const History = () => {
   const handleViewConversation = (id: string) => {
     // Clear local storage before loading a new conversation to prevent glitches
     localStorage.removeItem("current_conversation");
-    navigate(`/?conversation=${id}`);
+    navigate(`/chat?conversation=${id}`);
   };
 
   // Handle retrying a conversation load if it failed
