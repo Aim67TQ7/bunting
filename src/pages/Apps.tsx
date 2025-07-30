@@ -115,6 +115,8 @@ const Apps = () => {
                       icon={<Grid3X3 className="h-6 w-6" />}
                       videoUrl={app.video_url}
                       iconPath={app.icon_path}
+                      id={app.id}
+                      sourceTable="applications"
                     />
                   </div>
                 </div>

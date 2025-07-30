@@ -89,6 +89,8 @@ const Reports = () => {
                         icon={<FileChartLine className="h-6 w-6" />}
                         videoUrl={report.video_url}
                         iconPath={report.icon_path}
+                        id={report.id}
+                        sourceTable="reports"
                       />
                     </div>
                   </div>

@@ -13,6 +13,8 @@ interface FlipCardProps {
   videoUrl?: string | null;
   iconPath?: string | null;
   icon?: React.ReactNode;
+  id?: string;
+  sourceTable?: string;
 }
 
 export const FlipCard = ({
@@ -21,7 +23,9 @@ export const FlipCard = ({
   url,
   videoUrl,
   iconPath,
-  icon
+  icon,
+  id,
+  sourceTable
 }: FlipCardProps) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const navigate = useNavigate();
@@ -35,8 +39,14 @@ export const FlipCard = ({
     if (url.startsWith('/iframe')) {
       navigate(url);
     } else if (!url.startsWith('#')) {
-      // If it's not an iframe URL and not a placeholder (#), navigate to iframe
-      navigate(`/iframe?url=${encodeURIComponent(url)}&title=${encodeURIComponent(title)}`);
+      // If it's not an iframe URL and not a placeholder (#), navigate to iframe with source info
+      const params = new URLSearchParams({
+        url: url,
+        title: title,
+        ...(id && { id }),
+        ...(sourceTable && { sourceTable })
+      });
+      navigate(`/iframe?${params.toString()}`);
     }
   };
 

@@ -64,9 +64,11 @@ const Calculators = () => {
                   key={calc.id}
                   title={calc.name}
                   description={calc.description}
-                  url={`/iframe?url=${calc.url}&title=${calc.name}`}
+                  url={calc.url}
                   icon={<Calculator className="h-6 w-6" />}
                   videoUrl={calc.video_url}
+                  id={calc.id}
+                  sourceTable="calculators"
                 />
               ))}
             </div>

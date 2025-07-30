@@ -82,6 +82,8 @@ const Sales = () => {
                       icon={<DollarSign className="h-6 w-6" />}
                       videoUrl={item.video_url}
                       iconPath={item.icon_path}
+                      id={item.id}
+                      sourceTable="sales_tools"
                     />
                   </div>
                 </div>

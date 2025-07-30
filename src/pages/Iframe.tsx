@@ -6,25 +6,75 @@ import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Download } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const Iframe = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [url, setUrl] = useState<string>("");
   const [title, setTitle] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(true);
   
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const urlParam = params.get("url");
-    const titleParam = params.get("title");
+    const loadUrlWithToken = async () => {
+      const params = new URLSearchParams(location.search);
+      const urlParam = params.get("url");
+      const titleParam = params.get("title");
+      const id = params.get("id");
+      const sourceTable = params.get("sourceTable");
+      
+      if (titleParam) {
+        setTitle(titleParam);
+      }
+      
+      if (urlParam) {
+        let finalUrl = urlParam;
+        
+        // If we have source table and ID, try to get token from database
+        if (id && sourceTable) {
+          try {
+            let token = null;
+            
+            // Handle different table schemas
+            if (sourceTable === 'reports') {
+              const { data, error } = await supabase
+                .from('reports')
+                .select('access_token')
+                .eq('id', id)
+                .single();
+              
+              if (!error && data && 'access_token' in data) {
+                token = (data as any).access_token;
+              }
+            } else if (sourceTable === 'sales_tools') {
+              const { data, error } = await supabase
+                .from('sales_tools')
+                .select('token')
+                .eq('id', id)
+                .single();
+              
+              if (!error && data && 'token' in data) {
+                token = (data as any).token;
+              }
+            }
+            
+            if (token) {
+              // Append token to URL
+              const separator = finalUrl.includes('?') ? '&' : '?';
+              finalUrl = `${finalUrl}${separator}token=${encodeURIComponent(token)}`;
+            }
+          } catch (error) {
+            console.warn('Error fetching token:', error);
+          }
+        }
+        
+        setUrl(finalUrl);
+      }
+      
+      setLoading(false);
+    };
     
-    if (urlParam) {
-      setUrl(urlParam);
-    }
-    
-    if (titleParam) {
-      setTitle(titleParam);
-    }
+    loadUrlWithToken();
   }, [location]);
   
   const handleBack = () => {
@@ -72,7 +122,11 @@ const Iframe = () => {
         </div>
         
         <div className="flex-1 overflow-hidden">
-          {url ? (
+          {loading ? (
+            <div className="flex items-center justify-center h-full">
+              <p>Loading...</p>
+            </div>
+          ) : url ? (
             <iframe
               src={url}
               className="w-full h-full border-none"
