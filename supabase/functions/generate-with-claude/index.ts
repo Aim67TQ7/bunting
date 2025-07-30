@@ -21,6 +21,7 @@ serve(async (req) => {
     }
 
     console.log(`Processing Claude request for user ${userId}, conversation ${conversationId || 'new'}`);
+    console.log(`API Key present: ${!!ANTHROPIC_API_KEY}, starts with sk-ant-: ${ANTHROPIC_API_KEY?.startsWith('sk-ant-')}`);
 
     // Product information context
     const productContext = `
@@ -123,11 +124,11 @@ ${productContext}`;
         "anthropic-version": "2023-06-01"
       },
       body: JSON.stringify({
-        model: "claude-3-5-sonnet-20241022",
+        model: "claude-sonnet-4-20250514",
         system: systemMessage,
         messages: claudeMessages,
         temperature: 0.1,
-        max_tokens: 2048
+        max_tokens: 4096
       })
     });
 
