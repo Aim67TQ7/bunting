@@ -41,6 +41,78 @@ export type Database = {
         }
         Relationships: []
       }
+      app_items: {
+        Row: {
+          access_token: string | null
+          auth_passcode: string | null
+          auth_type: string | null
+          category: Database["public"]["Enums"]["app_type"]
+          coming_soon: boolean | null
+          created_at: string | null
+          description: string
+          icon_path: string | null
+          id: string
+          iframe_height: string | null
+          is_active: boolean | null
+          is_new: boolean | null
+          license: string | null
+          name: string
+          requires_auth: boolean | null
+          token: string | null
+          updated_at: string | null
+          url: string
+          use_count: number | null
+          video_url: string | null
+          view_count: number | null
+        }
+        Insert: {
+          access_token?: string | null
+          auth_passcode?: string | null
+          auth_type?: string | null
+          category: Database["public"]["Enums"]["app_type"]
+          coming_soon?: boolean | null
+          created_at?: string | null
+          description: string
+          icon_path?: string | null
+          id?: string
+          iframe_height?: string | null
+          is_active?: boolean | null
+          is_new?: boolean | null
+          license?: string | null
+          name: string
+          requires_auth?: boolean | null
+          token?: string | null
+          updated_at?: string | null
+          url: string
+          use_count?: number | null
+          video_url?: string | null
+          view_count?: number | null
+        }
+        Update: {
+          access_token?: string | null
+          auth_passcode?: string | null
+          auth_type?: string | null
+          category?: Database["public"]["Enums"]["app_type"]
+          coming_soon?: boolean | null
+          created_at?: string | null
+          description?: string
+          icon_path?: string | null
+          id?: string
+          iframe_height?: string | null
+          is_active?: boolean | null
+          is_new?: boolean | null
+          license?: string | null
+          name?: string
+          requires_auth?: boolean | null
+          token?: string | null
+          updated_at?: string | null
+          url?: string
+          use_count?: number | null
+          video_url?: string | null
+          view_count?: number | null
+        }
+        Relationships: []
+      }
       applications: {
         Row: {
           auth_passcode: string | null
@@ -2254,6 +2326,7 @@ export type Database = {
       }
     }
     Enums: {
+      app_type: "application" | "calculator" | "sales_tool" | "report"
       document_type: "contact" | "company" | "sales" | "purchase_order"
       function_type:
         | "magnetism_calculator"
@@ -2402,6 +2475,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_type: ["application", "calculator", "sales_tool", "report"],
       document_type: ["contact", "company", "sales", "purchase_order"],
       function_type: [
         "magnetism_calculator",
