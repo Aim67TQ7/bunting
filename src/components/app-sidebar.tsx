@@ -51,17 +51,31 @@ export function AppSidebar({ className }: AppSidebarProps) {
       variant="sidebar" 
       collapsible={collapsibleMode}
     >
-      <SidebarHeader className="px-2 py-3">
-        <div className="flex items-center gap-2">
-          <BrandLogo size="md" />
-          <div>
-            <h1 className="font-semibold text-lg">BuntingGPT</h1>
-            <p className="text-xs text-sidebar-foreground/60">Magnetic Solutions</p>
+      <SidebarHeader className={cn(
+        "transition-all duration-200 border-b bg-background/95 backdrop-blur",
+        isMobile ? "px-4 py-3" : "px-3 py-4"
+      )}>
+        <div className={cn(
+          "flex items-center transition-all duration-200",
+          isMobile ? "gap-3" : "gap-2"
+        )}>
+          <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
+            <BrandLogo size="sm" />
+          </div>
+          <div className={cn(
+            "transition-opacity duration-200",
+            collapsibleMode === "icon" && !isMobile ? "opacity-0" : "opacity-100"
+          )}>
+            <h1 className="font-semibold text-base">BuntingGPT</h1>
+            <p className="text-xs text-muted-foreground">Magnetic Solutions</p>
           </div>
         </div>
       </SidebarHeader>
       
-      <SidebarContent className="px-2">
+      <SidebarContent className={cn(
+        "transition-all duration-200",
+        isMobile ? "px-4 py-2" : "px-3 py-4"
+      )}>
         <NavSection title="Assistant">
           <NavItem icon={BarChart3} title="Dashboard" href="/" />
           <NavItem icon={MessageSquare} title="Chat" href="/chat" />
@@ -76,50 +90,69 @@ export function AppSidebar({ className }: AppSidebarProps) {
         </NavSection>
       </SidebarContent>
       
-      <SidebarFooter className="mt-auto">
-        <div className="mt-3 px-2">
-          <div className="rounded-md bg-sidebar-accent/50 p-3">
-            <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10 border-2 border-primary/10">
-                <AvatarFallback>{userInitials || "U"}</AvatarFallback>
-              </Avatar>
-              <div>
-                <div className="font-medium text-sm truncate max-w-[140px]">
-                  {userDisplayName}
+      <SidebarFooter className="mt-auto border-t bg-background/95 backdrop-blur">
+        <div className={cn(
+          "transition-all duration-200",
+          isMobile ? "p-4" : "p-3"
+        )}>
+          {/* User Profile Card */}
+          <div className="mb-3">
+            <div className={cn(
+              "rounded-xl bg-card border shadow-sm p-3 transition-all duration-200",
+              collapsibleMode === "icon" && !isMobile ? "flex justify-center" : ""
+            )}>
+              {collapsibleMode === "icon" && !isMobile ? (
+                <Avatar className="h-8 w-8 border-2 border-primary/10">
+                  <AvatarFallback className="text-xs">{userInitials || "U"}</AvatarFallback>
+                </Avatar>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-10 w-10 border-2 border-primary/10">
+                    <AvatarFallback>{userInitials || "U"}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-sm truncate">
+                      {userDisplayName}
+                    </div>
+                    <div className="text-xs text-muted-foreground truncate">
+                      {user?.email || "Bunting User"}
+                    </div>
+                  </div>
                 </div>
-                <div className="text-xs text-sidebar-foreground/70 truncate max-w-[140px]">
-                  {user?.email || "Bunting User"}
-                </div>
-              </div>
+              )}
             </div>
           </div>
-        </div>
-        
-        <Separator className="my-2" />
-        
-        <div className="flex justify-between items-center px-2 py-1">
-          <ThemeToggle />
           
-          <div className="flex items-center gap-1">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-9 w-9" 
-              aria-label="Settings"
-              onClick={handleSettingsClick}
-            >
-              <User className="h-4 w-4" />
-            </Button>
+          {/* Action Cards */}
+          <div className={cn(
+            "flex gap-2",
+            collapsibleMode === "icon" && !isMobile ? "flex-col items-center" : "justify-between"
+          )}>
+            <div className="p-2 rounded-lg bg-card border shadow-sm hover:shadow-md transition-all duration-200 hover:scale-[1.02]">
+              <ThemeToggle />
+            </div>
             
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-9 w-9" 
-              aria-label="Sign out"
-              onClick={handleSignOutClick}
-            >
-              <LogOut className="h-4 w-4" />
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-9 w-9 rounded-lg bg-card border shadow-sm hover:shadow-md transition-all duration-200 hover:scale-[1.02]" 
+                aria-label="Settings"
+                onClick={handleSettingsClick}
+              >
+                <User className="h-4 w-4" />
+              </Button>
+              
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-9 w-9 rounded-lg bg-card border shadow-sm hover:shadow-md transition-all duration-200 hover:scale-[1.02]" 
+                aria-label="Sign out"
+                onClick={handleSignOutClick}
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </SidebarFooter>

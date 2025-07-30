@@ -14,38 +14,54 @@ export function NavItem({ icon: Icon, title, href }: NavItemProps) {
   const { pathname } = useLocation();
   const { state } = useSidebar();
   const isActive = pathname === href;
+  const isCollapsed = state === "collapsed";
   
   return (
     <Link
       to={href}
       className={cn(
-        "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-        isActive ? 
-          "bg-sidebar-accent text-sidebar-accent-foreground" : 
-          "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+        "group relative flex flex-col items-center justify-center rounded-xl transition-all duration-200 hover:scale-[1.02]",
+        "bg-card border shadow-sm hover:shadow-md",
+        isCollapsed ? "h-12 w-12 p-2" : "h-16 w-full p-3",
+        isActive 
+          ? "bg-primary/10 border-primary/20 text-primary shadow-lg" 
+          : "text-card-foreground hover:bg-accent/50 hover:border-accent"
       )}
     >
-      <Icon className="h-5 w-5" />
-      <span className={cn(
-        "transition-opacity", 
-        state === "collapsed" ? "opacity-0" : "opacity-100"
-      )}>{title}</span>
+      <Icon className={cn(
+        "transition-all duration-200",
+        isCollapsed ? "h-5 w-5" : "h-6 w-6 mb-1"
+      )} />
+      {!isCollapsed && (
+        <span className="text-xs font-medium text-center leading-tight">
+          {title}
+        </span>
+      )}
     </Link>
   );
 }
 
 export function NavSection({ children, title }: { children: React.ReactNode; title: string }) {
   const { state } = useSidebar();
+  const isCollapsed = state === "collapsed";
   
   return (
-    <div className="space-y-1 mb-4">
-      <h3 className={cn(
-        "mx-3 text-xs font-medium text-sidebar-foreground/60 transition-opacity", 
-        state === "collapsed" ? "opacity-0" : "opacity-100"
+    <div className={cn(
+      "space-y-2 mb-6",
+      isCollapsed ? "flex flex-col items-center" : ""
+    )}>
+      {!isCollapsed && (
+        <h3 className="px-3 text-xs font-medium text-muted-foreground/80 mb-3">
+          {title}
+        </h3>
+      )}
+      <div className={cn(
+        isCollapsed 
+          ? "flex flex-col items-center gap-2" 
+          : "grid grid-cols-2 gap-2"
       )}>
-        {title}
-      </h3>
-      {children}
+        {children}
+      </div>
     </div>
   );
 }
