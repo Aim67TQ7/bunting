@@ -34,10 +34,11 @@ const Apps = () => {
         setLoading(true);
         setError(null);
         
-        const { data, error } = await supabase
-          .from("applications")
+        const { data, error } = await (supabase as any)
+          .from("app_items")
           .select("*")
-          .eq("is_active", true);
+          .eq("is_active", true)
+          .eq("category", "application");
         
         if (error) {
           throw error;
@@ -116,7 +117,7 @@ const Apps = () => {
                       videoUrl={app.video_url}
                       iconPath={app.icon_path}
                       id={app.id}
-                      sourceTable="applications"
+                      sourceTable="app_items"
                     />
                   </div>
                 </div>

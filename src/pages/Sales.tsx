@@ -24,10 +24,11 @@ const Sales = () => {
   useEffect(() => {
     async function fetchSalesData() {
       try {
-        const { data, error } = await supabase
-          .from("sales_tools")
+        const { data, error } = await (supabase as any)
+          .from("app_items")
           .select("*")
-          .eq("is_active", true);
+          .eq("is_active", true)
+          .eq("category", "sales_tool");
         
         if (error) {
           throw error;
@@ -83,7 +84,7 @@ const Sales = () => {
                       videoUrl={item.video_url}
                       iconPath={item.icon_path}
                       id={item.id}
-                      sourceTable="sales_tools"
+                      sourceTable="app_items"
                     />
                   </div>
                 </div>

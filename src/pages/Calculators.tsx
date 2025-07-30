@@ -22,10 +22,11 @@ const Calculators = () => {
   useEffect(() => {
     async function fetchCalculators() {
       try {
-        const { data, error } = await supabase
-          .from("calculators")
+        const { data, error } = await (supabase as any)
+          .from("app_items")
           .select("*")
-          .eq("is_active", true);
+          .eq("is_active", true)
+          .eq("category", "calculator");
 
         if (error) throw error;
         
@@ -68,7 +69,7 @@ const Calculators = () => {
                   icon={<Calculator className="h-6 w-6" />}
                   videoUrl={calc.video_url}
                   id={calc.id}
-                  sourceTable="calculators"
+                  sourceTable="app_items"
                 />
               ))}
             </div>

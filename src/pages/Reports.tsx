@@ -27,10 +27,11 @@ const Reports = () => {
   useEffect(() => {
     async function fetchReports() {
       try {
-        const { data, error } = await supabase
-          .from("reports")
+        const { data, error } = await (supabase as any)
+          .from("app_items")
           .select("*")
-          .eq("is_active", true);
+          .eq("is_active", true)
+          .eq("category", "report");
         
         if (error) {
           throw error;
@@ -90,7 +91,7 @@ const Reports = () => {
                         videoUrl={report.video_url}
                         iconPath={report.icon_path}
                         id={report.id}
-                        sourceTable="reports"
+                        sourceTable="app_items"
                       />
                     </div>
                   </div>
