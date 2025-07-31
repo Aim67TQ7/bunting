@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { useToast } from "@/hooks/use-toast";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -13,6 +13,8 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { ProfilePicture } from "@/components/settings/ProfilePicture";
+import { supabase } from "@/integrations/supabase/client";
 
 // Modified schema to remove current password requirement since user is already authenticated
 const passwordSchema = z.object({
@@ -26,8 +28,35 @@ const passwordSchema = z.object({
 export default function Settings() {
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [profile, setProfile] = useState<any>(null);
   const { toast } = useToast();
   const { user, updatePassword } = useAuth();
+
+  // Fetch user profile data
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user?.id) return;
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return;
+      }
+      
+      setProfile(data);
+    };
+
+    fetchProfile();
+  }, [user?.id]);
+
+  const handleAvatarUpdate = (newAvatarUrl: string) => {
+    setProfile((prev: any) => prev ? { ...prev, avatar_url: newAvatarUrl } : null);
+  };
   
   const passwordForm = useForm<z.infer<typeof passwordSchema>>({
     resolver: zodResolver(passwordSchema),
@@ -84,6 +113,14 @@ export default function Settings() {
             <div className="mx-auto max-w-2xl space-y-6">
               {user ? (
                 <>
+                  <ProfilePicture 
+                    userId={user.id}
+                    avatarUrl={profile?.avatar_url}
+                    firstName={profile?.first_name}
+                    email={user.email}
+                    onAvatarUpdate={handleAvatarUpdate}
+                  />
+                  
                   <Card>
                     <CardHeader>
                       <CardTitle>Account Information</CardTitle>

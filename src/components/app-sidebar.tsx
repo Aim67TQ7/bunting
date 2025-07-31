@@ -7,11 +7,13 @@ import { MessageSquare, History, Calculator, LineChart, Grid3X3, FileChartLine, 
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarTrigger } from "@/components/ui/sidebar";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useNavigate } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSidebar } from "@/components/ui/sidebar";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AppSidebarProps {
   className?: string;
@@ -22,6 +24,29 @@ export function AppSidebar({ className }: AppSidebarProps) {
   const isMobile = useIsMobile();
   const { user, signOut } = useAuth();
   const { state, open } = useSidebar();
+  const [profile, setProfile] = useState<any>(null);
+
+  // Fetch user profile data
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user?.id) return;
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return;
+      }
+      
+      setProfile(data);
+    };
+
+    fetchProfile();
+  }, [user?.id]);
 
   const handleSettingsClick = () => {
     navigate("/settings");
@@ -32,10 +57,11 @@ export function AppSidebar({ className }: AppSidebarProps) {
     navigate("/auth");
   };
 
-  // Extract email username for display
-  const userDisplayName = user?.email 
-    ? user.email.split('@')[0].split('.').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')
-    : "Guest User";
+  // Extract email username for display, but prefer profile first_name or call_name
+  const userDisplayName = profile?.first_name || profile?.call_name || 
+    (user?.email 
+      ? user.email.split('@')[0].split('.').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')
+      : "Guest User");
 
   // Get initials for avatar
   const userInitials = userDisplayName
@@ -109,11 +135,13 @@ export function AppSidebar({ className }: AppSidebarProps) {
             )}>
               {isCollapsed ? (
                 <Avatar className="h-8 w-8 border-2 border-primary/10">
+                  <AvatarImage src={profile?.avatar_url || ""} alt={userDisplayName} />
                   <AvatarFallback className="text-xs">{userInitials || "U"}</AvatarFallback>
                 </Avatar>
               ) : (
                 <div className="flex items-center gap-3">
                   <Avatar className="h-10 w-10 border-2 border-primary/10">
+                    <AvatarImage src={profile?.avatar_url || ""} alt={userDisplayName} />
                     <AvatarFallback>{userInitials || "U"}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
