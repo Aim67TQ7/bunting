@@ -222,11 +222,21 @@ export default function Auth() {
     const { error } = await signUpWithEmailOnly(values.email);
     
     if (error) {
-      toast({
-        title: "Signup failed",
-        description: error.message,
-        variant: "destructive",
-      });
+      if (error.message === "EXISTING_USER") {
+        // User already exists, redirect to login
+        loginForm.setValue("email", values.email);
+        setAuthMode("login");
+        toast({
+          title: "Account Found",
+          description: error.details || "An account with this email already exists. Please sign in instead.",
+        });
+      } else {
+        toast({
+          title: "Signup failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
     } else {
       toast({
         title: "Verification code sent",
