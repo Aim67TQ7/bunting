@@ -1463,9 +1463,7 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
-          call_name: string | null
           created_at: string
-          email: string | null
           encryption_salt: string | null
           first_name: string | null
           id: string
@@ -1473,9 +1471,7 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
-          call_name?: string | null
           created_at?: string
-          email?: string | null
           encryption_salt?: string | null
           first_name?: string | null
           id: string
@@ -1483,9 +1479,7 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
-          call_name?: string | null
           created_at?: string
-          email?: string | null
           encryption_salt?: string | null
           first_name?: string | null
           id?: string
