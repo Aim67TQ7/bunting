@@ -1493,6 +1493,7 @@ export type Database = {
           call_name: string | null
           created_at: string
           email: string | null
+          encryption_salt: string | null
           first_name: string | null
           id: string
           updated_at: string
@@ -1502,6 +1503,7 @@ export type Database = {
           call_name?: string | null
           created_at?: string
           email?: string | null
+          encryption_salt?: string | null
           first_name?: string | null
           id: string
           updated_at?: string
@@ -1511,6 +1513,7 @@ export type Database = {
           call_name?: string | null
           created_at?: string
           email?: string | null
+          encryption_salt?: string | null
           first_name?: string | null
           id?: string
           updated_at?: string

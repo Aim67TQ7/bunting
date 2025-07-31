@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Message } from '@/types/chat';
 import { useAuth } from '@/contexts/AuthContext';
+import { encryptConversationContent, decryptConversationContent } from '@/utils/encryption';
 
 // Helper function to prepare message for JSON storage
 const prepareMessagesForStorage = (messages: Message[]) => {
@@ -31,6 +32,8 @@ export function useConversationPersistence() {
         // Create conversation entry or update
         let convoId = conversationId;
         const preparedMessages = prepareMessagesForStorage(messages);
+        // Encrypt the messages before saving
+        const encryptedMessages = await encryptConversationContent(preparedMessages, user.id);
         
         if (isNew || !convoId) {
           // Use the manage-conversations edge function to save the conversation
@@ -39,7 +42,7 @@ export function useConversationPersistence() {
               action: 'saveConversation',
               data: {
                 id: uuidv4(), // This will be a new conversation
-                messages: preparedMessages,
+                messages: encryptedMessages,
                 topic: topic
               }
             }
@@ -54,7 +57,7 @@ export function useConversationPersistence() {
               action: 'saveConversation',
               data: {
                 id: convoId,
-                messages: preparedMessages,
+                messages: encryptedMessages,
                 topic: topic
               }
             }
@@ -92,8 +95,11 @@ export function useConversationPersistence() {
         if (error) throw error;
         
         if (data) {
+          // Decrypt the messages first
+          const decryptedMessages = await decryptConversationContent(data.messages, user.id);
+          
           // Transform ISO date strings back to Date objects
-          const loadedMessages = Array.isArray(data.messages) ? data.messages.map((msg: any) => ({
+          const loadedMessages = Array.isArray(decryptedMessages) ? decryptedMessages.map((msg: any) => ({
             ...msg,
             timestamp: new Date(msg.timestamp)
           })) : [];
