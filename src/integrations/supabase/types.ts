@@ -212,33 +212,6 @@ export type Database = {
         }
         Relationships: []
       }
-      baq_registry: {
-        Row: {
-          baq_name: string
-          command: string
-          description: string | null
-          id: string
-          last_refreshed_at: string | null
-          refresh_enabled: boolean | null
-        }
-        Insert: {
-          baq_name: string
-          command: string
-          description?: string | null
-          id?: string
-          last_refreshed_at?: string | null
-          refresh_enabled?: boolean | null
-        }
-        Update: {
-          baq_name?: string
-          command?: string
-          description?: string | null
-          id?: string
-          last_refreshed_at?: string | null
-          refresh_enabled?: boolean | null
-        }
-        Relationships: []
-      }
       baq_stoplight: {
         Row: {
           Asm: number | null
