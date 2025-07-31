@@ -7,10 +7,12 @@ interface AuthContextType {
   user: any;
   isLoading: boolean;
   signUp: (email: string, password: string) => Promise<{ error: any | null }>;
+  signUpWithEmailOnly: (email: string) => Promise<{ error: any | null }>;
   signIn: (email: string, password: string) => Promise<{ error: any | null }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: any | null }>;
   verifyOtpAndUpdatePassword: (email: string, token: string, password: string) => Promise<{ error: any | null }>;
+  verifyOtpAndCreateAccount: (email: string, token: string, password: string) => Promise<{ error: any | null }>;
   updatePassword: (password: string) => Promise<{ error: any | null }>;
 }
 
@@ -19,10 +21,12 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   isLoading: true,
   signUp: async () => ({ error: null }),
+  signUpWithEmailOnly: async () => ({ error: null }),
   signIn: async () => ({ error: null }),
   signOut: async () => {},
   resetPassword: async () => ({ error: null }),
   verifyOtpAndUpdatePassword: async () => ({ error: null }),
+  verifyOtpAndCreateAccount: async () => ({ error: null }),
   updatePassword: async () => ({ error: null }),
 });
 
@@ -208,6 +212,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Email-only signup - uses reset password flow for new accounts
+  const signUpWithEmailOnly = async (email: string) => {
+    if (!isValidBuntingEmail(email)) {
+      return { error: { message: "Only buntingmagnetics.com email addresses are allowed" } };
+    }
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: undefined, // Don't use redirect for OTP flow
+      });
+
+      if (error) {
+        return { error };
+      }
+      
+      return { error: null };
+    } catch (error) {
+      return { error };
+    }
+  };
+
+  // Verify OTP and create new account with password
+  const verifyOtpAndCreateAccount = async (email: string, token: string, password: string) => {
+    try {
+      // First verify the OTP
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        email,
+        token,
+        type: 'recovery'
+      });
+
+      if (verifyError) {
+        return { error: verifyError };
+      }
+
+      // Then update the password (this creates the account)
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: password
+      });
+
+      if (updateError) {
+        return { error: updateError };
+      }
+      
+      return { error: null };
+    } catch (error) {
+      return { error };
+    }
+  };
+
   // Update password for authenticated users
   const updatePassword = async (password: string) => {
     try {
@@ -229,10 +283,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user,
     isLoading,
     signUp,
+    signUpWithEmailOnly,
     signIn,
     signOut,
     resetPassword,
     verifyOtpAndUpdatePassword,
+    verifyOtpAndCreateAccount,
     updatePassword,
   };
 
