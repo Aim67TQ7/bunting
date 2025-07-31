@@ -98,9 +98,7 @@ export function AppSidebar({ className }: AppSidebarProps) {
             <h1 className="font-semibold text-base">BuntingGPT</h1>
             <p className="text-xs text-muted-foreground">Magnetic Solutions</p>
           </div>
-          {!isMobile && (
-            <SidebarTrigger className="h-8 w-8 rounded-lg hover:bg-accent/50" />
-          )}
+          <SidebarTrigger className="h-8 w-8 rounded-lg hover:bg-accent/50" />
         </div>
       </SidebarHeader>
       
