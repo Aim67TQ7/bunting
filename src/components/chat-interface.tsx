@@ -172,10 +172,8 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
     }
     setServerEnabled(!serverEnabled);
     toast({
-      title: serverEnabled ? "Server embeddings mode disabled" : "Server embeddings mode enabled",
-      description: serverEnabled 
-        ? "The AI will use standard processing without knowledge retrieval."
-        : "The AI will query the embeddings database for relevant knowledge before responding.",
+      title: "Server embeddings mode - Development in Process",
+      description: "This feature is currently under development and inactive.",
       duration: 3000
     });
   };

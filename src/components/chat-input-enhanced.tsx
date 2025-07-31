@@ -177,7 +177,7 @@ export function ChatInputEnhanced({
       return "Send a message (web search enabled)...";
     }
     if (serverEnabled) {
-      return "Send a message (server embeddings mode enabled)...";
+      return "Send a message (server embeddings mode - development in process)...";
     }
     return "Send a message... (& to auto-summarize)";
   };
@@ -245,9 +245,9 @@ export function ChatInputEnhanced({
       )}
 
       {serverEnabled && !willAutoSummarize && !o3Enabled && !visionEnabled && !webEnabled && (
-        <div className="flex items-center px-4 py-2 text-xs bg-orange-100 dark:bg-orange-900/20 text-orange-800 dark:text-orange-300 rounded-t-md mx-4 mb-0 mt-2">
+        <div className="flex items-center px-4 py-2 text-xs bg-gray-100 dark:bg-gray-800/40 text-gray-600 dark:text-gray-400 rounded-t-md mx-4 mb-0 mt-2">
           <Info className="h-3 w-3 mr-1.5" />
-          <span>Server embeddings mode is enabled for knowledge retrieval</span>
+          <span>Server embeddings mode - Development in Process (Inactive)</span>
         </div>
       )}
       
@@ -332,11 +332,12 @@ export function ChatInputEnhanced({
               variant="ghost" 
               size="icon"
               onClick={handleServerToggle}
-              className={cn("h-8 w-8", serverEnabled ? "bg-orange-100 text-orange-600 dark:bg-orange-900/40 dark:text-orange-400" : "")}
-              title={serverEnabled ? "Server Embeddings Mode Enabled" : "Enable Server Embeddings Mode"}
+              className={cn("h-8 w-8 opacity-50 cursor-not-allowed", serverEnabled ? "bg-gray-100 text-gray-500 dark:bg-gray-800/40 dark:text-gray-400" : "")}
+              title="Server Embeddings Mode - Development in Process"
+              disabled
             >
               <Server className="h-4 w-4" />
-              <span className="sr-only">Server Mode</span>
+              <span className="sr-only">Server Mode (Development)</span>
             </Button>
           </div>
         </div>
