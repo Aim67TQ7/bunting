@@ -141,37 +141,71 @@ async function loadConversation(supabase, conversationId, userId) {
     throw new Error("Conversation not found");
   }
   
-  // Process dates to ensure they're properly formatted
-  const processedMessages = data.content ? data.content.map(msg => ({
-    ...msg,
-    timestamp: msg.timestamp // Already stored as ISO string 
-  })) : [];
+  // Handle both encrypted (string) and unencrypted (array) content
+  let messagesToReturn;
+  
+  if (typeof data.content === 'string') {
+    // Return encrypted content as-is - client will decrypt
+    messagesToReturn = data.content;
+  } else if (Array.isArray(data.content)) {
+    // Process unencrypted array - ensure timestamps are properly formatted
+    messagesToReturn = data.content.map(msg => ({
+      ...msg,
+      timestamp: msg.timestamp // Already stored as ISO string 
+    }));
+  } else {
+    // Handle null or empty content
+    messagesToReturn = [];
+  }
   
   return { 
     id: conversationId, 
     topic: data.topic, 
-    messages: processedMessages 
+    messages: messagesToReturn 
   };
 }
 
 async function saveConversation(supabase, conversationData, userId) {
   const { id, messages, topic } = conversationData;
-  console.log(`Saving conversation ${id} for user ${userId} with ${messages?.length} messages`);
   
-  if (!id || !messages || !Array.isArray(messages) || messages.length === 0) {
-    console.error("Invalid conversation data:", { id, messagesLength: messages?.length });
+  // Handle both encrypted (string) and unencrypted (array) messages
+  const isEncrypted = typeof messages === 'string';
+  const messagesLength = isEncrypted ? 'encrypted' : messages?.length;
+  
+  console.log(`Saving conversation ${id} for user ${userId} with ${messagesLength} messages`);
+  
+  if (!id || !messages) {
+    console.error("Invalid conversation data:", { id, messagesType: typeof messages, messagesLength });
     throw new Error("Invalid conversation data provided");
   }
   
-  // Prepare messages for storage (ensure timestamps are ISO strings)
-  const processedMessages = messages.map(msg => ({
-    id: msg.id,
-    role: msg.role,
-    content: msg.content,
-    timestamp: typeof msg.timestamp === 'string' ? msg.timestamp : new Date(msg.timestamp).toISOString(),
-    autoSummarize: msg.autoSummarize || false,
-    queryType: msg.queryType || null
-  }));
+  // For encrypted data, store as-is. For unencrypted, process the array
+  let contentToStore;
+  let topicToUse = topic;
+  
+  if (isEncrypted) {
+    // Store encrypted string directly
+    contentToStore = messages;
+    topicToUse = topic || "New Conversation";
+  } else {
+    // Validate array and process messages
+    if (!Array.isArray(messages) || messages.length === 0) {
+      console.error("Invalid unencrypted conversation data:", { id, messagesLength: messages?.length });
+      throw new Error("Invalid conversation data provided");
+    }
+    
+    // Prepare messages for storage (ensure timestamps are ISO strings)
+    contentToStore = messages.map(msg => ({
+      id: msg.id,
+      role: msg.role,
+      content: msg.content,
+      timestamp: typeof msg.timestamp === 'string' ? msg.timestamp : new Date(msg.timestamp).toISOString(),
+      autoSummarize: msg.autoSummarize || false,
+      queryType: msg.queryType || null
+    }));
+    
+    topicToUse = topic || contentToStore[0]?.content?.slice(0, 100) || "New Conversation";
+  }
 
   try {
     // Use upsert to handle both new and existing conversations
@@ -180,8 +214,8 @@ async function saveConversation(supabase, conversationData, userId) {
       .upsert({
         id: id,
         user_id: userId,
-        topic: topic || processedMessages[0]?.content?.slice(0, 100) || "New Conversation",
-        content: processedMessages,
+        topic: topicToUse,
+        content: contentToStore,
         last_message_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }, {
