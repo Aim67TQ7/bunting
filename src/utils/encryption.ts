@@ -98,35 +98,31 @@ export async function getUserEncryptionSalt(userId: string): Promise<Uint8Array>
   return new Uint8Array(atob(profile.encryption_salt).split('').map(c => c.charCodeAt(0)));
 }
 
-// Create encryption key for user (using their session as password)
+// Create encryption key for user using a dedicated encryption password
 export async function createUserEncryptionKey(userId: string): Promise<CryptoKey> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.access_token) {
     throw new Error('No active session for encryption key generation');
   }
 
+  // Use a combination of user ID and session for better security
+  const encryptionPassword = `${userId}:${session.access_token}:encryption`;
   const salt = await getUserEncryptionSalt(userId);
-  return deriveKey(session.access_token, salt);
+  return deriveKey(encryptionPassword, salt);
 }
 
 // Encrypt conversation content
 export async function encryptConversationContent(content: any, userId: string): Promise<string> {
-  try {
-    const key = await createUserEncryptionKey(userId);
-    const contentString = JSON.stringify(content);
-    const encrypted = await encryptData(contentString, key);
-    return JSON.stringify(encrypted);
-  } catch (error) {
-    console.error('Error encrypting conversation content:', error);
-    // Fallback to unencrypted for backward compatibility
-    return JSON.stringify(content);
-  }
+  const key = await createUserEncryptionKey(userId);
+  const contentString = JSON.stringify(content);
+  const encrypted = await encryptData(contentString, key);
+  return JSON.stringify(encrypted);
 }
 
 // Decrypt conversation content
 export async function decryptConversationContent(encryptedContent: string, userId: string): Promise<any> {
   try {
-    // Try to parse as encrypted data
+    // Parse as encrypted data
     const encryptedData = JSON.parse(encryptedContent) as EncryptedData;
     
     // Check if this looks like encrypted data
@@ -135,17 +131,12 @@ export async function decryptConversationContent(encryptedContent: string, userI
       const decryptedString = await decryptData(encryptedData, key);
       return JSON.parse(decryptedString);
     } else {
-      // Fallback - assume it's unencrypted legacy data
+      // Legacy unencrypted data - return as is but log warning
+      console.warn('Found unencrypted conversation data - this should be migrated');
       return encryptedData;
     }
   } catch (error) {
     console.error('Error decrypting conversation content:', error);
-    // If decryption fails, try to parse as plain JSON (backward compatibility)
-    try {
-      return JSON.parse(encryptedContent);
-    } catch {
-      console.error('Failed to parse content as JSON');
-      return null;
-    }
+    throw new Error('Failed to decrypt conversation content');
   }
 }
