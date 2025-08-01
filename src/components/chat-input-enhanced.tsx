@@ -307,11 +307,12 @@ export function ChatInputEnhanced({
               variant="ghost" 
               size="icon"
               onClick={handleVisionToggle}
-              className={cn("h-8 w-8", visionEnabled ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400" : "")}
-              title={visionEnabled ? "Vision Analysis Mode Enabled" : "Enable Vision Analysis Mode"}
+              className={cn("h-8 w-8 opacity-50 cursor-not-allowed", visionEnabled ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400" : "")}
+              title="Vision Analysis Mode - Currently Disabled"
+              disabled
             >
               <Eye className="h-4 w-4" />
-              <span className="sr-only">Vision Analysis</span>
+              <span className="sr-only">Vision Analysis (Disabled)</span>
             </Button>
 
             {/* Bottom row - Globe and Server */}
