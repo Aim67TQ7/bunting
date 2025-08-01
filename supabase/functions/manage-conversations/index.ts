@@ -172,7 +172,7 @@ async function saveConversation(supabase, conversationData, userId) {
   const isEncrypted = typeof messages === 'string';
   const messagesLength = isEncrypted ? 'encrypted' : messages?.length;
   
-  console.log(`Saving conversation ${id} for user ${userId} with ${messagesLength} messages`);
+  console.log(`Saving conversation ${id} for user ${userId} with ${isEncrypted ? 'encrypted' : messagesLength} messages`);
   
   if (!id || !messages) {
     console.error("Invalid conversation data:", { id, messagesType: typeof messages, messagesLength });
@@ -184,9 +184,10 @@ async function saveConversation(supabase, conversationData, userId) {
   let topicToUse = topic;
   
   if (isEncrypted) {
-    // Store encrypted string directly
+    // Store encrypted string directly - already comes encrypted from client
     contentToStore = messages;
     topicToUse = topic || "New Conversation";
+    console.log(`Saving conversation ${id} for user ${userId} with encrypted messages`);
   } else {
     // Validate array and process messages
     if (!Array.isArray(messages) || messages.length === 0) {
