@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_log: {
+        Row: {
+          action: string
+          admin_user_id: string
+          created_at: string | null
+          id: string
+          new_values: Json | null
+          old_values: Json | null
+          record_id: string | null
+          table_name: string | null
+        }
+        Insert: {
+          action: string
+          admin_user_id: string
+          created_at?: string | null
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+          record_id?: string | null
+          table_name?: string | null
+        }
+        Update: {
+          action?: string
+          admin_user_id?: string
+          created_at?: string | null
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+          record_id?: string | null
+          table_name?: string | null
+        }
+        Relationships: []
+      }
       admin_sessions: {
         Row: {
           access_level: string
@@ -1184,25 +1217,61 @@ export type Database = {
       }
       mto_delivery: {
         Row: {
+          april_otd: number | null
+          august_otd: number | null
           created_at: string | null
+          current_year: number | null
+          december_otd: number | null
+          february_otd: number | null
           id: string
-          lineCount: number
-          month: string
-          onTimePercentage: number
+          january_otd: number | null
+          july_otd: number | null
+          june_otd: number | null
+          last_updated_month: string | null
+          march_otd: number | null
+          may_otd: number | null
+          november_otd: number | null
+          october_otd: number | null
+          september_otd: number | null
+          updated_at: string | null
         }
         Insert: {
+          april_otd?: number | null
+          august_otd?: number | null
           created_at?: string | null
+          current_year?: number | null
+          december_otd?: number | null
+          february_otd?: number | null
           id?: string
-          lineCount: number
-          month: string
-          onTimePercentage: number
+          january_otd?: number | null
+          july_otd?: number | null
+          june_otd?: number | null
+          last_updated_month?: string | null
+          march_otd?: number | null
+          may_otd?: number | null
+          november_otd?: number | null
+          october_otd?: number | null
+          september_otd?: number | null
+          updated_at?: string | null
         }
         Update: {
+          april_otd?: number | null
+          august_otd?: number | null
           created_at?: string | null
+          current_year?: number | null
+          december_otd?: number | null
+          february_otd?: number | null
           id?: string
-          lineCount?: number
-          month?: string
-          onTimePercentage?: number
+          january_otd?: number | null
+          july_otd?: number | null
+          june_otd?: number | null
+          last_updated_month?: string | null
+          march_otd?: number | null
+          may_otd?: number | null
+          november_otd?: number | null
+          october_otd?: number | null
+          september_otd?: number | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -2031,6 +2100,33 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          id: string
+          is_active: boolean | null
+          role: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          role: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_training_submissions: {
         Row: {
           approved_at: string | null
@@ -2081,6 +2177,10 @@ export type Database = {
       }
     }
     Functions: {
+      assign_user_role: {
+        Args: { target_user_id: string; role_to_assign: string }
+        Returns: boolean
+      }
       backfill_training_data_embeddings: {
         Args: Record<PropertyKey, never>
         Returns: number
@@ -2152,6 +2252,10 @@ export type Database = {
         Args: { "": unknown[] }
         Returns: number
       }
+      has_user_role: {
+        Args: { user_id_param: string; role_param: string }
+        Returns: boolean
+      }
       hnsw_bit_support: {
         Args: { "": unknown }
         Returns: unknown
@@ -2187,6 +2291,16 @@ export type Database = {
       l2_normalize: {
         Args: { "": string } | { "": unknown } | { "": unknown }
         Returns: unknown
+      }
+      log_admin_action: {
+        Args: {
+          action_type: string
+          table_name: string
+          record_id?: string
+          old_values?: Json
+          new_values?: Json
+        }
+        Returns: undefined
       }
       log_application_usage: {
         Args:
