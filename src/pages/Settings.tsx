@@ -131,6 +131,16 @@ export default function Settings() {
                           <Label htmlFor="email">Email</Label>
                           <Input id="email" value={user.email} readOnly />
                         </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="password">Password</Label>
+                          <Input 
+                            id="password" 
+                            type="password" 
+                            value="••••••••••••" 
+                            readOnly 
+                            className="cursor-not-allowed"
+                          />
+                        </div>
                         <div>
                           <Dialog open={isChangePasswordOpen} onOpenChange={setIsChangePasswordOpen}>
                             <DialogTrigger asChild>
