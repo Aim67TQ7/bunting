@@ -39,18 +39,14 @@ We can collaborate to enhance its effectiveness. What would you like to work wit
       'Work Instructions',
       'Process Documentation'
     ],
-    template: (docType: string) => `Perfect! Let's create a solid ${docType} together.
+    template: (docType: string) => `I'm happy to help! Let's create a solid ${docType} together.
 
-First, what's the main purpose? What problem are we solving or process are we improving with this documentation?
+You can:
+- Share an existing process that needs documentation
+- Describe a workflow that's currently informal
+- Start with the main purpose or problem we're solving
 
-Once we get that foundation, we'll work through:
-- Who's responsible for following this
-- A brief outline of the main steps
-- Then I'll help structure everything professionally
-
-At the end, we can format it as a Word document (12-point Times New Roman, 1.5 spacing) if you'd like - you can add the bold formatting yourself.
-
-So, what's the purpose of this ${docType.toLowerCase()}?`
+We can collaborate to build comprehensive documentation that's actually useful. What's the main purpose of this ${docType.toLowerCase()}, and what would you like to work with?`
   },
   'research-analysis': {
     icon: Search,
@@ -64,7 +60,14 @@ So, what's the purpose of this ${docType.toLowerCase()}?`
       'Technology Landscape',
       'Pricing Strategy'
     ],
-    template: (analysisType: string) => `Excellent choice! Let's dive into ${analysisType}. What specific questions are we trying to answer, or what business decision is this research supporting?`
+    template: (analysisType: string) => `I'm happy to help! Let's dive into ${analysisType} together.
+
+You can:
+- Share specific competitors or markets you're curious about
+- Describe the business decision this research will support
+- Start with particular questions you need answered
+
+We can collaborate to uncover valuable insights. What's driving this ${analysisType.toLowerCase()} need, and what would you like to explore first?`
   },
   'process-optimization': {
     icon: Zap,
@@ -78,7 +81,14 @@ So, what's the purpose of this ${docType.toLowerCase()}?`
       'Cost Reduction',
       'Resource Allocation'
     ],
-    template: (processType: string) => `Smart choice! Let's optimize our ${processType}. Walk me through how this process currently works - where do we usually get stuck or see delays?`
+    template: (processType: string) => `I'm happy to help! Let's optimize your ${processType} together.
+
+You can:
+- Walk me through your current process step by step
+- Share where you're seeing bottlenecks or delays
+- Describe your ideal outcome or efficiency goals
+
+We can collaborate to identify improvements and streamline operations. What does your current ${processType.toLowerCase()} look like, and where are the biggest pain points?`
   },
   'document-generation': {
     icon: FileText,
@@ -92,7 +102,14 @@ So, what's the purpose of this ${docType.toLowerCase()}?`
       'Technical Specification',
       'Research Report'
     ],
-    template: (documentType: string) => `Great! Let's create a compelling ${documentType}. What's the main goal or message we want to convey? Who's our target audience?`
+    template: (documentType: string) => `I'm happy to help! Let's create a compelling ${documentType} together.
+
+You can:
+- Share your main goals and target audience
+- Provide existing content or research to build from
+- Start with your key message or value proposition
+
+We can collaborate to structure and craft something impactful. What's the main purpose of this ${documentType.toLowerCase()}, and who are we trying to reach?`
   },
   'performance-metrics': {
     icon: BarChart3,
@@ -106,7 +123,14 @@ So, what's the purpose of this ${docType.toLowerCase()}?`
       'Financial Metrics',
       'Employee Productivity'
     ],
-    template: (metricType: string) => `Perfect! Let's analyze our ${metricType}. What specific metrics are we currently tracking, and what questions do we need answers to?`
+    template: (metricType: string) => `I'm happy to help! Let's analyze your ${metricType} together.
+
+You can:
+- Share what metrics you're currently tracking
+- Describe specific performance questions you need answered
+- Provide data or goals you're working toward
+
+We can collaborate to develop meaningful insights and actionable recommendations. What's driving this ${metricType.toLowerCase()} analysis, and what data do you have to work with?`
   },
   'brainstorming-partner': {
     icon: Brain,
@@ -120,7 +144,14 @@ So, what's the purpose of this ${docType.toLowerCase()}?`
       'Business Development',
       'Creative Solutions'
     ],
-    template: (sessionType: string) => `Awesome! Let's brainstorm some ${sessionType} ideas. What's the challenge or opportunity we're tackling? Give me some context so we can generate the best ideas together!`
+    template: (sessionType: string) => `I'm happy to help! Let's brainstorm some ${sessionType} ideas together.
+
+You can:
+- Share the challenge or opportunity you're facing
+- Describe your current approach or constraints
+- Start with any initial thoughts or directions
+
+We can collaborate to generate creative solutions and explore new possibilities. What's the main challenge for this ${sessionType.toLowerCase()} session, and what context should I know?`
   }
 };
 
