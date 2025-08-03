@@ -9,9 +9,10 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 interface TokenMessage {
-  type: 'PROVIDE_TOKEN' | 'REQUEST_TOKEN' | 'TOKEN_RECEIVED' | 'REQUEST_PASSWORD' | 'PROVIDE_PASSWORD';
+  type: 'PROVIDE_TOKEN' | 'REQUEST_TOKEN' | 'TOKEN_RECEIVED' | 'REQUEST_PASSWORD' | 'PROVIDE_PASSWORD' | 'PROVIDE_LICENSE' | 'REQUEST_LICENSE';
   token?: string;
   password?: string;
+  license?: string;
   origin: string;
   timestamp: number;
 }
@@ -23,6 +24,7 @@ const Iframe = () => {
   const [title, setTitle] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
   const [token, setToken] = useState<string | null>(null);
+  const [licenseValue, setLicenseValue] = useState<string | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   
   useEffect(() => {
@@ -32,9 +34,14 @@ const Iframe = () => {
       const titleParam = params.get("title");
       const id = params.get("id");
       const sourceTable = params.get("sourceTable");
+      const license = params.get("license");
       
       if (titleParam) {
         setTitle(titleParam);
+      }
+      
+      if (license) {
+        setLicenseValue(license);
       }
       
       if (urlParam) {
@@ -91,19 +98,33 @@ const Iframe = () => {
     const iframe = iframeRef.current;
     
     const handleIframeLoad = () => {
-      if (token && iframe?.contentWindow) {
+      if (iframe?.contentWindow) {
         try {
-          const message: TokenMessage = {
-            type: 'PROVIDE_TOKEN',
-            token: token,
-            origin: window.location.origin,
-            timestamp: Date.now()
-          };
+          // Send token if available
+          if (token) {
+            const tokenMessage: TokenMessage = {
+              type: 'PROVIDE_TOKEN',
+              token: token,
+              origin: window.location.origin,
+              timestamp: Date.now()
+            };
+            iframe.contentWindow.postMessage(tokenMessage, '*');
+            console.log('Token sent to iframe via postMessage');
+          }
           
-          iframe.contentWindow.postMessage(message, '*');
-          console.log('Token sent to iframe via postMessage');
+          // Send license if available
+          if (licenseValue) {
+            const licenseMessage: TokenMessage = {
+              type: 'PROVIDE_LICENSE',
+              license: licenseValue,
+              origin: window.location.origin,
+              timestamp: Date.now()
+            };
+            iframe.contentWindow.postMessage(licenseMessage, '*');
+            console.log('License sent to iframe via postMessage');
+          }
         } catch (error) {
-          console.warn('Failed to send token via postMessage:', error);
+          console.warn('Failed to send data via postMessage:', error);
         }
       }
     };
@@ -112,7 +133,7 @@ const Iframe = () => {
       iframe.addEventListener('load', handleIframeLoad);
       return () => iframe.removeEventListener('load', handleIframeLoad);
     }
-  }, [token]);
+  }, [token, licenseValue]);
 
   // Listen for messages from iframe
   useEffect(() => {
@@ -143,6 +164,17 @@ const Iframe = () => {
           title: "Password auto-filled",
           description: "Access token has been provided as password",
         });
+      } else if (event.data?.type === 'REQUEST_LICENSE' && licenseValue) {
+        // Provide license when requested
+        const message: TokenMessage = {
+          type: 'PROVIDE_LICENSE',
+          license: licenseValue,
+          origin: window.location.origin,
+          timestamp: Date.now()
+        };
+        
+        (event.source as Window)?.postMessage(message, event.origin);
+        console.log('License provided in response to request');
       } else if (event.data?.type === 'TOKEN_RECEIVED') {
         console.log('Token received confirmation from iframe');
         toast({
@@ -154,7 +186,7 @@ const Iframe = () => {
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [token]);
+  }, [token, licenseValue]);
   
   const handleBack = () => {
     navigate(-1);

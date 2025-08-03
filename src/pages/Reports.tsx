@@ -17,6 +17,7 @@ interface ReportItem {
   icon_path?: string | null;
   video_url?: string | null;
   coming_soon?: boolean | null;
+  license?: string | null;
 }
 
 const Reports = () => {
@@ -92,6 +93,7 @@ const Reports = () => {
                         iconPath={report.icon_path}
                         id={report.id}
                         sourceTable="app_items"
+                        license={report.license}
                       />
                     </div>
                   </div>

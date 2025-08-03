@@ -15,6 +15,7 @@ interface SalesItem {
   icon_path?: string | null;
   video_url?: string | null;
   coming_soon?: boolean | null;
+  license?: string | null;
 }
 
 const Sales = () => {
@@ -85,6 +86,7 @@ const Sales = () => {
                       iconPath={item.icon_path}
                       id={item.id}
                       sourceTable="app_items"
+                      license={item.license}
                     />
                   </div>
                 </div>

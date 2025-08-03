@@ -15,6 +15,7 @@ interface FlipCardProps {
   icon?: React.ReactNode;
   id?: string;
   sourceTable?: string;
+  license?: string | null;
 }
 
 export const FlipCard = ({
@@ -25,7 +26,8 @@ export const FlipCard = ({
   iconPath,
   icon,
   id,
-  sourceTable
+  sourceTable,
+  license
 }: FlipCardProps) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const navigate = useNavigate();
@@ -44,7 +46,8 @@ export const FlipCard = ({
         url: url,
         title: title,
         ...(id && { id }),
-        ...(sourceTable && { sourceTable })
+        ...(sourceTable && { sourceTable }),
+        ...(license && { license })
       });
       navigate(`/iframe?${params.toString()}`);
     }
