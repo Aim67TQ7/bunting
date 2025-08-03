@@ -11,7 +11,7 @@ const CONVERSATION_PATTERNS = {
     icon: Mail,
     title: 'Rewrite an Email',
     description: 'Optimize communication clarity and effectiveness',
-    prompt: 'Please provide the original email. I will help you rewrite it to be more:',
+    prompt: 'Looks like we\'re polishing up some communication! What style are we going for?',
     options: [
       'Professional',
       'Concise', 
@@ -19,13 +19,13 @@ const CONVERSATION_PATTERNS = {
       'Direct',
       'Diplomatic'
     ],
-    template: (style: string) => `Rewrite the following email to make it more ${style}:\n\n[Original Email Text]\n\nRewritten Email:`
+    template: (style: string) => `Let's make this email more ${style.toLowerCase()}. Just paste the original email and we'll work together to improve it!`
   },
   'create-sop': {
     icon: Workflow,
     title: 'Create Standard Operating Procedure (SOP)',
     description: 'Systematize and document critical business processes',
-    prompt: 'What process would you like to document?',
+    prompt: 'Great! We\'re building some structure around our processes. Which area should we tackle first?',
     options: [
       'Sales Workflow',
       'Customer Support',
@@ -33,13 +33,13 @@ const CONVERSATION_PATTERNS = {
       'Quality Assurance',
       'Internal Communication'
     ],
-    template: (processType: string) => `Create a detailed Standard Operating Procedure (SOP) for ${processType}:\n\nSOP Title:\nPurpose:\nScope:\nDefinitions:\nResponsibilities:\nProcedure Steps:\n1.\n2.\n3.\n\nPotential Exceptions:\nPerformance Metrics:\nApproval and Revision History:`
+    template: (processType: string) => `Perfect! Let's create a solid SOP for ${processType}. Tell me about the current process - what are the main steps we need to document?`
   },
   'research-analysis': {
     icon: Search,
     title: 'Research & Analysis',
     description: 'Structured deep-dive into business intelligence',
-    prompt: 'What topic needs comprehensive research?',
+    prompt: 'Time to dig deep! What area should we research together?',
     options: [
       'Competitor Analysis',
       'Market Trends',
@@ -47,13 +47,13 @@ const CONVERSATION_PATTERNS = {
       'Technology Landscape',
       'Pricing Strategy'
     ],
-    template: (analysisType: string) => `Comprehensive ${analysisType} Research Report:\n\nExecutive Summary:\nKey Findings:\nMethodology:\nDetailed Analysis:\n\nMarket Overview\nCompetitive Landscape\nKey Insights\nActionable Recommendations\n\nData Sources:\nLimitations and Considerations:`
+    template: (analysisType: string) => `Excellent choice! Let's dive into ${analysisType}. What specific questions are we trying to answer, or what business decision is this research supporting?`
   },
   'process-optimization': {
     icon: Zap,
     title: 'Process Optimization',
     description: 'Identify and streamline inefficient workflows',
-    prompt: 'Which business process needs optimization?',
+    prompt: 'Love it! We\'re going to make things run smoother. Which process is giving us the most headaches?',
     options: [
       'Sales Funnel',
       'Customer Acquisition',
@@ -61,13 +61,13 @@ const CONVERSATION_PATTERNS = {
       'Cost Reduction',
       'Resource Allocation'
     ],
-    template: (processType: string) => `${processType} Optimization Analysis:\n\nCurrent State Assessment:\n\nExisting Process Workflow\nKey Performance Indicators (KPIs)\nBottlenecks and Inefficiencies\n\nProposed Optimization Strategies:\n1.\n2.\n3.\n\nExpected Outcomes:\n\nCost Savings\nEfficiency Gains\nPerformance Improvements\n\nImplementation Roadmap:\nMetrics for Tracking Success:`
+    template: (processType: string) => `Smart choice! Let's optimize our ${processType}. Walk me through how this process currently works - where do we usually get stuck or see delays?`
   },
   'document-generation': {
     icon: FileText,
     title: 'Document Generation',
     description: 'Rapid, structured document creation',
-    prompt: 'What type of document do you need?',
+    prompt: 'We\'re crafting something important! What kind of document are we building?',
     options: [
       'Business Proposal',
       'Investment Pitch Deck',
@@ -75,13 +75,13 @@ const CONVERSATION_PATTERNS = {
       'Technical Specification',
       'Research Report'
     ],
-    template: (documentType: string) => `${documentType} Template:\n\nTitle:\nExecutive Summary:\nKey Sections:\n1.\n2.\n3.\n\nAppendices:\nReferences:\nConfidentiality Statement:`
+    template: (documentType: string) => `Great! Let's create a compelling ${documentType}. What's the main goal or message we want to convey? Who's our target audience?`
   },
   'performance-metrics': {
     icon: BarChart3,
     title: 'Performance Metrics Analysis',
     description: 'Develop comprehensive KPI tracking and insights',
-    prompt: 'What performance area needs analysis?',
+    prompt: 'Time to measure what matters! Which performance area should we analyze?',
     options: [
       'Sales Performance',
       'Operational Efficiency',
@@ -89,13 +89,13 @@ const CONVERSATION_PATTERNS = {
       'Financial Metrics',
       'Employee Productivity'
     ],
-    template: (metricType: string) => `${metricType} Performance Analysis:\n\nCurrent Performance Overview:\n\nKey Performance Indicators (KPIs)\nBaseline Measurements\nTrend Analysis\n\nPerformance Gaps:\n\nIdentified Issues\nRoot Cause Analysis\nImpact Assessment\n\nImprovement Strategies:\n1.\n2.\n3.\n\nSuccess Metrics:\nImplementation Timeline:\nMonitoring Framework:`
+    template: (metricType: string) => `Perfect! Let's analyze our ${metricType}. What specific metrics are we currently tracking, and what questions do we need answers to?`
   },
   'brainstorming-partner': {
     icon: Brain,
     title: 'Brainstorming Partner',
     description: 'Exchange and grow ideas with AI-powered collaboration',
-    prompt: 'What challenge or opportunity would you like to brainstorm?',
+    prompt: 'Ready to get creative! What challenge or opportunity should we brainstorm together?',
     options: [
       'Product Innovation',
       'Marketing Strategy',
@@ -103,7 +103,7 @@ const CONVERSATION_PATTERNS = {
       'Business Development',
       'Creative Solutions'
     ],
-    template: (sessionType: string) => `${sessionType} Brainstorming Session:\n\nChallenge/Opportunity Statement:\n\nCurrent Situation:\n\nConstraints and Parameters\nAvailable Resources\nSuccess Criteria\n\nBrainstorming Areas:\n\nIdea Generation\nCreative Approaches\nAlternative Solutions\n\nNext Steps:\n\nPrioritization Framework\nValidation Methods\nImplementation Planning`
+    template: (sessionType: string) => `Awesome! Let's brainstorm some ${sessionType} ideas. What's the challenge or opportunity we're tackling? Give me some context so we can generate the best ideas together!`
   }
 };
 

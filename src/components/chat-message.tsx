@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { User, Bot, Copy, Check, Cpu, Edit2 } from "lucide-react";
-import { Avatar } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { BrandLogo } from "@/components/brand-logo";
 import { forwardRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { CorrectionDialog } from "./chat/correction-dialog";
 import { KnowledgeFeedback } from "./chat/knowledge-feedback";
 import { toast } from "@/hooks/use-toast";
+import { useUserProfile } from "@/hooks/use-user-profile";
 
 export type MessageRole = "user" | "assistant";
 
@@ -27,6 +28,7 @@ export const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>(
   ({ role, content, timestamp, isLoading, model, messageId, onSubmitCorrection }, ref) => {
     const [copiedCode, setCopiedCode] = useState<string | null>(null);
     const [copiedMessage, setCopiedMessage] = useState(false);
+    const { profile } = useUserProfile();
     
     const copyToClipboard = (text: string) => {
       navigator.clipboard.writeText(text);
@@ -140,7 +142,10 @@ export const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>(
         <div className="flex-shrink-0">
           {role === "user" ? (
             <Avatar className="h-8 w-8 border">
-              <User className="h-4 w-4" />
+              <AvatarImage src={profile?.avatar_url} alt={profile?.first_name || profile?.call_name} />
+              <AvatarFallback>
+                {profile?.first_name?.[0] || profile?.call_name?.[0] || <User className="h-4 w-4" />}
+              </AvatarFallback>
             </Avatar>
           ) : (
             <Avatar className="h-8 w-8 border bg-primary">
@@ -151,7 +156,12 @@ export const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>(
         <div className="flex-1 space-y-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="font-medium">{role === "user" ? "You" : "BuntingGPT"}</div>
+              <div className="font-medium">
+                {role === "user" 
+                  ? (profile?.call_name || profile?.first_name || "You")
+                  : "BuntingGPT"
+                }
+              </div>
               <div className="text-xs text-muted-foreground">
                 {formatTime(timestamp)}
               </div>
