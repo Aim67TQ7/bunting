@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Sparkle, Lightbulb, Calculator, Users, Zap, FileText, Mail, Search, Workflow, ArrowLeft } from "lucide-react";
+import { BarChart3, Brain, Zap, FileText, Mail, Search, Workflow, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 // Conversation starter patterns
@@ -76,6 +76,34 @@ const CONVERSATION_PATTERNS = {
       'Research Report'
     ],
     template: (documentType: string) => `${documentType} Template:\n\nTitle:\nExecutive Summary:\nKey Sections:\n1.\n2.\n3.\n\nAppendices:\nReferences:\nConfidentiality Statement:`
+  },
+  'performance-metrics': {
+    icon: BarChart3,
+    title: 'Performance Metrics Analysis',
+    description: 'Develop comprehensive KPI tracking and insights',
+    prompt: 'What performance area needs analysis?',
+    options: [
+      'Sales Performance',
+      'Operational Efficiency',
+      'Customer Satisfaction',
+      'Financial Metrics',
+      'Employee Productivity'
+    ],
+    template: (metricType: string) => `${metricType} Performance Analysis:\n\nCurrent Performance Overview:\n\nKey Performance Indicators (KPIs)\nBaseline Measurements\nTrend Analysis\n\nPerformance Gaps:\n\nIdentified Issues\nRoot Cause Analysis\nImpact Assessment\n\nImprovement Strategies:\n1.\n2.\n3.\n\nSuccess Metrics:\nImplementation Timeline:\nMonitoring Framework:`
+  },
+  'brainstorming-partner': {
+    icon: Brain,
+    title: 'Brainstorming Partner',
+    description: 'Exchange and grow ideas with AI-powered collaboration',
+    prompt: 'What challenge or opportunity would you like to brainstorm?',
+    options: [
+      'Product Innovation',
+      'Marketing Strategy',
+      'Problem Solving',
+      'Business Development',
+      'Creative Solutions'
+    ],
+    template: (sessionType: string) => `${sessionType} Brainstorming Session:\n\nChallenge/Opportunity Statement:\n\nCurrent Situation:\n\nConstraints and Parameters\nAvailable Resources\nSuccess Criteria\n\nBrainstorming Areas:\n\nIdea Generation\nCreative Approaches\nAlternative Solutions\n\nNext Steps:\n\nPrioritization Framework\nValidation Methods\nImplementation Planning`
   }
 };
 
@@ -127,60 +155,6 @@ export function WelcomeScreen({ onStarterClick }: WelcomeScreenProps) {
 
       {!selectedStarter ? (
         <div className="w-full">
-          {/* Quick Starters */}
-          <div className="mb-8">
-            <h3 className="text-lg font-medium mb-4">Quick Starters</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-4xl mx-auto">
-              <Button 
-                variant="outline" 
-                className="flex items-center justify-start h-auto p-4 text-left"
-                onClick={() => onStarterClick("What magnetic separator is best for removing fine iron from a dry process?")}
-              >
-                <Sparkle className="mr-2 h-5 w-5 text-primary" />
-                <div>
-                  <p className="font-medium">Magnetic separators</p>
-                  <p className="text-sm text-muted-foreground">For removing fine iron from dry processes</p>
-                </div>
-              </Button>
-              
-              <Button 
-                variant="outline" 
-                className="flex items-center justify-start h-auto p-4 text-left"
-                onClick={() => onStarterClick("Can you explain the difference between electromagnets and permanent magnets?")}
-              >
-                <Lightbulb className="mr-2 h-5 w-5 text-primary" />
-                <div>
-                  <p className="font-medium">Electromagnetic basics</p>
-                  <p className="text-sm text-muted-foreground">Electromagnets vs. permanent magnets</p>
-                </div>
-              </Button>
-              
-              <Button 
-                variant="outline" 
-                className="flex items-center justify-start h-auto p-4 text-left"
-                onClick={() => handleAppLaunch("How do I calculate minimum stock levels?", "/iframe?url=https://stock.buntinggpt.com&title=Stock Levels Calculator")}
-              >
-                <Calculator className="mr-2 h-5 w-5 text-primary" />
-                <div>
-                  <p className="font-medium">Inventory management</p>
-                  <p className="text-sm text-muted-foreground">Calculate minimum stock levels</p>
-                </div>
-              </Button>
-              
-              <Button 
-                variant="outline" 
-                className="flex items-center justify-start h-auto p-4 text-left"
-                onClick={() => handleAppLaunch("Do we have customers in Denver, Colorado?", "/sales")}
-              >
-                <Users className="mr-2 h-5 w-5 text-primary" />
-                <div>
-                  <p className="font-medium">Customer prospecting</p>
-                  <p className="text-sm text-muted-foreground">Find customers by location</p>
-                </div>
-              </Button>
-            </div>
-          </div>
-
           {/* Guided Patterns */}
           <div>
             <h3 className="text-lg font-medium mb-4">Guided Conversation Patterns</h3>
