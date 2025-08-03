@@ -100,15 +100,32 @@ export async function getUserEncryptionSalt(userId: string): Promise<Uint8Array>
 
 // Create encryption key for user using a dedicated encryption password
 export async function createUserEncryptionKey(userId: string): Promise<CryptoKey> {
-  const { data: { session } } = await supabase.auth.getSession();
+  console.log('Creating encryption key for user:', userId);
+  
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+  console.log('Session data:', { hasSession: !!session, hasAccessToken: !!session?.access_token, sessionError });
+  
+  if (sessionError) {
+    console.error('Session error:', sessionError);
+    throw new Error(`Session error: ${sessionError.message}`);
+  }
+  
   if (!session?.access_token) {
+    console.error('No active session or access token');
     throw new Error('No active session for encryption key generation');
   }
 
   // Use a combination of user ID and session for better security
   const encryptionPassword = `${userId}:${session.access_token}:encryption`;
+  console.log('Getting user encryption salt...');
+  
   const salt = await getUserEncryptionSalt(userId);
-  return deriveKey(encryptionPassword, salt);
+  console.log('Salt obtained, deriving key...');
+  
+  const key = await deriveKey(encryptionPassword, salt);
+  console.log('Key derived successfully');
+  
+  return key;
 }
 
 // Encrypt conversation content
@@ -127,8 +144,15 @@ export async function decryptConversationContent(encryptedContent: string, userI
     
     // Check if this looks like encrypted data
     if (encryptedData.data && encryptedData.iv) {
+      console.log('Attempting to decrypt conversation content for user:', userId);
+      console.log('Encrypted data structure:', { hasData: !!encryptedData.data, hasIv: !!encryptedData.iv });
+      
       const key = await createUserEncryptionKey(userId);
+      console.log('Encryption key created successfully');
+      
       const decryptedString = await decryptData(encryptedData, key);
+      console.log('Decryption successful, parsing JSON...');
+      
       return JSON.parse(decryptedString);
     } else {
       // Legacy unencrypted data - return as is but log warning
@@ -137,6 +161,11 @@ export async function decryptConversationContent(encryptedContent: string, userI
     }
   } catch (error) {
     console.error('Error decrypting conversation content:', error);
+    console.error('Error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack
+    });
     throw new Error('Failed to decrypt conversation content');
   }
 }
