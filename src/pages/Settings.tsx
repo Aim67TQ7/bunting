@@ -14,6 +14,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { ProfilePicture } from "@/components/settings/ProfilePicture";
+import { ConversationPreferences } from "@/components/settings/ConversationPreferences";
 import { supabase } from "@/integrations/supabase/client";
 
 // Modified schema to remove current password requirement since user is already authenticated
@@ -56,6 +57,10 @@ export default function Settings() {
 
   const handleAvatarUpdate = (newAvatarUrl: string) => {
     setProfile((prev: any) => prev ? { ...prev, avatar_url: newAvatarUrl } : null);
+  };
+
+  const handlePreferencesUpdate = (preferences: string) => {
+    setProfile((prev: any) => prev ? { ...prev, conversation_preferences: preferences } : null);
   };
   
   const passwordForm = useForm<z.infer<typeof passwordSchema>>({
@@ -112,16 +117,22 @@ export default function Settings() {
           <div className="flex-1 overflow-y-auto p-4 md:p-6">
             <div className="mx-auto max-w-2xl space-y-6">
               {user ? (
-                <>
-                  <ProfilePicture 
-                    userId={user.id}
-                    avatarUrl={profile?.avatar_url}
-                    firstName={profile?.first_name}
-                    email={user.email}
-                    onAvatarUpdate={handleAvatarUpdate}
-                  />
-                  
-                  <Card>
+                  <>
+                    <ProfilePicture 
+                      userId={user.id}
+                      avatarUrl={profile?.avatar_url}
+                      firstName={profile?.first_name}
+                      email={user.email}
+                      onAvatarUpdate={handleAvatarUpdate}
+                    />
+                    
+                    <ConversationPreferences
+                      userId={user.id}
+                      currentPreferences={profile?.conversation_preferences || ""}
+                      onPreferencesUpdate={handlePreferencesUpdate}
+                    />
+                    
+                    <Card>
                     <CardHeader>
                       <CardTitle>Account Information</CardTitle>
                     </CardHeader>

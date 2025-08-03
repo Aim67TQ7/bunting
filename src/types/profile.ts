@@ -28,6 +28,7 @@ export interface UserProfileData {
   city?: string;
   state?: string;
   country?: string;
+  conversation_preferences?: string;
 }
 
 // Interface for Employee_id table data
@@ -51,6 +52,7 @@ export interface ProfileData {
   first_name?: string;
   call_name?: string;
   avatar_url?: string;
+  conversation_preferences?: string;
   created_at: string;
   updated_at: string;
 }
