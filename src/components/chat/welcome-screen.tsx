@@ -23,17 +23,27 @@ const CONVERSATION_PATTERNS = {
   },
   'create-sop': {
     icon: Workflow,
-    title: 'Create Standard Operating Procedure (SOP)',
-    description: 'Systematize and document critical business processes',
-    prompt: 'Great! We\'re building some structure around our processes. Which area should we tackle first?',
+    title: 'Create SOP, Guidelines, or Work Instructions',
+    description: 'Partner with us to build comprehensive process documentation together',
+    prompt: 'Let\'s create solid process documentation together! What type of document should we build?',
     options: [
-      'Sales Workflow',
-      'Customer Support',
-      'Product Onboarding',
-      'Quality Assurance',
-      'Internal Communication'
+      'Standard Operating Procedure (SOP)',
+      'Work Guidelines', 
+      'Work Instructions',
+      'Process Documentation'
     ],
-    template: (processType: string) => `Perfect! Let's create a solid SOP for ${processType}. Tell me about the current process - what are the main steps we need to document?`
+    template: (docType: string) => `Perfect! Let's create a solid ${docType} together.
+
+First, what's the main purpose? What problem are we solving or process are we improving with this documentation?
+
+Once we get that foundation, we'll work through:
+- Who's responsible for following this
+- A brief outline of the main steps
+- Then I'll help structure everything professionally
+
+At the end, we can format it as a Word document (12-point Times New Roman, 1.5 spacing) if you'd like - you can add the bold formatting yourself.
+
+So, what's the purpose of this ${docType.toLowerCase()}?`
   },
   'research-analysis': {
     icon: Search,
