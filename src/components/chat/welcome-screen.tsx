@@ -156,7 +156,7 @@ We can collaborate to generate creative solutions and explore new possibilities.
 };
 
 interface WelcomeScreenProps {
-  onStarterClick: (question: string) => void;
+  onStarterClick: (question: string, isAiResponse?: boolean) => void;
 }
 
 export function WelcomeScreen({ onStarterClick }: WelcomeScreenProps) {
@@ -179,7 +179,7 @@ export function WelcomeScreen({ onStarterClick }: WelcomeScreenProps) {
   const handleOptionSelect = (option: string) => {
     setSelectedOption(option);
     const template = selectedStarter.template(option);
-    onStarterClick(template);
+    onStarterClick(template, true); // Mark as AI response
     // Reset after sending
     setTimeout(() => {
       setSelectedStarter(null);

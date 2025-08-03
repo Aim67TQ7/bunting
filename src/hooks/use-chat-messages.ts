@@ -20,7 +20,8 @@ export function useChatMessages() {
     conversationId, 
     setConversationId,
     createUserMessage,
-    createAIMessage
+    createAIMessage,
+    addMessage
   } = useChatState();
   
   const { saveConversation, loadConversation } = useConversationPersistence();
@@ -35,6 +36,11 @@ export function useChatMessages() {
     setMessages([]);
     setConversationId(null);
   }, [setMessages, setConversationId]);
+
+  const addAIMessage = useCallback((content: string) => {
+    const aiMessage = createAIMessage(content);
+    addMessage(aiMessage);
+  }, [createAIMessage, addMessage]);
 
   const submitCorrection = useCallback(
     async (messageId: string, correction: string, isGlobal: boolean = false) => {
@@ -147,6 +153,7 @@ export function useChatMessages() {
     loadConversation: loadConversationHandler,
     conversationId,
     clearCurrentConversation,
-    submitCorrection
+    submitCorrection,
+    addAIMessage
   };
 }

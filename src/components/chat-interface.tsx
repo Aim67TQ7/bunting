@@ -34,7 +34,8 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
     loadConversation, 
     conversationId: activeConversationId,
     clearCurrentConversation,
-    submitCorrection
+    submitCorrection,
+    addAIMessage
   } = useChatMessages();
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -112,8 +113,14 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
     sendMessage(finalContent, shouldAutoSummarize, actualQueryType, file);
   };
 
-  const handleStarterClick = (question: string) => {
-    handleSendMessage(question, false);
+  const handleStarterClick = (question: string, isAiResponse?: boolean) => {
+    if (isAiResponse) {
+      // Add the AI response directly to messages without sending a user message
+      // This simulates the AI starting the conversation after user selections
+      addAIMessage(question);
+    } else {
+      handleSendMessage(question, false);
+    }
   };
 
   const handleRetryLoad = () => {
