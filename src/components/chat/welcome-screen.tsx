@@ -19,7 +19,14 @@ const CONVERSATION_PATTERNS = {
       'Direct',
       'Diplomatic'
     ],
-    template: (style: string) => `Let's make this email more ${style.toLowerCase()}. Just paste the original email and we'll work together to improve it!`
+    template: (style: string) => `I'm happy to help! Let's construct a ${style.toLowerCase()} email together.
+
+You can:
+- Copy and paste a response you're working on
+- Share the email you'd like to respond to  
+- Just start typing your thoughts
+
+We can collaborate to enhance its effectiveness. What would you like to work with?`
   },
   'create-sop': {
     icon: Workflow,
