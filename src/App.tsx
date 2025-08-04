@@ -6,6 +6,8 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { UserGuideProvider } from "@/components/user-guide/UserGuideProvider";
+import { UserGuideDialog } from "@/components/user-guide/UserGuideDialog";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import History from "./pages/History";
@@ -29,7 +31,8 @@ function App() {
         <Toaster />
         <Sonner />
         <AuthProvider>
-          <Router>
+          <UserGuideProvider>
+            <Router>
             <SidebarProvider defaultOpen={true}>
               <Routes>
                 <Route path="/auth" element={<Auth />} />
@@ -125,7 +128,9 @@ function App() {
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </SidebarProvider>
+            <UserGuideDialog />
           </Router>
+          </UserGuideProvider>
         </AuthProvider>
       </TooltipProvider>
     </ThemeProvider>

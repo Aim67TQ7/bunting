@@ -296,42 +296,6 @@ export type Database = {
         }
         Relationships: []
       }
-      calculators: {
-        Row: {
-          created_at: string | null
-          description: string
-          icon_path: string | null
-          id: string
-          is_active: boolean | null
-          name: string
-          updated_at: string | null
-          url: string
-          video_url: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          description: string
-          icon_path?: string | null
-          id?: string
-          is_active?: boolean | null
-          name: string
-          updated_at?: string | null
-          url: string
-          video_url?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          description?: string
-          icon_path?: string | null
-          id?: string
-          is_active?: boolean | null
-          name?: string
-          updated_at?: string | null
-          url?: string
-          video_url?: string | null
-        }
-        Relationships: []
-      }
       character_directives: {
         Row: {
           character_id: string
@@ -360,41 +324,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "character_directives_character_id_fkey"
-            columns: ["character_id"]
-            isOneToOne: false
-            referencedRelation: "characters"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      character_poses: {
-        Row: {
-          character_id: string
-          created_at: string | null
-          id: string
-          image_url: string
-          pose_name: string
-          pose_order: number | null
-        }
-        Insert: {
-          character_id: string
-          created_at?: string | null
-          id?: string
-          image_url: string
-          pose_name: string
-          pose_order?: number | null
-        }
-        Update: {
-          character_id?: string
-          created_at?: string | null
-          id?: string
-          image_url?: string
-          pose_name?: string
-          pose_order?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "character_poses_character_id_fkey"
             columns: ["character_id"]
             isOneToOne: false
             referencedRelation: "characters"
@@ -2087,6 +2016,7 @@ export type Database = {
           id: string
           theme: string | null
           updated_at: string | null
+          user_guide_progress: Json | null
           user_id: string
         }
         Insert: {
@@ -2096,6 +2026,7 @@ export type Database = {
           id?: string
           theme?: string | null
           updated_at?: string | null
+          user_guide_progress?: Json | null
           user_id: string
         }
         Update: {
@@ -2105,6 +2036,7 @@ export type Database = {
           id?: string
           theme?: string | null
           updated_at?: string | null
+          user_guide_progress?: Json | null
           user_id?: string
         }
         Relationships: []

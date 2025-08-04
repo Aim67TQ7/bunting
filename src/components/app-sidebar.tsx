@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { BrandLogo } from "@/components/brand-logo";
 import { NavItem, NavSection } from "@/components/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { UserGuideButton } from "@/components/user-guide/UserGuideButton";
 import { MessageSquare, History, Calculator, LineChart, Grid3X3, FileChartLine, Menu, User, LogOut, BarChart3 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
@@ -160,8 +161,13 @@ export function AppSidebar({ className }: AppSidebarProps) {
             "flex gap-2",
             isCollapsed ? "flex-col items-center" : "justify-between"
           )}>
-            <div className="p-2 rounded-lg bg-card border shadow-sm hover:shadow-md transition-all duration-200 hover:scale-[1.02]">
-              <ThemeToggle />
+            <div className="flex gap-2">
+              <div className="p-2 rounded-lg bg-card border shadow-sm hover:shadow-md transition-all duration-200 hover:scale-[1.02]">
+                <UserGuideButton />
+              </div>
+              <div className="p-2 rounded-lg bg-card border shadow-sm hover:shadow-md transition-all duration-200 hover:scale-[1.02]">
+                <ThemeToggle />
+              </div>
             </div>
             
             <div className="flex gap-2">
