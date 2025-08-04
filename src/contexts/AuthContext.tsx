@@ -32,7 +32,7 @@ const AuthContext = createContext<AuthContextType>({
 
 // Helper function to validate email domain
 const isValidBuntingEmail = (email: string): boolean => {
-  return email.endsWith('@buntingmagnetics.com');
+  return email.endsWith('@buntingmagnetics.com') || email.endsWith('@buntinggpt.com');
 };
 
 // Provider component that wraps app
@@ -98,7 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Sign up with email validation
   const signUp = async (email: string, password: string) => {
     if (!isValidBuntingEmail(email)) {
-      return { error: { message: "Only buntingmagnetics.com email addresses are allowed" } };
+      return { error: { message: "Only @buntingmagnetics.com and @buntinggpt.com email addresses are allowed" } };
     }
 
     try {
@@ -124,7 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Sign in with email validation and better error handling
   const signIn = async (email: string, password: string) => {
     if (!isValidBuntingEmail(email)) {
-      return { error: { message: "Only buntingmagnetics.com email addresses are allowed" } };
+      return { error: { message: "Only @buntingmagnetics.com and @buntinggpt.com email addresses are allowed" } };
     }
 
     try {
@@ -165,7 +165,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Reset password with OTP - sends 6-digit code via email
   const resetPassword = async (email: string) => {
     if (!isValidBuntingEmail(email)) {
-      return { error: { message: "Only buntingmagnetics.com email addresses are allowed" } };
+      return { error: { message: "Only @buntingmagnetics.com and @buntinggpt.com email addresses are allowed" } };
     }
 
     try {
@@ -215,7 +215,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Email-only signup - uses reset password flow for new accounts
   const signUpWithEmailOnly = async (email: string) => {
     if (!isValidBuntingEmail(email)) {
-      return { error: { message: "Only buntingmagnetics.com email addresses are allowed" } };
+      return { error: { message: "Only @buntingmagnetics.com and @buntinggpt.com email addresses are allowed" } };
     }
 
     try {
