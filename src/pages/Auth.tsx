@@ -30,16 +30,16 @@ import { useIsMobile } from "@/hooks/use-mobile";
 // Define schemas for form validation
 const loginSchema = z.object({
   email: z.string().email().refine(
-    (email) => email.endsWith('@buntingmagnetics.com'), 
-    { message: "Only buntingmagnetics.com emails are allowed" }
+    (email) => email.endsWith('@buntingmagnetics.com') || email.endsWith('@buntinggpt.com'), 
+    { message: "Only @buntingmagnetics.com and @buntinggpt.com emails are allowed" }
   ),
   password: z.string().min(8, "Password must be at least 8 characters"),
 });
 
 const signupSchema = z.object({
   email: z.string().email().refine(
-    (email) => email.endsWith('@buntingmagnetics.com'), 
-    { message: "Only buntingmagnetics.com emails are allowed" }
+    (email) => email.endsWith('@buntingmagnetics.com') || email.endsWith('@buntinggpt.com'), 
+    { message: "Only @buntingmagnetics.com and @buntinggpt.com emails are allowed" }
   ),
   password: z.string().min(8, "Password must be at least 8 characters"),
   confirmPassword: z.string().min(8, "Password must be at least 8 characters"),
@@ -50,15 +50,15 @@ const signupSchema = z.object({
 
 const emailSignupSchema = z.object({
   email: z.string().email().refine(
-    (email) => email.endsWith('@buntingmagnetics.com'), 
-    { message: "Only buntingmagnetics.com emails are allowed" }
+    (email) => email.endsWith('@buntingmagnetics.com') || email.endsWith('@buntinggpt.com'), 
+    { message: "Only @buntingmagnetics.com and @buntinggpt.com emails are allowed" }
   ),
 });
 
 const otpSignupSchema = z.object({
   email: z.string().email().refine(
-    (email) => email.endsWith('@buntingmagnetics.com'), 
-    { message: "Only buntingmagnetics.com emails are allowed" }
+    (email) => email.endsWith('@buntingmagnetics.com') || email.endsWith('@buntinggpt.com'), 
+    { message: "Only @buntingmagnetics.com and @buntinggpt.com emails are allowed" }
   ),
   otp: z.string().length(6, "OTP must be 6 digits"),
   password: z.string().min(8, "Password must be at least 8 characters"),
@@ -70,15 +70,15 @@ const otpSignupSchema = z.object({
 
 const resetSchema = z.object({
   email: z.string().email().refine(
-    (email) => email.endsWith('@buntingmagnetics.com'), 
-    { message: "Only buntingmagnetics.com emails are allowed" }
+    (email) => email.endsWith('@buntingmagnetics.com') || email.endsWith('@buntinggpt.com'), 
+    { message: "Only @buntingmagnetics.com and @buntinggpt.com emails are allowed" }
   ),
 });
 
 const otpResetSchema = z.object({
   email: z.string().email().refine(
-    (email) => email.endsWith('@buntingmagnetics.com'), 
-    { message: "Only buntingmagnetics.com emails are allowed" }
+    (email) => email.endsWith('@buntingmagnetics.com') || email.endsWith('@buntinggpt.com'), 
+    { message: "Only @buntingmagnetics.com and @buntinggpt.com emails are allowed" }
   ),
   otp: z.string().length(6, "OTP must be 6 digits"),
   password: z.string().min(8, "Password must be at least 8 characters"),
