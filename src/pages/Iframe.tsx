@@ -47,10 +47,11 @@ const Iframe = () => {
       if (urlParam) {
         let finalUrl = urlParam;
         
-        // If we have source table and ID, try to get token from database
+        // If we have source table and ID, try to get token and license from database
         if (id && sourceTable) {
           try {
             let fetchedToken = null;
+            let fetchedLicense = null;
             
             // Handle different table schemas
             if (sourceTable === 'reports') {
@@ -73,13 +74,35 @@ const Iframe = () => {
               if (!error && data && 'token' in data) {
                 fetchedToken = (data as any).token;
               }
+            } else if (sourceTable === 'app_items') {
+              const { data, error } = await supabase
+                .from('app_items')
+                .select('access_token, license, auth_passcode')
+                .eq('id', id)
+                .single();
+              
+              if (!error && data) {
+                if ('access_token' in data) {
+                  fetchedToken = (data as any).access_token;
+                }
+                if ('license' in data) {
+                  fetchedLicense = (data as any).license;
+                }
+                // Use auth_passcode as fallback token if no access_token
+                if (!fetchedToken && 'auth_passcode' in data) {
+                  fetchedToken = (data as any).auth_passcode;
+                }
+              }
             }
             
             if (fetchedToken) {
               setToken(fetchedToken);
             }
+            if (fetchedLicense) {
+              setLicenseValue(fetchedLicense);
+            }
           } catch (error) {
-            console.warn('Error fetching token:', error);
+            console.warn('Error fetching authentication data:', error);
           }
         }
         
