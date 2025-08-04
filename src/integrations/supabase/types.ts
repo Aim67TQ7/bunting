@@ -91,6 +91,7 @@ export type Database = {
           license: string | null
           name: string
           requires_auth: boolean | null
+          show_to_demo: boolean
           token: string | null
           updated_at: string | null
           url: string
@@ -114,6 +115,7 @@ export type Database = {
           license?: string | null
           name: string
           requires_auth?: boolean | null
+          show_to_demo?: boolean
           token?: string | null
           updated_at?: string | null
           url: string
@@ -137,6 +139,7 @@ export type Database = {
           license?: string | null
           name?: string
           requires_auth?: boolean | null
+          show_to_demo?: boolean
           token?: string | null
           updated_at?: string | null
           url?: string
@@ -1537,6 +1540,7 @@ export type Database = {
           encryption_salt: string | null
           first_name: string | null
           id: string
+          is_demo_user: boolean
           updated_at: string
         }
         Insert: {
@@ -1546,6 +1550,7 @@ export type Database = {
           encryption_salt?: string | null
           first_name?: string | null
           id: string
+          is_demo_user?: boolean
           updated_at?: string
         }
         Update: {
@@ -1555,6 +1560,7 @@ export type Database = {
           encryption_salt?: string | null
           first_name?: string | null
           id?: string
+          is_demo_user?: boolean
           updated_at?: string
         }
         Relationships: []
@@ -2274,6 +2280,10 @@ export type Database = {
       hnswhandler: {
         Args: { "": unknown }
         Returns: unknown
+      }
+      is_demo_user: {
+        Args: { user_email: string }
+        Returns: boolean
       }
       ivfflat_bit_support: {
         Args: { "": unknown }
