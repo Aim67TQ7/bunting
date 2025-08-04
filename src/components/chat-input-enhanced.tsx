@@ -138,19 +138,35 @@ export function ChatInputEnhanced({
     let processingMessage = "";
     let intentMessage = "";
     
-    switch (intent) {
-      case 'summarize':
-        processingMessage = `Summarizing document: ${file.name}`;
-        intentMessage = "Please provide a comprehensive summary of this document, highlighting the key points, main findings, and important information.";
-        break;
-      case 'analyze':
-        processingMessage = `Analyzing document: ${file.name}`;
-        intentMessage = "Please perform a detailed analysis of this document, extracting insights, identifying patterns, and providing analytical commentary on the content.";
-        break;
-      case 'parse':
-        processingMessage = `Processing document for Q&A: ${file.name}`;
-        intentMessage = "Please parse this document thoroughly so I can ask specific questions about its content. Extract and organize all relevant information for future reference.";
-        break;
+    // Handle CSV files specially
+    if (file.name.toLowerCase().endsWith('.csv')) {
+      switch (intent) {
+        case 'summarize':
+          intentMessage = "Please provide a comprehensive summary of this CSV data, highlighting key insights, trends, and important findings from the dataset.";
+          break;
+        case 'analyze':
+          intentMessage = "Please perform a detailed analysis of this CSV data including statistical analysis, data quality assessment, patterns, and insights.";
+          break;
+        case 'parse':
+          intentMessage = "Please parse this CSV data thoroughly for dashboard creation. Analyze the structure, recommend visualizations, and suggest key metrics to display.";
+          break;
+      }
+    } else {
+      // Handle other document types
+      switch (intent) {
+        case 'summarize':
+          processingMessage = `Summarizing document: ${file.name}`;
+          intentMessage = "Please provide a comprehensive summary of this document, highlighting the key points, main findings, and important information.";
+          break;
+        case 'analyze':
+          processingMessage = `Analyzing document: ${file.name}`;
+          intentMessage = "Please perform a detailed analysis of this document, extracting insights, identifying patterns, and providing analytical commentary on the content.";
+          break;
+        case 'parse':
+          processingMessage = `Processing document for Q&A: ${file.name}`;
+          intentMessage = "Please parse this document thoroughly so I can ask specific questions about its content. Extract and organize all relevant information for future reference.";
+          break;
+      }
     }
     
     // Submit with the file and intent
@@ -307,12 +323,11 @@ export function ChatInputEnhanced({
               variant="ghost" 
               size="icon"
               onClick={handleVisionToggle}
-              className={cn("h-8 w-8 opacity-50 cursor-not-allowed", visionEnabled ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400" : "")}
-              title="Vision Analysis Mode - Currently Disabled"
-              disabled
+              className={cn("h-8 w-8", visionEnabled ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400" : "")}
+              title={visionEnabled ? "Vision Analysis Mode Enabled" : "Enable Vision Analysis Mode"}
             >
               <Eye className="h-4 w-4" />
-              <span className="sr-only">Vision Analysis (Disabled)</span>
+              <span className="sr-only">Vision Analysis</span>
             </Button>
 
             {/* Bottom row - Globe and Server */}
@@ -380,7 +395,7 @@ export function ChatInputEnhanced({
           ref={fileInputRef}
           onChange={handleFileChange}
           className="hidden"
-          accept=".pdf,.doc,.docx,.txt,.csv,.xlsx,.json,.md,.png,.jpg,.jpeg,.gif,.webp"
+          accept=".pdf,.doc,.docx,.txt,.csv,.xlsx,.xls,.json,.md,.png,.jpg,.jpeg,.gif,.webp"
         />
         
         <DocumentIntentDialog

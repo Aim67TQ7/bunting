@@ -18,22 +18,63 @@ export function ProfilePicture({ userId, avatarUrl, firstName, email, onAvatarUp
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
 
-  // Handle avatar upload
+  // Handle avatar upload with enhanced error handling and validation
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!userId || !event.target.files || event.target.files.length === 0) return;
     
     setIsUploading(true);
+    const maxRetries = 3;
+    let attempts = 0;
+    
     try {
       const file = event.target.files[0];
-      const fileExt = file.name.split('.').pop();
+      
+      // Validate file size (5MB limit)
+      if (file.size > 5 * 1024 * 1024) {
+        throw new Error("File size must be less than 5MB");
+      }
+      
+      // Validate file type
+      const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
+      if (!validTypes.includes(file.type)) {
+        throw new Error("Please upload a valid image file (PNG, JPG, GIF, or WebP)");
+      }
+      
+      const fileExt = file.name.split('.').pop()?.toLowerCase();
       const filePath = `${userId}/avatar.${fileExt}`;
       
-      // Upload image to Supabase Storage
-      const { error: uploadError } = await supabase.storage
-        .from("avatars")
-        .upload(filePath, file, { upsert: true });
+      console.log("Starting avatar upload:", { userId, filePath, fileSize: file.size, fileType: file.type });
       
-      if (uploadError) throw uploadError;
+      // Upload with retry logic
+      let uploadError: any = null;
+      while (attempts < maxRetries) {
+        attempts++;
+        console.log(`Upload attempt ${attempts}/${maxRetries}`);
+        
+        const { error } = await supabase.storage
+          .from("avatars")
+          .upload(filePath, file, { upsert: true });
+        
+        if (!error) {
+          uploadError = null;
+          break;
+        }
+        
+        uploadError = error;
+        console.error(`Upload attempt ${attempts} failed:`, error);
+        
+        if (attempts < maxRetries) {
+          // Wait before retry
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
+        }
+      }
+      
+      if (uploadError) {
+        console.error("All upload attempts failed:", uploadError);
+        throw new Error(`Upload failed: ${uploadError.message}`);
+      }
+      
+      console.log("Upload successful, getting public URL");
       
       // Get public URL
       const { data } = supabase.storage
@@ -41,6 +82,7 @@ export function ProfilePicture({ userId, avatarUrl, firstName, email, onAvatarUp
         .getPublicUrl(filePath);
       
       const newAvatarUrl = data.publicUrl;
+      console.log("Generated public URL:", newAvatarUrl);
       
       // Update profile with avatar URL
       const { error: updateError } = await supabase
@@ -48,7 +90,12 @@ export function ProfilePicture({ userId, avatarUrl, firstName, email, onAvatarUp
         .update({ avatar_url: newAvatarUrl })
         .eq("id", userId);
       
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error("Profile update failed:", updateError);
+        throw new Error(`Failed to update profile: ${updateError.message}`);
+      }
+      
+      console.log("Profile updated successfully");
       
       // Update UI
       onAvatarUpdate(newAvatarUrl);
@@ -57,15 +104,20 @@ export function ProfilePicture({ userId, avatarUrl, firstName, email, onAvatarUp
         description: "Your profile picture has been updated successfully",
       });
       
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error uploading avatar:", err);
+      const errorMessage = err.message || "Failed to upload profile picture";
       toast({
-        title: "Error",
-        description: "Failed to upload profile picture",
+        title: "Upload Error",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
       setIsUploading(false);
+      // Reset file input
+      if (event.target) {
+        event.target.value = "";
+      }
     }
   };
 
