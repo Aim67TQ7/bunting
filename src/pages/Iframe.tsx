@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -7,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Download } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-
 interface TokenMessage {
   type: 'PROVIDE_TOKEN' | 'REQUEST_TOKEN' | 'TOKEN_RECEIVED' | 'REQUEST_PASSWORD' | 'PROVIDE_PASSWORD' | 'PROVIDE_LICENSE' | 'REQUEST_LICENSE';
   token?: string;
@@ -16,7 +14,6 @@ interface TokenMessage {
   origin: string;
   timestamp: number;
 }
-
 const Iframe = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -26,7 +23,6 @@ const Iframe = () => {
   const [token, setToken] = useState<string | null>(null);
   const [licenseValue, setLicenseValue] = useState<string | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  
   useEffect(() => {
     const loadUrlWithToken = async () => {
       const params = new URLSearchParams(location.search);
@@ -35,52 +31,43 @@ const Iframe = () => {
       const id = params.get("id");
       const sourceTable = params.get("sourceTable");
       const license = params.get("license");
-      
       if (titleParam) {
         setTitle(titleParam);
       }
-      
       if (license) {
         setLicenseValue(license);
       }
-      
       if (urlParam) {
         let finalUrl = urlParam;
-        
+
         // If we have source table and ID, try to get token and license from database
         if (id && sourceTable) {
           try {
             let fetchedToken = null;
             let fetchedLicense = null;
-            
+
             // Handle different table schemas
             if (sourceTable === 'reports') {
-              const { data, error } = await supabase
-                .from('reports')
-                .select('access_token')
-                .eq('id', id)
-                .single();
-              
+              const {
+                data,
+                error
+              } = await supabase.from('reports').select('access_token').eq('id', id).single();
               if (!error && data && 'access_token' in data) {
                 fetchedToken = (data as any).access_token;
               }
             } else if (sourceTable === 'sales_tools') {
-              const { data, error } = await supabase
-                .from('sales_tools')
-                .select('token')
-                .eq('id', id)
-                .single();
-              
+              const {
+                data,
+                error
+              } = await supabase.from('sales_tools').select('token').eq('id', id).single();
               if (!error && data && 'token' in data) {
                 fetchedToken = (data as any).token;
               }
             } else if (sourceTable === 'app_items') {
-              const { data, error } = await supabase
-                .from('app_items')
-                .select('access_token, license, auth_passcode')
-                .eq('id', id)
-                .single();
-              
+              const {
+                data,
+                error
+              } = await supabase.from('app_items').select('access_token, license, auth_passcode').eq('id', id).single();
               if (!error && data) {
                 if ('access_token' in data) {
                   fetchedToken = (data as any).access_token;
@@ -94,7 +81,6 @@ const Iframe = () => {
                 }
               }
             }
-            
             if (fetchedToken) {
               setToken(fetchedToken);
             }
@@ -105,21 +91,18 @@ const Iframe = () => {
             console.warn('Error fetching authentication data:', error);
           }
         }
-        
+
         // Set URL without token parameter
         setUrl(urlParam);
       }
-      
       setLoading(false);
     };
-    
     loadUrlWithToken();
   }, [location]);
 
   // Handle iframe load and send token via postMessage
   useEffect(() => {
     const iframe = iframeRef.current;
-    
     const handleIframeLoad = () => {
       if (iframe?.contentWindow) {
         try {
@@ -134,7 +117,7 @@ const Iframe = () => {
             iframe.contentWindow.postMessage(tokenMessage, '*');
             console.log('Token sent to iframe via postMessage');
           }
-          
+
           // Send license if available
           if (licenseValue) {
             const licenseMessage: TokenMessage = {
@@ -151,7 +134,6 @@ const Iframe = () => {
         }
       }
     };
-
     if (iframe) {
       iframe.addEventListener('load', handleIframeLoad);
       return () => iframe.removeEventListener('load', handleIframeLoad);
@@ -169,7 +151,6 @@ const Iframe = () => {
           origin: window.location.origin,
           timestamp: Date.now()
         };
-        
         (event.source as Window)?.postMessage(message, event.origin);
         console.log('Token provided in response to request');
       } else if (event.data?.type === 'REQUEST_PASSWORD' && token) {
@@ -180,12 +161,11 @@ const Iframe = () => {
           origin: window.location.origin,
           timestamp: Date.now()
         };
-        
         (event.source as Window)?.postMessage(message, event.origin);
         console.log('Password auto-populated with access token');
         toast({
           title: "Password auto-filled",
-          description: "Access token has been provided as password",
+          description: "Access token has been provided as password"
         });
       } else if (event.data?.type === 'REQUEST_LICENSE' && licenseValue) {
         // Provide license when requested
@@ -195,90 +175,55 @@ const Iframe = () => {
           origin: window.location.origin,
           timestamp: Date.now()
         };
-        
         (event.source as Window)?.postMessage(message, event.origin);
         console.log('License provided in response to request');
       } else if (event.data?.type === 'TOKEN_RECEIVED') {
         console.log('Token received confirmation from iframe');
         toast({
           title: "Authentication successful",
-          description: "Token has been provided to the application",
+          description: "Token has been provided to the application"
         });
       }
     };
-
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
   }, [token, licenseValue]);
-  
   const handleBack = () => {
     navigate(-1);
   };
-
   const handleDirectDownload = () => {
     if (url) {
       window.open(url, '_blank');
       toast({
         title: "Download initiated",
-        description: "File download should start in a new tab",
+        description: "File download should start in a new tab"
       });
     }
   };
-
-  return (
-    <div className="flex h-screen w-full overflow-hidden">
+  return <div className="flex h-screen w-full overflow-hidden">
       <AppSidebar className="w-64 flex-shrink-0" />
       
       <SidebarInset className="flex flex-1 flex-col overflow-hidden">
         <div className="flex items-center justify-between border-b px-4 py-3">
           <div className="flex items-center">
             <SidebarTrigger className="md:hidden mr-2" />
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={handleBack}
-              className="flex items-center"
-            >
+            <Button variant="ghost" size="sm" onClick={handleBack} className="flex items-center">
               <ArrowLeft className="h-4 w-4 mr-1" />
               <span>Back</span>
             </Button>
             {title && <span className="ml-2 text-sm font-medium">{title}</span>}
           </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleDirectDownload}
-            className="flex items-center"
-          >
-            <Download className="h-4 w-4 mr-1" />
-            <span>Direct Download</span>
-          </Button>
+          
         </div>
         
         <div className="flex-1 overflow-hidden">
-          {loading ? (
-            <div className="flex items-center justify-center h-full">
+          {loading ? <div className="flex items-center justify-center h-full">
               <p>Loading...</p>
-            </div>
-          ) : url ? (
-            <iframe
-              ref={iframeRef}
-              src={url}
-              className="w-full h-full border-none"
-              title={title || "Embedded content"}
-              sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-downloads allow-presentation allow-top-navigation-by-user-activation allow-popups-to-escape-sandbox"
-              allow="camera; microphone; geolocation; payment; usb; accelerometer; gyroscope; magnetometer; clipboard-read; clipboard-write; web-share; downloads"
-              loading="lazy"
-            />
-          ) : (
-            <div className="flex items-center justify-center h-full">
+            </div> : url ? <iframe ref={iframeRef} src={url} className="w-full h-full border-none" title={title || "Embedded content"} sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-downloads allow-presentation allow-top-navigation-by-user-activation allow-popups-to-escape-sandbox" allow="camera; microphone; geolocation; payment; usb; accelerometer; gyroscope; magnetometer; clipboard-read; clipboard-write; web-share; downloads" loading="lazy" /> : <div className="flex items-center justify-center h-full">
               <p>No URL provided</p>
-            </div>
-          )}
+            </div>}
         </div>
       </SidebarInset>
-    </div>
-  );
+    </div>;
 };
-
 export default Iframe;
