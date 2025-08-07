@@ -98,34 +98,32 @@ export async function getUserEncryptionSalt(userId: string): Promise<Uint8Array>
   return new Uint8Array(atob(profile.encryption_salt).split('').map(c => c.charCodeAt(0)));
 }
 
-// Create encryption key for user using a dedicated encryption password
+// Create encryption key for user using stable user-based password (v2)
 export async function createUserEncryptionKey(userId: string): Promise<CryptoKey> {
-  console.log('Creating encryption key for user:', userId);
-  
-  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-  console.log('Session data:', { hasSession: !!session, hasAccessToken: !!session?.access_token, sessionError });
-  
-  if (sessionError) {
-    console.error('Session error:', sessionError);
-    throw new Error(`Session error: ${sessionError.message}`);
-  }
-  
-  if (!session?.access_token) {
-    console.error('No active session or access token');
-    throw new Error('No active session for encryption key generation');
-  }
-
-  // Use a combination of user ID and session for better security
-  const encryptionPassword = `${userId}:${session.access_token}:encryption`;
-  console.log('Getting user encryption salt...');
-  
+  // Use stable user-based encryption password (no session token dependency)
+  const encryptionPassword = `${userId}:encryption_key_v2`;
   const salt = await getUserEncryptionSalt(userId);
-  console.log('Salt obtained, deriving key...');
-  
-  const key = await deriveKey(encryptionPassword, salt);
-  console.log('Key derived successfully');
-  
-  return key;
+  return deriveKey(encryptionPassword, salt);
+}
+
+// Legacy encryption key creation for fallback decryption
+async function createLegacyUserEncryptionKey(userId: string): Promise<CryptoKey | null> {
+  try {
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError || !session?.access_token) {
+      return null;
+    }
+
+    // Legacy encryption password with session token
+    const encryptionPassword = `${userId}:${session.access_token}:encryption`;
+    const salt = await getUserEncryptionSalt(userId);
+    
+    return deriveKey(encryptionPassword, salt);
+  } catch (error) {
+    console.warn('Failed to create legacy encryption key:', error);
+    return null;
+  }
 }
 
 // Encrypt conversation content
@@ -136,7 +134,7 @@ export async function encryptConversationContent(content: any, userId: string): 
   return JSON.stringify(encrypted);
 }
 
-// Decrypt conversation content
+// Decrypt conversation content with fallback support
 export async function decryptConversationContent(encryptedContent: string, userId: string): Promise<any> {
   try {
     // Parse as encrypted data
@@ -144,28 +142,40 @@ export async function decryptConversationContent(encryptedContent: string, userI
     
     // Check if this looks like encrypted data
     if (encryptedData.data && encryptedData.iv) {
-      console.log('Attempting to decrypt conversation content for user:', userId);
-      console.log('Encrypted data structure:', { hasData: !!encryptedData.data, hasIv: !!encryptedData.iv });
-      
-      const key = await createUserEncryptionKey(userId);
-      console.log('Encryption key created successfully');
-      
-      const decryptedString = await decryptData(encryptedData, key);
-      console.log('Decryption successful, parsing JSON...');
-      
-      return JSON.parse(decryptedString);
+      // Try with new stable encryption key first
+      try {
+        const key = await createUserEncryptionKey(userId);
+        const decryptedString = await decryptData(encryptedData, key);
+        return JSON.parse(decryptedString);
+      } catch (newKeyError) {
+        console.warn('Failed to decrypt with new key, trying legacy key...', newKeyError);
+        
+        // Fallback: try with legacy session-based encryption key
+        const legacyKey = await createLegacyUserEncryptionKey(userId);
+        if (legacyKey) {
+          try {
+            const decryptedString = await decryptData(encryptedData, legacyKey);
+            console.log('Successfully decrypted with legacy key');
+            return JSON.parse(decryptedString);
+          } catch (legacyKeyError) {
+            console.error('Failed to decrypt with legacy key as well:', legacyKeyError);
+          }
+        }
+        
+        // If both keys fail, throw a more descriptive error
+        throw new Error('Cannot decrypt conversation - encryption key has changed. Please contact support if this persists.');
+      }
     } else {
-      // Legacy unencrypted data - return as is but log warning
-      console.warn('Found unencrypted conversation data - this should be migrated');
+      // Legacy unencrypted data - return as is
+      console.warn('Found unencrypted conversation data');
       return encryptedData;
     }
   } catch (error) {
+    if (error.message.includes('encryption key has changed')) {
+      throw error; // Re-throw our custom error
+    }
+    
     console.error('Error decrypting conversation content:', error);
-    console.error('Error details:', {
-      name: error.name,
-      message: error.message,
-      stack: error.stack
-    });
-    throw new Error('Failed to decrypt conversation content');
+    throw new Error(`Failed to load conversation: ${error.message}`);
   }
 }

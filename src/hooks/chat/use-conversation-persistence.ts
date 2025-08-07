@@ -95,19 +95,40 @@ export function useConversationPersistence() {
         if (error) throw error;
         
         if (data) {
-          // Decrypt the messages first
-          const decryptedMessages = await decryptConversationContent(data.messages, user.id);
-          
-          // Transform ISO date strings back to Date objects
-          const loadedMessages = Array.isArray(decryptedMessages) ? decryptedMessages.map((msg: any) => ({
-            ...msg,
-            timestamp: new Date(msg.timestamp)
-          })) : [];
-          
-          return {
-            messages: loadedMessages,
-            id: data.id
-          };
+          try {
+            // Decrypt the messages first
+            const decryptedMessages = await decryptConversationContent(data.messages, user.id);
+            
+            // Transform ISO date strings back to Date objects
+            const loadedMessages = Array.isArray(decryptedMessages) ? decryptedMessages.map((msg: any) => ({
+              ...msg,
+              timestamp: new Date(msg.timestamp)
+            })) : [];
+            
+            return {
+              messages: loadedMessages,
+              id: data.id
+            };
+          } catch (decryptError) {
+            console.error("Decryption failed for conversation:", id, decryptError);
+            
+            // Show more specific error message to user
+            if (decryptError.message.includes('encryption key has changed')) {
+              toast({
+                title: "Cannot load conversation",
+                description: "This conversation cannot be decrypted. It may have been created with an old encryption method.",
+                variant: "destructive"
+              });
+            } else {
+              toast({
+                title: "Error loading conversation",
+                description: "Failed to decrypt conversation data.",
+                variant: "destructive"
+              });
+            }
+            
+            throw decryptError;
+          }
         }
         return null;
       } catch (error) {
