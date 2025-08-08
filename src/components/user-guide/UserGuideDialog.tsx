@@ -44,7 +44,7 @@ export function UserGuideDialog() {
 
   return (
     <Dialog open={isGuideOpen} onOpenChange={closeGuide}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-4xl max-h-[90vh] resize overflow-auto flex flex-col">
         <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b">
           <div className="flex-1">
             <DialogTitle className="text-2xl font-bold">BuntingGPT User Guide</DialogTitle>

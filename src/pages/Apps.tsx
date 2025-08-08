@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useNavigate } from "react-router-dom";
+import { Badge } from "@/components/ui/badge";
 
 interface ApplicationItem {
   id: string;
@@ -97,15 +98,15 @@ const Apps = () => {
               </AlertDescription>
             </Alert>
           ) : applications.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {applications.map((app) => (
                 <div key={app.id} className={app.coming_soon ? "opacity-70" : ""}>
                   <div className="relative">
                     {app.coming_soon && (
                       <div className="absolute -top-3 -right-3 z-10">
-                        <span className="inline-flex items-center rounded-full bg-yellow-50 px-3 py-1 text-xs font-medium text-yellow-800 ring-1 ring-inset ring-yellow-600/20">
-                          Coming Soon
-                        </span>
+                        <Badge variant="destructive" className="text-xs px-2 py-1">
+                          In Development
+                        </Badge>
                       </div>
                     )}
                     <FlipCard 
