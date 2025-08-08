@@ -6,10 +6,9 @@ import { useState, FormEvent, useRef, ChangeEvent, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { DocumentIntentDialog } from "@/components/chat/document-intent-dialog";
 
 interface ChatInputEnhancedProps {
-  onSubmit: (message: string, autoSummarize: boolean, queryType?: string, file?: File) => void;
+  onSubmit: (message: string, autoSummarize: boolean, queryType?: string, files?: File[]) => void;
   isDisabled?: boolean;
   className?: string;
   conversationId?: string | null;
@@ -40,10 +39,9 @@ export function ChatInputEnhanced({
   onVisionToggle
 }: ChatInputEnhancedProps) {
   const [message, setMessage] = useState("");
-  const [isUploading, setIsUploading] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [willAutoSummarize, setWillAutoSummarize] = useState(false);
-  const [pendingFile, setPendingFile] = useState<File | null>(null);
-  const [showIntentDialog, setShowIntentDialog] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
@@ -57,24 +55,21 @@ export function ChatInputEnhanced({
   
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    if (!message.trim() || isDisabled) return;
+    if ((isDisabled)) return;
     
-    // Check message prefixes
     const trimmedMessage = message.trim();
     const autoSummarize = trimmedMessage.startsWith("&");
-    
-    let queryType = null;
-    let finalMessage = trimmedMessage;
-    
-    if (autoSummarize) {
-      finalMessage = trimmedMessage.substring(1).trim();
-      queryType = "summarize";
-    }
-    
-    if (!finalMessage) return; // If message is just a prefix don't submit
-    
-    onSubmit(finalMessage, autoSummarize, queryType, null);
+    const finalMessage = autoSummarize ? trimmedMessage.substring(1).trim() : trimmedMessage;
+
+    // If no message but files selected, provide a default instruction
+    const outboundMessage = finalMessage || (selectedFiles.length > 0 ? "Please run Smart Analysis on the attached documents." : "");
+    if (!outboundMessage && selectedFiles.length === 0) return;
+
+    // Use 'smart' when files are attached
+    const route = selectedFiles.length > 0 ? 'smart' : (autoSummarize ? 'summarize' : undefined);
+    onSubmit(outboundMessage, autoSummarize, route, selectedFiles.length > 0 ? selectedFiles : undefined);
     setMessage("");
+    setSelectedFiles([]);
     
     // Focus back to textarea after a brief delay
     setTimeout(() => {
@@ -94,94 +89,46 @@ export function ChatInputEnhanced({
   };
   
   const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
     setIsUploading(true);
-    
-    // Check file size (25MB limit for documents/PDFs)
-    if (file.size > 25 * 1024 * 1024) {
+
+    // Validate counts and sizes
+    const MAX_FILES = 10;
+    const MAX_SIZE = 10 * 1024 * 1024; // 10MB per file
+    const existing = selectedFiles.length;
+    if (existing + files.length > MAX_FILES) {
       toast({
-        title: "File too large",
-        description: "Please upload files smaller than 25MB",
+        title: "Too many files",
+        description: `You can upload up to ${MAX_FILES} files.`,
         variant: "destructive",
       });
       setIsUploading(false);
       return;
     }
-    
-    // Do not auto-enable vision mode for file uploads
-    // Vision remains a manual toggle only
-    
-    // Store the file and show intent dialog
-    setPendingFile(file);
-    setShowIntentDialog(true);
-    setIsUploading(false);
-    
+
+    const valid: File[] = [];
+    for (const f of files) {
+      if (f.size > MAX_SIZE) {
+        toast({
+          title: "File too large",
+          description: `${f.name} exceeds 10MB limit and was skipped.`,
+          variant: "destructive",
+        });
+        continue;
+      }
+      valid.push(f);
+    }
+
+    setSelectedFiles(prev => [...prev, ...valid]);
+
     // Reset the file input
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
+    setIsUploading(false);
   };
 
-  const handleDocumentIntent = (intent: 'summarize' | 'analyze' | 'parse') => {
-    if (!pendingFile) return;
-    
-    const file = pendingFile;
-    let processingMessage = "";
-    let intentMessage = "";
-    
-    // Handle CSV files specially
-    if (file.name.toLowerCase().endsWith('.csv')) {
-      switch (intent) {
-        case 'summarize':
-          intentMessage = "Please provide a comprehensive summary of this CSV data, highlighting key insights, trends, and important findings from the dataset.";
-          break;
-        case 'analyze':
-          intentMessage = "Please perform a detailed analysis of this CSV data including statistical analysis, data quality assessment, patterns, and insights.";
-          break;
-        case 'parse':
-          intentMessage = "Please parse this CSV data thoroughly for dashboard creation. Analyze the structure, recommend visualizations, and suggest key metrics to display.";
-          break;
-      }
-    } else {
-      // Handle other document types
-      switch (intent) {
-        case 'summarize':
-          processingMessage = `Summarizing document: ${file.name}`;
-          intentMessage = "Please provide a comprehensive summary of this document, highlighting the key points, main findings, and important information.";
-          break;
-        case 'analyze':
-          processingMessage = `Analyzing document: ${file.name}`;
-          intentMessage = "Please perform a detailed analysis of this document, extracting insights, identifying patterns, and providing analytical commentary on the content.";
-          break;
-        case 'parse':
-          processingMessage = `Processing document for Q&A: ${file.name}`;
-          intentMessage = "Please parse this document thoroughly so I can ask specific questions about its content. Extract and organize all relevant information for future reference.";
-          break;
-      }
-    }
-    
-    // Submit with the file and intent
-    // Route based on enabled modes (priority: GPT-5 > Vision > O3 > Web > default)
-    let route: string | undefined = undefined;
-    if (gpt5Enabled) route = 'gpt5';
-    else if (visionEnabled) route = 'vision';
-    else if (o3Enabled) route = 'gpt-o3';
-    else if (webEnabled) route = 'web';
-
-    onSubmit(intentMessage, false, route, file);
-    
-    // Clean up
-    setPendingFile(null);
-    setShowIntentDialog(false);
-  };
-
-  const handleIntentDialogClose = () => {
-    setShowIntentDialog(false);
-    setPendingFile(null);
-  };
-  
   const getPlaceholder = () => {
     if (visionEnabled) {
       return "Send a message (vision analysis mode enabled)...";
@@ -239,6 +186,22 @@ export function ChatInputEnhanced({
         </div>
       )}
       
+      {selectedFiles.length > 0 && (
+        <div className="flex items-center justify-between px-4 py-2 text-xs bg-amber-100 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 rounded-t-md mx-4 mb-0 mt-2">
+          <div className="flex items-center">
+            <Info className="h-3 w-3 mr-1.5" />
+            <span>Smart Analysis will process {selectedFiles.length} file(s). Up to 5 will receive deep evaluation.</span>
+          </div>
+          <button
+            type="button"
+            className="underline"
+            onClick={() => setSelectedFiles([])}
+          >
+            Clear
+          </button>
+        </div>
+      )}
+      
       {visionEnabled && !willAutoSummarize && (
         <div className="flex items-center px-4 py-2 text-xs bg-emerald-100 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-300 rounded-t-md mx-4 mb-0 mt-2">
           <Info className="h-3 w-3 mr-1.5" />
@@ -271,7 +234,7 @@ export function ChatInputEnhanced({
         onSubmit={handleSubmit}
         className={cn(
           "relative flex w-full items-start gap-3 p-4", 
-          (willAutoSummarize || webEnabled || o3Enabled || visionEnabled || gpt5Enabled) ? "pt-2" : "",
+          (willAutoSummarize || webEnabled || o3Enabled || visionEnabled || gpt5Enabled || selectedFiles.length > 0) ? "pt-2" : "",
           className
         )}
       >
@@ -381,7 +344,7 @@ export function ChatInputEnhanced({
           <Button 
             type="submit" 
             size="icon" 
-            disabled={!message.trim() || isDisabled || isUploading}
+            disabled={(!message.trim() && selectedFiles.length === 0) || isDisabled}
             className="h-8 w-8"
           >
             <Send className="h-4 w-4" />
@@ -395,13 +358,7 @@ export function ChatInputEnhanced({
           onChange={handleFileChange}
           className="hidden"
           accept=".pdf,.doc,.docx,.txt,.csv,.xlsx,.xls,.json,.md,.png,.jpg,.jpeg,.gif,.webp"
-        />
-        
-        <DocumentIntentDialog
-          open={showIntentDialog}
-          onClose={handleIntentDialogClose}
-          fileName={pendingFile?.name || ""}
-          onIntent={handleDocumentIntent}
+          multiple
         />
       </form>
     </div>

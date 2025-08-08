@@ -34,7 +34,7 @@ export function useMessageSending() {
   const { toast } = useToast();
 
   const sendMessageToAI = useCallback(
-    async (messages: Message[], queryType?: string, conversationId?: string | null, file?: File) => {
+    async (messages: Message[], queryType?: string, conversationId?: string | null, fileOrFiles?: File | File[]) => {
       if (!user) return null;
       
       try {
@@ -42,26 +42,31 @@ export function useMessageSending() {
         let modelUsed: string = "groq-llama3-70b"; // Default model name
         
         // Route to Claude only when vision is explicitly requested and GPT-5 is not selected
-        if ((file && queryType !== 'gpt5') || queryType === 'vision') {
+        const filesArray: File[] = Array.isArray(fileOrFiles)
+          ? fileOrFiles
+          : fileOrFiles
+          ? [fileOrFiles]
+          : [];
+        if ((filesArray.length > 0 && queryType === 'vision') || queryType === 'vision') {
           console.log('Using Claude for vision/file analysis');
           
           let fileData = null;
-          if (file) {
+          if (filesArray.length === 1) {
             try {
               // Convert file to base64
-              const base64Content = await fileToBase64(file);
+              const base64Content = await fileToBase64(filesArray[0]);
               
               // Check if file needs chunking (if larger than 100KB in base64)
               const needsChunking = base64Content.length > 100000;
               
               fileData = {
-                name: file.name,
-                type: file.type,
-                size: file.size,
+                name: filesArray[0].name,
+                type: filesArray[0].type,
+                size: filesArray[0].size,
                 base64: needsChunking ? null : base64Content,
                 chunks: needsChunking ? chunkFile(base64Content) : null,
                 needsChunking
-              };
+              } as any;
               
               if (needsChunking) {
                 toast({
@@ -109,48 +114,64 @@ export function useMessageSending() {
           aiResponse = data.content;
           modelUsed = data.model || "gpt-o3-mini";
         }
-        // Use GPT-5 mini if queryType is 'gpt5'
-        else if (queryType === 'gpt5') {
-          console.log('Using GPT-5 mini for response', file ? '(with attachment preview)' : '');
+        // Use GPT-5 mini if queryType is 'gpt5' or 'smart'
+        else if (queryType === 'gpt5' || queryType === 'smart') {
+          const isSmart = queryType === 'smart';
+          console.log(`Using GPT-5 mini for ${isSmart ? 'Smart Analysis' : 'response'}`, Array.isArray(fileOrFiles) ? `(with ${fileOrFiles.length} attachment(s) preview)` : (fileOrFiles ? '(with attachment preview)' : ''));
 
-          let fileData = null as null | {
-            name: string;
-            type: string;
-            size: number;
-            base64Preview: string | null;
-            truncated: boolean;
-          };
+          // Build previews for up to 10 files (safe limits per file and total)
+          const filesArray: File[] = Array.isArray(fileOrFiles)
+            ? fileOrFiles
+            : fileOrFiles
+            ? [fileOrFiles]
+            : [];
 
-          if (file) {
+          let totalBytes = 0;
+          const MAX_FILES = 10;
+          const MAX_TOTAL_BYTES = 50 * 1024 * 1024; // 50MB total
+          const MAX_TEXT_PREVIEW = 10000; // chars
+          const MAX_BASE64_PREVIEW = 16000; // chars
+
+          const limitedFiles = filesArray.slice(0, MAX_FILES);
+
+          const fileDataList: any[] = [];
+          for (const f of limitedFiles) {
+            totalBytes += f.size;
+            if (totalBytes > MAX_TOTAL_BYTES) break;
+
+            let preview: string | null = null;
+            let truncated = false;
             try {
-              const base64Content = await fileToBase64(file);
-              // Limit preview to keep prompt size safe (~4k tokens)
-              const MAX_PREVIEW_CHARS = 16000;
-              const preview = base64Content.slice(0, MAX_PREVIEW_CHARS);
-              fileData = {
-                name: file.name,
-                type: file.type,
-                size: file.size,
-                base64Preview: preview,
-                truncated: base64Content.length > MAX_PREVIEW_CHARS,
-              };
-
-              if (fileData.truncated) {
-                toast({
-                  title: 'Large file attached',
-                  description: 'Sent a safe preview of the file to GPT-5 for analysis.',
-                  duration: 3000,
+              // Prefer text preview for text-like files
+              const lowerName = f.name.toLowerCase();
+              const isTextLike = f.type.startsWith('text/') || /\.(csv|json|md|txt)$/i.test(lowerName);
+              if (isTextLike) {
+                // Read as text
+                const text = await new Promise<string>((resolve, reject) => {
+                  const reader = new FileReader();
+                  reader.readAsText(f);
+                  reader.onload = () => resolve((reader.result as string) || '');
+                  reader.onerror = reject;
                 });
+                preview = text.slice(0, MAX_TEXT_PREVIEW);
+                truncated = text.length > MAX_TEXT_PREVIEW;
+              } else {
+                // Fallback to base64 data URL preview (first N chars only)
+                const b64 = await fileToBase64(f);
+                preview = b64.slice(0, MAX_BASE64_PREVIEW);
+                truncated = b64.length > MAX_BASE64_PREVIEW;
               }
-            } catch (error) {
-              console.error('Error processing file for GPT-5:', error);
-              toast({
-                title: 'File processing error',
-                description: 'Failed to process the uploaded file',
-                variant: 'destructive',
-              });
-              throw error;
+            } catch (e) {
+              console.warn('Preview generation failed for file', f.name, e);
             }
+
+            fileDataList.push({
+              name: f.name,
+              type: f.type,
+              size: f.size,
+              base64Preview: preview,
+              truncated,
+            });
           }
 
           const { data, error } = await supabase.functions.invoke('generate-with-openai-gpt5', {
@@ -158,7 +179,8 @@ export function useMessageSending() {
               messages: messages.map(m => ({ role: m.role, content: m.content })),
               conversationId: conversationId,
               userId: user.id,
-              fileData,
+              fileDataList,
+              smart: isSmart,
             }
           });
           

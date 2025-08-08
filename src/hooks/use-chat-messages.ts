@@ -50,11 +50,11 @@ export function useChatMessages() {
   );
 
   const sendMessage = useCallback(
-    async (content: string, autoSummarize = false, queryType?: string, file?: File) => {
-      if (!user || !content.trim()) return;
+    async (content: string, autoSummarize = false, queryType?: string, files?: File[]) => {
+      if (!user || (!content.trim() && (!files || files.length === 0))) return;
       
       // Add user message to chat
-      const userMessage = createUserMessage(content, autoSummarize, queryType);
+      const userMessage = createUserMessage(content || "Smart Analysis", autoSummarize, queryType);
       const updatedMessages = [...messages, userMessage];
       setMessages(updatedMessages);
       setIsLoading(true);
@@ -73,7 +73,7 @@ export function useChatMessages() {
         }
         
         // Get response from AI
-        const aiResponseData = await sendMessageToAI(updatedMessages, queryType, currentConvoId, file);
+        const aiResponseData = await sendMessageToAI(updatedMessages, queryType, currentConvoId, files as any);
         
         if (!aiResponseData) {
           throw new Error("Failed to get AI response");

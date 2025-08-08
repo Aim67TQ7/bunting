@@ -83,7 +83,7 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
   
-  const handleSendMessage = (content: string, autoSummarize = false, queryType?: string, file?: File) => {
+  const handleSendMessage = (content: string, autoSummarize = false, queryType?: string, files?: File[]) => {
     // Check if message starts with "&" and mark for auto-summarization
     let finalContent = content;
     let shouldAutoSummarize = autoSummarize;
@@ -99,17 +99,16 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
     // Prioritize GPT-5 mini and disengage vision when active
     if (gpt5Enabled) {
       actualQueryType = "gpt5";
-    } else if (file || queryType === 'vision' || visionEnabled) {
-      // Vision only when explicitly enabled and GPT-5 is not active
-      actualQueryType = "vision";
-      // Do not auto-toggle vision for file uploads
+    } else if ((files && files.length > 0) || queryType === 'vision' || visionEnabled) {
+      // If files are attached, use smart analysis; otherwise vision when explicitly enabled
+      actualQueryType = files && files.length > 0 ? 'smart' : 'vision';
     } else if (o3Enabled) {
       actualQueryType = "gpt-o3";
     } else if (webEnabled) {
       actualQueryType = "web";
     }
     
-    sendMessage(finalContent, shouldAutoSummarize, actualQueryType, file);
+    sendMessage(finalContent, shouldAutoSummarize, actualQueryType, files);
   };
 
   const handleStarterClick = (question: string, isAiResponse?: boolean) => {
