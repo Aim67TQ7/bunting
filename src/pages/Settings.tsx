@@ -16,7 +16,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { ProfilePicture } from "@/components/settings/ProfilePicture";
 import { ConversationPreferences } from "@/components/settings/ConversationPreferences";
 import { supabase } from "@/integrations/supabase/client";
-
+import { AppItemsSecretPanel } from "@/components/admin/AppItemsSecretPanel";
+ 
 // Modified schema to remove current password requirement since user is already authenticated
 const passwordSchema = z.object({
   newPassword: z.string().min(8, "Password must be at least 8 characters"),
@@ -32,6 +33,7 @@ export default function Settings() {
   const [profile, setProfile] = useState<any>(null);
   const { toast } = useToast();
   const { user, updatePassword } = useAuth();
+  const [appItemsOpen, setAppItemsOpen] = useState(false);
 
   // Fetch user profile data
   useEffect(() => {
@@ -219,6 +221,13 @@ export default function Settings() {
             </div>
           </div>
         </SidebarInset>
+        <AppItemsSecretPanel open={appItemsOpen} onOpenChange={setAppItemsOpen} />
+        <Button
+          size="icon"
+          className="fixed bottom-4 right-4 h-3 w-3 rounded-full bg-primary shadow-md opacity-60 hover:opacity-100 z-[70]"
+          aria-label="Open app items panel"
+          onClick={() => setAppItemsOpen(true)}
+        />
       </div>
     </SidebarProvider>
   );
