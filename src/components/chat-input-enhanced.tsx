@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Info, Send, Upload, Plus, Globe, Brain, Server, Eye } from "lucide-react";
+import { Info, Send, Upload, Plus, Globe, Brain, Eye } from "lucide-react";
 import { useState, FormEvent, useRef, ChangeEvent, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -18,8 +18,8 @@ interface ChatInputEnhancedProps {
   o3Enabled?: boolean;
   onO3Toggle?: () => void;
   onNewChat?: () => void;
-  serverEnabled?: boolean;
-  onServerToggle?: () => void;
+  gpt5Enabled?: boolean;
+  onGpt5Toggle?: () => void;
   visionEnabled?: boolean;
   onVisionToggle?: () => void;
 }
@@ -34,8 +34,8 @@ export function ChatInputEnhanced({
   o3Enabled = false,
   onO3Toggle,
   onNewChat,
-  serverEnabled = false,
-  onServerToggle,
+  gpt5Enabled = false,
+  onGpt5Toggle,
   visionEnabled = false,
   onVisionToggle
 }: ChatInputEnhancedProps) {
@@ -192,8 +192,8 @@ export function ChatInputEnhanced({
     if (webEnabled) {
       return "Send a message (web search enabled)...";
     }
-    if (serverEnabled) {
-      return "Send a message (server embeddings mode - development in process)...";
+    if (gpt5Enabled) {
+      return "Send a message (GPT-5 mini mode enabled)...";
     }
     return "Send a message... (& to auto-summarize)";
   };
@@ -218,9 +218,9 @@ export function ChatInputEnhanced({
     }
   };
 
-  const handleServerToggle = () => {
-    if (onServerToggle) {
-      onServerToggle();
+  const handleGpt5Toggle = () => {
+    if (onGpt5Toggle) {
+      onGpt5Toggle();
     }
   };
 
@@ -260,10 +260,10 @@ export function ChatInputEnhanced({
         </div>
       )}
 
-      {serverEnabled && !willAutoSummarize && !o3Enabled && !visionEnabled && !webEnabled && (
+      {gpt5Enabled && !willAutoSummarize && !o3Enabled && !visionEnabled && !webEnabled && (
         <div className="flex items-center px-4 py-2 text-xs bg-gray-100 dark:bg-gray-800/40 text-gray-600 dark:text-gray-400 rounded-t-md mx-4 mb-0 mt-2">
           <Info className="h-3 w-3 mr-1.5" />
-          <span>Server embeddings mode - Development in Process (Inactive)</span>
+          <span>GPT-5 mini mode is enabled</span>
         </div>
       )}
       
@@ -271,7 +271,7 @@ export function ChatInputEnhanced({
         onSubmit={handleSubmit}
         className={cn(
           "relative flex w-full items-start gap-3 p-4", 
-          (willAutoSummarize || webEnabled || o3Enabled || visionEnabled || serverEnabled) ? "pt-2" : "",
+          (willAutoSummarize || webEnabled || o3Enabled || visionEnabled || gpt5Enabled) ? "pt-2" : "",
           className
         )}
       >
@@ -347,13 +347,12 @@ export function ChatInputEnhanced({
               type="button" 
               variant="ghost" 
               size="icon"
-              onClick={handleServerToggle}
-              className={cn("h-8 w-8 opacity-50 cursor-not-allowed", serverEnabled ? "bg-gray-100 text-gray-500 dark:bg-gray-800/40 dark:text-gray-400" : "")}
-              title="Server Embeddings Mode - Development in Process"
-              disabled
+              onClick={handleGpt5Toggle}
+              className={cn("h-8 w-8", gpt5Enabled ? "bg-orange-100 text-orange-600 dark:bg-orange-900/40 dark:text-orange-400" : "")}
+              title={gpt5Enabled ? "GPT-5 mini enabled" : "Enable GPT-5 mini"}
             >
-              <Server className="h-4 w-4" />
-              <span className="sr-only">Server Mode (Development)</span>
+              <span className="text-xs font-bold">5</span>
+              <span className="sr-only">GPT-5 mini</span>
             </Button>
           </div>
         </div>
@@ -368,7 +367,7 @@ export function ChatInputEnhanced({
             visionEnabled && !willAutoSummarize ? "border-emerald-400 focus-visible:ring-emerald-400" : "",
             o3Enabled && !willAutoSummarize && !visionEnabled ? "border-purple-400 focus-visible:ring-purple-400" : "",
             webEnabled && !willAutoSummarize && !o3Enabled && !visionEnabled ? "border-blue-400 focus-visible:ring-blue-400" : "",
-            serverEnabled && !willAutoSummarize && !o3Enabled && !visionEnabled && !webEnabled ? "border-orange-400 focus-visible:ring-orange-400" : ""
+            gpt5Enabled && !willAutoSummarize && !o3Enabled && !visionEnabled && !webEnabled ? "border-orange-400 focus-visible:ring-orange-400" : ""
           )}
           value={message}
           onChange={(e) => setMessage(e.target.value)}

@@ -109,6 +109,21 @@ export function useMessageSending() {
           aiResponse = data.content;
           modelUsed = data.model || "gpt-o3-mini";
         }
+        // Use GPT-5 mini if queryType is 'gpt5'
+        else if (queryType === 'gpt5') {
+          console.log('Using GPT-5 mini for response');
+          const { data, error } = await supabase.functions.invoke('generate-with-openai-gpt5', {
+            body: { 
+              messages: messages.map(m => ({ role: m.role, content: m.content })),
+              conversationId: conversationId,
+              userId: user.id
+            }
+          });
+          
+          if (error) throw error;
+          aiResponse = data.content;
+          modelUsed = data.model || "gpt-5-mini-2025-08-07";
+        }
         // Use OpenAI 4o with embeddings if queryType is 'server'
         else if (queryType === 'server') {
           console.log('Using OpenAI 4o with embeddings for server response');

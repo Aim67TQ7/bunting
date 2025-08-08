@@ -24,7 +24,7 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
   const [hasAttemptedLoad, setHasAttemptedLoad] = useState(false);
   const [webEnabled, setWebEnabled] = useState(false);
   const [o3Enabled, setO3Enabled] = useState(false);
-  const [serverEnabled, setServerEnabled] = useState(false);
+  const [gpt5Enabled, setGpt5Enabled] = useState(false);
   const [visionEnabled, setVisionEnabled] = useState(false);
   
   const { 
@@ -104,8 +104,8 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
       }
     } else if (o3Enabled) {
       actualQueryType = "gpt-o3";
-    } else if (serverEnabled) {
-      actualQueryType = "server";
+    } else if (gpt5Enabled) {
+      actualQueryType = "gpt5";
     } else if (webEnabled) {
       actualQueryType = "web";
     }
@@ -151,8 +151,8 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
     if (webEnabled) {
       setWebEnabled(false);
     }
-    if (serverEnabled) {
-      setServerEnabled(false);
+    if (gpt5Enabled) {
+      setGpt5Enabled(false);
     }
     if (visionEnabled) {
       setVisionEnabled(false);
@@ -167,7 +167,7 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
     });
   };
 
-  const toggleServerMode = () => {
+  const toggleGpt5Mode = () => {
     if (webEnabled) {
       setWebEnabled(false);
     }
@@ -177,10 +177,12 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
     if (visionEnabled) {
       setVisionEnabled(false);
     }
-    setServerEnabled(!serverEnabled);
+    setGpt5Enabled(!gpt5Enabled);
     toast({
-      title: "Server embeddings mode - Development in Process",
-      description: "This feature is currently under development and inactive.",
+      title: gpt5Enabled ? "GPT-5 mini disabled" : "GPT-5 mini enabled",
+      description: gpt5Enabled 
+        ? "The AI will use standard processing."
+        : "The AI will use GPT-5 mini for responses.",
       duration: 3000
     });
   };
@@ -192,8 +194,8 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
     if (o3Enabled) {
       setO3Enabled(false);
     }
-    if (serverEnabled) {
-      setServerEnabled(false);
+    if (gpt5Enabled) {
+      setGpt5Enabled(false);
     }
     setVisionEnabled(!visionEnabled);
     toast({
@@ -299,8 +301,8 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
           o3Enabled={o3Enabled}
           onO3Toggle={toggleO3Mode}
           onNewChat={handleStartNewChat}
-          serverEnabled={serverEnabled}
-          onServerToggle={toggleServerMode}
+          gpt5Enabled={gpt5Enabled}
+          onGpt5Toggle={toggleGpt5Mode}
           visionEnabled={visionEnabled}
           onVisionToggle={toggleVisionMode}
         />

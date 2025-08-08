@@ -1,1 +1,4 @@
 project_id = "qzwxisdfwswsrbzvpzlo"
+
+[functions.generate-with-openai-gpt5]
+verify_jwt = true
