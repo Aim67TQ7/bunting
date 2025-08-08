@@ -19,6 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AppItemsSecretPanel } from "@/components/admin/AppItemsSecretPanel";
 import { ReportIssueForm } from "@/components/issues/ReportIssueForm";
 import { MyIssuesList } from "@/components/issues/MyIssuesList";
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
  
 // Modified schema to remove current password requirement since user is already authenticated
 const passwordSchema = z.object({
@@ -126,95 +127,132 @@ export default function Settings() {
                       email={user.email}
                       onAvatarUpdate={handleAvatarUpdate}
                     />
-                    
-                    <ConversationPreferences
-                      userId={user.id}
-                      currentPreferences={profile?.conversation_preferences || ""}
-                      onPreferencesUpdate={handlePreferencesUpdate}
-                    />
 
-                    {/* Report Issue Section */}
-                    <ReportIssueForm />
-                    <MyIssuesList />
-                    
+                    {/* Account Info moved just below Profile Picture */}
                     <Card>
-                    <CardHeader>
-                      <CardTitle>Account Information</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid grid-cols-1 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="email">Email</Label>
-                          <Input id="email" value={user.email} readOnly />
+                      <CardHeader>
+                        <CardTitle>Account Information</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="grid grid-cols-1 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="email">Email</Label>
+                            <Input id="email" value={user.email} readOnly />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="password">Password</Label>
+                            <Input 
+                              id="password" 
+                              type="password" 
+                              value="••••••••••••" 
+                              readOnly 
+                              className="cursor-not-allowed"
+                            />
+                          </div>
+                          <div>
+                            <Dialog open={isChangePasswordOpen} onOpenChange={setIsChangePasswordOpen}>
+                              <DialogTrigger asChild>
+                                <Button>Change Password</Button>
+                              </DialogTrigger>
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle>Change Password</DialogTitle>
+                                </DialogHeader>
+                                <Form {...passwordForm}>
+                                  <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4">
+                                    <FormField
+                                      control={passwordForm.control}
+                                      name="newPassword"
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>New Password</FormLabel>
+                                          <FormControl>
+                                            <Input type="password" {...field} />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+                                    <FormField
+                                      control={passwordForm.control}
+                                      name="confirmPassword"
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>Confirm New Password</FormLabel>
+                                          <FormControl>
+                                            <Input type="password" {...field} />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+                                    <div className="flex justify-end gap-2">
+                                      <Button 
+                                        type="button" 
+                                        variant="outline" 
+                                        onClick={() => setIsChangePasswordOpen(false)}
+                                      >
+                                        Cancel
+                                      </Button>
+                                      <Button type="submit" disabled={isLoading}>
+                                        {isLoading ? "Updating..." : "Update Password"}
+                                      </Button>
+                                    </div>
+                                  </form>
+                                </Form>
+                              </DialogContent>
+                            </Dialog>
+                          </div>
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="password">Password</Label>
-                          <Input 
-                            id="password" 
-                            type="password" 
-                            value="••••••••••••" 
-                            readOnly 
-                            className="cursor-not-allowed"
-                          />
-                        </div>
-                        <div>
-                          <Dialog open={isChangePasswordOpen} onOpenChange={setIsChangePasswordOpen}>
-                            <DialogTrigger asChild>
-                              <Button>Change Password</Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                              <DialogHeader>
-                                <DialogTitle>Change Password</DialogTitle>
-                              </DialogHeader>
-                              <Form {...passwordForm}>
-                                <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4">
-                                  <FormField
-                                    control={passwordForm.control}
-                                    name="newPassword"
-                                    render={({ field }) => (
-                                      <FormItem>
-                                        <FormLabel>New Password</FormLabel>
-                                        <FormControl>
-                                          <Input type="password" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                      </FormItem>
-                                    )}
-                                  />
-                                  <FormField
-                                    control={passwordForm.control}
-                                    name="confirmPassword"
-                                    render={({ field }) => (
-                                      <FormItem>
-                                        <FormLabel>Confirm New Password</FormLabel>
-                                        <FormControl>
-                                          <Input type="password" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                      </FormItem>
-                                    )}
-                                  />
-                                  <div className="flex justify-end gap-2">
-                                    <Button 
-                                      type="button" 
-                                      variant="outline" 
-                                      onClick={() => setIsChangePasswordOpen(false)}
-                                    >
-                                      Cancel
-                                    </Button>
-                                    <Button type="submit" disabled={isLoading}>
-                                      {isLoading ? "Updating..." : "Update Password"}
-                                    </Button>
-                                  </div>
-                                </form>
-                              </Form>
-                            </DialogContent>
-                          </Dialog>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </>
+                      </CardContent>
+                    </Card>
+
+                    {/* Collapsible sections */}
+                    <Accordion type="single" collapsible className="w-full">
+                      <AccordionItem value="conversation-preferences">
+                        <Card className="border-0">
+                          <CardHeader className="p-0">
+                            <AccordionTrigger className="px-4">
+                              <CardTitle>Conversation Preferences</CardTitle>
+                            </AccordionTrigger>
+                          </CardHeader>
+                          <AccordionContent className="px-4">
+                            <ConversationPreferences
+                              userId={user.id}
+                              currentPreferences={profile?.conversation_preferences || ""}
+                              onPreferencesUpdate={handlePreferencesUpdate}
+                            />
+                          </AccordionContent>
+                        </Card>
+                      </AccordionItem>
+
+                      <AccordionItem value="report-issue">
+                        <Card className="border-0">
+                          <CardHeader className="p-0">
+                            <AccordionTrigger className="px-4">
+                              <CardTitle>Report an Issue</CardTitle>
+                            </AccordionTrigger>
+                          </CardHeader>
+                          <AccordionContent className="px-4">
+                            <ReportIssueForm />
+                          </AccordionContent>
+                        </Card>
+                      </AccordionItem>
+
+                      <AccordionItem value="my-issues">
+                        <Card className="border-0">
+                          <CardHeader className="p-0">
+                            <AccordionTrigger className="px-4">
+                              <CardTitle>My Reported Issues</CardTitle>
+                            </AccordionTrigger>
+                          </CardHeader>
+                          <AccordionContent className="px-4">
+                            <MyIssuesList />
+                          </AccordionContent>
+                        </Card>
+                      </AccordionItem>
+                    </Accordion>
+                  </>
               ) : (
                 <div className="text-center p-8 bg-muted/30 rounded-lg">
                   <h2 className="text-xl font-semibold mb-2">Please Sign In</h2>

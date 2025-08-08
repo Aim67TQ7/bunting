@@ -52,27 +52,48 @@ export function AppSidebar({ className }: AppSidebarProps) {
     fetchProfile();
   }, [user?.id]);
 
-  // Fetch favorited items details for sidebar display
-  useEffect(() => {
-    const loadFavs = async () => {
-      if (!favorites || favorites.length === 0) {
-        setFavItems([]);
-        return;
-      }
-      const { data, error } = await (supabase as any)
-        .from('app_items')
-        .select('id,name,url,category')
-        .in('id', favorites)
-        .eq('is_active', true);
-      if (error) {
-        console.error('Error fetching favorite items', error);
-        setFavItems([]);
-        return;
-      }
-      setFavItems(data || []);
-    };
-    loadFavs();
-  }, [favorites]);
+// Fetch favorited items details for sidebar display
+useEffect(() => {
+  const loadFavs = async () => {
+    if (!favorites || favorites.length === 0) {
+      setFavItems([]);
+      return;
+    }
+    const { data, error } = await (supabase as any)
+      .from('app_items')
+      .select('id,name,url,category')
+      .in('id', favorites)
+      .eq('is_active', true);
+    if (error) {
+      console.error('Error fetching favorite items', error);
+      setFavItems([]);
+      return;
+    }
+    setFavItems(data || []);
+  };
+  loadFavs();
+}, [favorites]);
+
+// Realtime subscribe to profile avatar updates for the current user
+useEffect(() => {
+  if (!user?.id) return;
+  const channel = supabase
+    .channel('profiles-changes')
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'profiles',
+      filter: `id=eq.${user.id}`,
+    }, (payload: any) => {
+      // Prefer NEW row when available
+      const next = (payload.new ?? payload.old);
+      if (next) setProfile((prev: any) => ({ ...prev, ...next }));
+    })
+    .subscribe();
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, [user?.id]);
 
   const handleSettingsClick = () => {
     navigate("/settings");
@@ -197,42 +218,38 @@ export function AppSidebar({ className }: AppSidebarProps) {
             </div>
           </div>
           
-          {/* Action Cards */}
-          <div className={cn(
-            "flex gap-2",
-            isCollapsed ? "flex-col items-center" : "justify-between"
-          )}>
-            <div className="flex gap-2">
-              <div className="p-2 rounded-lg bg-card border shadow-sm hover:shadow-md transition-all duration-200 hover:scale-[1.02]">
-                <UserGuideButton />
-              </div>
-              <div className="p-2 rounded-lg bg-card border shadow-sm hover:shadow-md transition-all duration-200 hover:scale-[1.02]">
-                <ThemeToggle />
-              </div>
-            </div>
-            
-            <div className="flex gap-2">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-9 w-9 rounded-lg bg-card border shadow-sm hover:shadow-md transition-all duration-200 hover:scale-[1.02]" 
-                aria-label="Settings"
-                onClick={handleSettingsClick}
-              >
-                <User className="h-4 w-4" />
-              </Button>
-              
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-9 w-9 rounded-lg bg-card border shadow-sm hover:shadow-md transition-all duration-200 hover:scale-[1.02]" 
-                aria-label="Sign out"
-                onClick={handleSignOutClick}
-              >
-                <LogOut className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
+{/* Action Cards */}
+<div className={cn(
+  isCollapsed ? "grid grid-cols-1 place-items-center gap-2" : "grid grid-cols-4 gap-2"
+)}>
+  <UserGuideButton 
+    variant="ghost" 
+    size="icon"
+    className="h-9 w-9 rounded-lg bg-card border shadow-sm hover:shadow-md transition-all duration-200 hover:scale-[1.02]"
+  />
+  <ThemeToggle 
+    className="rounded-lg bg-card border shadow-sm hover:shadow-md transition-all duration-200 hover:scale-[1.02]"
+    
+  />
+  <Button 
+    variant="ghost" 
+    size="icon" 
+    className="h-9 w-9 rounded-lg bg-card border shadow-sm hover:shadow-md transition-all duration-200 hover:scale-[1.02]" 
+    aria-label="Settings"
+    onClick={handleSettingsClick}
+  >
+    <User className="h-4 w-4" />
+  </Button>
+  <Button 
+    variant="ghost" 
+    size="icon" 
+    className="h-9 w-9 rounded-lg bg-card border shadow-sm hover:shadow-md transition-all duration-200 hover:scale-[1.02]" 
+    aria-label="Sign out"
+    onClick={handleSignOutClick}
+  >
+    <LogOut className="h-4 w-4" />
+  </Button>
+</div>
         </div>
       </SidebarFooter>
     </Sidebar>
