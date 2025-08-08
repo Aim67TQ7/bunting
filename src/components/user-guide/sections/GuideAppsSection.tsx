@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Grid3X3, Wrench, Calendar, QrCode, Mic, FileText, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useUserGuide } from '@/components/user-guide/UserGuideProvider';
 
 interface GuideSectionProps {
   onComplete: () => void;
@@ -11,6 +12,7 @@ interface GuideSectionProps {
 
 export function GuideAppsSection({ onComplete, isCompleted }: GuideSectionProps) {
   const navigate = useNavigate();
+  const { closeGuide } = useUserGuide();
   const specializedApps = [
     {
       icon: Wrench,
@@ -79,7 +81,7 @@ export function GuideAppsSection({ onComplete, isCompleted }: GuideSectionProps)
                       ))}
                     </ul>
                   </div>
-                  <Button size="sm" variant="outline" className="gap-2" onClick={() => navigate('/apps')}>
+                  <Button size="sm" variant="outline" className="gap-2" onClick={() => { closeGuide(); navigate('/apps'); }}>
                     <ExternalLink className="h-3 w-3" />
                     Open App
                   </Button>

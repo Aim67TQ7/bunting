@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileText, MapPin, Calculator as CalcIcon, TrendingUp, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useUserGuide } from '@/components/user-guide/UserGuideProvider';
 
 interface GuideSectionProps {
   onComplete: () => void;
@@ -11,6 +12,7 @@ interface GuideSectionProps {
 
 export function GuideSalesSection({ onComplete, isCompleted }: GuideSectionProps) {
   const navigate = useNavigate();
+  const { closeGuide } = useUserGuide();
   const salesTools = [
     {
       icon: FileText,
@@ -66,7 +68,7 @@ export function GuideSalesSection({ onComplete, isCompleted }: GuideSectionProps
                     <p className="text-xs"><strong>Purpose:</strong> {tool.purpose}</p>
                     <p className="text-xs"><strong>Usage:</strong> {tool.usage}</p>
                   </div>
-                  <Button size="sm" variant="outline" className="gap-2" onClick={() => navigate('/sales')}>
+                  <Button size="sm" variant="outline" className="gap-2" onClick={() => { closeGuide(); navigate('/sales'); }}>
                     <ExternalLink className="h-3 w-3" />
                     Open Tool
                   </Button>

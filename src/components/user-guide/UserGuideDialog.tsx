@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { X, Check } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Check } from 'lucide-react';
 import { useUserGuide } from './UserGuideProvider';
 
 // Import guide sections
@@ -78,7 +78,7 @@ export function UserGuideDialog() {
             ))}
           </TabsList>
 
-          <div className="flex-1 overflow-y-auto pr-2">
+          <ScrollArea className="flex-1 pr-2">
             {guideSections.map((section) => {
               const SectionComponent = section.component;
               return (
@@ -90,7 +90,7 @@ export function UserGuideDialog() {
                 </TabsContent>
               );
             })}
-          </div>
+          </ScrollArea>
         </Tabs>
       </DialogContent>
     </Dialog>

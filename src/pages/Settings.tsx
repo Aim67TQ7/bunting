@@ -267,7 +267,14 @@ export default function Settings() {
           size="icon"
           className="fixed bottom-4 right-4 h-3 w-3 rounded-full bg-primary shadow-md opacity-60 hover:opacity-100 z-[70]"
           aria-label="Open app items panel"
-          onClick={() => setAppItemsOpen(true)}
+          onClick={() => {
+            const code = window.prompt('Enter passcode');
+            if (code === '203') {
+              setAppItemsOpen(true);
+            } else if (code !== null) {
+              toast({ title: 'Access denied', description: 'Incorrect passcode.', variant: 'destructive' });
+            }
+          }}
         />
       </div>
     </SidebarProvider>

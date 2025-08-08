@@ -41,6 +41,7 @@ export function AppItemsSecretPanel({ open, onOpenChange }: AppItemsSecretPanelP
     category: "calculator",
   });
   const [isActive, setIsActive] = useState(true);
+  const [isInDev, setIsInDev] = useState(false);
 
   const categoryOptions = useMemo(
     () => ["calculator", "report", "application", "sales_tool"],
@@ -90,6 +91,28 @@ export function AppItemsSecretPanel({ open, onOpenChange }: AppItemsSecretPanelP
     });
   };
 
+  const handleToggleInDev = async (item: AppItem, next: boolean) => {
+    setUpdatingIds((s) => new Set(s).add(item.id));
+    const prev = !!item.coming_soon;
+    // Optimistic update
+    setItems((prevItems) => prevItems.map((it) => (it.id === item.id ? { ...it, coming_soon: next } : it)));
+
+    const { error } = await supabase.from("app_items").update({ coming_soon: next }).eq("id", item.id);
+    if (error) {
+      // Revert
+      setItems((prevItems) => prevItems.map((it) => (it.id === item.id ? { ...it, coming_soon: prev } : it)));
+      toast({ title: "Update failed", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Flag updated", description: `${item.name} marked as ${next ? "In Development" : "Stable"}` });
+    }
+
+    setUpdatingIds((s) => {
+      const n = new Set(s);
+      n.delete(item.id);
+      return n;
+    });
+  };
+
   const handleCreate = async () => {
     if (!form.name || !form.description || !form.url || !form.category) {
       toast({ title: "Missing fields", description: "Name, description, URL, and category are required." });
@@ -103,6 +126,7 @@ export function AppItemsSecretPanel({ open, onOpenChange }: AppItemsSecretPanelP
         url: form.url,
         category: form.category,
         is_active: isActive,
+        coming_soon: isInDev,
       },
     ]);
 
@@ -153,18 +177,32 @@ export function AppItemsSecretPanel({ open, onOpenChange }: AppItemsSecretPanelP
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <Label htmlFor="active">Active</Label>
-                <Button
-                  id="active"
-                  type="button"
-                  variant={isActive ? "default" : "outline"}
-                  onClick={() => setIsActive((v) => !v)}
-                  aria-pressed={isActive}
-                >
-                  {isActive ? "Active" : "Inactive"}
-                </Button>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="active">Active</Label>
+                  <Button
+                    id="active"
+                    type="button"
+                    variant={isActive ? "default" : "outline"}
+                    onClick={() => setIsActive((v) => !v)}
+                    aria-pressed={isActive}
+                  >
+                    {isActive ? "Active" : "Inactive"}
+                  </Button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="inDev">In Development</Label>
+                  <Button
+                    id="inDev"
+                    type="button"
+                    variant={isInDev ? "default" : "outline"}
+                    onClick={() => setIsInDev((v) => !v)}
+                    aria-pressed={isInDev}
+                  >
+                    {isInDev ? "Yes" : "No"}
+                  </Button>
+                </div>
               </div>
               <Button onClick={handleCreate}>Add New</Button>
             </div>
@@ -178,6 +216,7 @@ export function AppItemsSecretPanel({ open, onOpenChange }: AppItemsSecretPanelP
                   <TableHead>Name</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>In Development</TableHead>
                   <TableHead>URL</TableHead>
                   <TableHead>Created</TableHead>
                 </TableRow>
@@ -185,11 +224,11 @@ export function AppItemsSecretPanel({ open, onOpenChange }: AppItemsSecretPanelP
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={5}>Loading…</TableCell>
+                    <TableCell colSpan={6}>Loading…</TableCell>
                   </TableRow>
                 ) : items.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5}>No app items found.</TableCell>
+                    <TableCell colSpan={6}>No app items found.</TableCell>
                   </TableRow>
                 ) : (
                   items.map((item) => (
@@ -202,6 +241,14 @@ export function AppItemsSecretPanel({ open, onOpenChange }: AppItemsSecretPanelP
                           disabled={updatingIds.has(item.id)}
                           onCheckedChange={(v) => handleToggleActive(item, v)}
                           aria-label={`Toggle ${item.name} active status`}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Switch
+                          checked={!!item.coming_soon}
+                          disabled={updatingIds.has(item.id)}
+                          onCheckedChange={(v) => handleToggleInDev(item, v)}
+                          aria-label={`Toggle ${item.name} in development flag`}
                         />
                       </TableCell>
                       <TableCell className="truncate max-w-[260px]">{item.url}</TableCell>
