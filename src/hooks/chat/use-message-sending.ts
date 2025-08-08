@@ -41,8 +41,8 @@ export function useMessageSending() {
         let aiResponse: any;
         let modelUsed: string = "groq-llama3-70b"; // Default model name
         
-        // If a file is uploaded or vision mode is enabled, always route to Claude
-        if (file || queryType === 'vision') {
+        // Route to Claude only when vision is explicitly requested and GPT-5 is not selected
+        if ((file && queryType !== 'gpt5') || queryType === 'vision') {
           console.log('Using Claude for vision/file analysis');
           
           let fileData = null;
@@ -111,18 +111,60 @@ export function useMessageSending() {
         }
         // Use GPT-5 mini if queryType is 'gpt5'
         else if (queryType === 'gpt5') {
-          console.log('Using GPT-5 mini for response');
+          console.log('Using GPT-5 mini for response', file ? '(with attachment preview)' : '');
+
+          let fileData = null as null | {
+            name: string;
+            type: string;
+            size: number;
+            base64Preview: string | null;
+            truncated: boolean;
+          };
+
+          if (file) {
+            try {
+              const base64Content = await fileToBase64(file);
+              // Limit preview to keep prompt size safe (~4k tokens)
+              const MAX_PREVIEW_CHARS = 16000;
+              const preview = base64Content.slice(0, MAX_PREVIEW_CHARS);
+              fileData = {
+                name: file.name,
+                type: file.type,
+                size: file.size,
+                base64Preview: preview,
+                truncated: base64Content.length > MAX_PREVIEW_CHARS,
+              };
+
+              if (fileData.truncated) {
+                toast({
+                  title: 'Large file attached',
+                  description: 'Sent a safe preview of the file to GPT-5 for analysis.',
+                  duration: 3000,
+                });
+              }
+            } catch (error) {
+              console.error('Error processing file for GPT-5:', error);
+              toast({
+                title: 'File processing error',
+                description: 'Failed to process the uploaded file',
+                variant: 'destructive',
+              });
+              throw error;
+            }
+          }
+
           const { data, error } = await supabase.functions.invoke('generate-with-openai-gpt5', {
-            body: { 
+            body: {
               messages: messages.map(m => ({ role: m.role, content: m.content })),
               conversationId: conversationId,
-              userId: user.id
+              userId: user.id,
+              fileData,
             }
           });
           
           if (error) throw error;
           aiResponse = data.content;
-          modelUsed = data.model || "gpt-5-mini-2025-08-07";
+          modelUsed = data.model || 'gpt-5-mini-2025-08-07';
         }
         // Use OpenAI 4o with embeddings if queryType is 'server'
         else if (queryType === 'server') {

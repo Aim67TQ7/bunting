@@ -163,7 +163,14 @@ export function ChatInputEnhanced({
     }
     
     // Submit with the file and intent
-    onSubmit(intentMessage, false, "vision", file);
+    // Route based on enabled modes (priority: GPT-5 > Vision > O3 > Web > default)
+    let route: string | undefined = undefined;
+    if (gpt5Enabled) route = 'gpt5';
+    else if (visionEnabled) route = 'vision';
+    else if (o3Enabled) route = 'gpt-o3';
+    else if (webEnabled) route = 'web';
+
+    onSubmit(intentMessage, false, route, file);
     
     // Clean up
     setPendingFile(null);

@@ -15,7 +15,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, conversationId = null, userId = null } = await req.json();
+    const { messages, conversationId = null, userId = null, fileData = null } = await req.json();
 
     if (!OPENAI_API_KEY) {
       throw new Error("OPENAI_API_KEY is not set");
@@ -26,10 +26,17 @@ serve(async (req) => {
     // Simple, general system message
     const systemMessage = {
       role: "system",
-      content: "You are a helpful, concise assistant. Respond clearly and accurately."
-    };
+      content: "You are a helpful, concise assistant. Respond clearly and accurately. If a base64 file preview is provided, use its content as reference but do not echo the base64 back. If preview is truncated, note limitations and ask for clarification if necessary."
+    } as const;
 
-    const messagesWithSystem = [systemMessage, ...messages.filter((m: any) => m.role !== 'system')];
+    const attachmentMessages: any[] = [];
+    if (fileData && (fileData.base64Preview || fileData.truncated)) {
+      const header = `User attached a file: ${fileData.name || 'file'} (${fileData.type || 'unknown'}, ${fileData.size || 0} bytes). ${fileData.truncated ? 'Only a PREVIEW of the base64 content is provided below.' : 'A base64 preview is provided below.'}`;
+      const previewBlock = fileData.base64Preview ? `\n\n--- BEGIN BASE64 PREVIEW ---\n${fileData.base64Preview}\n--- END BASE64 PREVIEW ---` : '';
+      attachmentMessages.push({ role: 'user', content: `${header}${previewBlock}` });
+    }
+
+    const messagesWithSystem = [systemMessage, ...attachmentMessages, ...messages.filter((m: any) => m.role !== 'system')];
 
     // Helper to call OpenAI with robust token param handling
     const callOpenAI = async (model: string, maxTokens: number) => {
