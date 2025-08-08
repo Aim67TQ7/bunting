@@ -60,7 +60,7 @@ export function UserGuideDialog() {
           </div>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 min-h-0 overflow-hidden">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex h-full min-h-0 flex-col overflow-hidden">
           <TabsList className="grid w-full grid-cols-7 mb-4">
             {guideSections.map((section) => (
               <TabsTrigger
@@ -78,7 +78,7 @@ export function UserGuideDialog() {
             ))}
           </TabsList>
 
-          <ScrollArea className="flex-1 pr-2">
+          <ScrollArea type="always" className="flex-1 min-h-0 pr-0">
             {guideSections.map((section) => {
               const SectionComponent = section.component;
               return (

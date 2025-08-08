@@ -58,23 +58,26 @@ export function GuideSalesSection({ onComplete, isCompleted }: GuideSectionProps
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {salesTools.map((tool) => (
-              <div key={tool.title} className="flex items-start gap-4 p-4 rounded-lg border">
-                <tool.icon className="h-6 w-6 mt-1 text-green-500" />
-                <div className="flex-1">
-                  <h3 className="font-semibold mb-2">{tool.title}</h3>
-                  <p className="text-sm text-muted-foreground mb-3">{tool.description}</p>
-                  <div className="space-y-1 mb-3">
-                    <p className="text-xs"><strong>Purpose:</strong> {tool.purpose}</p>
-                    <p className="text-xs"><strong>Usage:</strong> {tool.usage}</p>
+            {salesTools.map((tool) => {
+              const Icon = tool.icon;
+              return (
+                <div key={tool.title} className="flex items-start gap-4 p-4 rounded-lg border">
+                  <Icon className="h-6 w-6 mt-1 text-green-500" />
+                  <div className="flex-1">
+                    <h3 className="font-semibold mb-2">{tool.title}</h3>
+                    <p className="text-sm text-muted-foreground mb-3">{tool.description}</p>
+                    <div className="space-y-1 mb-3">
+                      <p className="text-xs"><strong>Purpose:</strong> {tool.purpose}</p>
+                      <p className="text-xs"><strong>Usage:</strong> {tool.usage}</p>
+                    </div>
+                    <Button size="sm" variant="outline" className="gap-2" onClick={() => { closeGuide(); navigate('/sales'); }}>
+                      <ExternalLink className="h-3 w-3" />
+                      Open Tool
+                    </Button>
                   </div>
-                  <Button size="sm" variant="outline" className="gap-2" onClick={() => { closeGuide(); navigate('/sales'); }}>
-                    <ExternalLink className="h-3 w-3" />
-                    Open Tool
-                  </Button>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </CardContent>
       </Card>

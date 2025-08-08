@@ -67,27 +67,30 @@ export function GuideAppsSection({ onComplete, isCompleted }: GuideSectionProps)
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {specializedApps.map((app) => (
-              <div key={app.title} className="flex items-start gap-4 p-4 rounded-lg border">
-                <app.icon className="h-6 w-6 mt-1 text-purple-500" />
-                <div className="flex-1">
-                  <h3 className="font-semibold mb-2">{app.title}</h3>
-                  <p className="text-sm text-muted-foreground mb-3">{app.description}</p>
-                  <div className="mb-3">
-                    <h4 className="text-xs font-medium mb-1">Key Features:</h4>
-                    <ul className="text-xs text-muted-foreground">
-                      {app.features.map((feature, index) => (
-                        <li key={index}>• {feature}</li>
-                      ))}
-                    </ul>
+            {specializedApps.map((app) => {
+              const Icon = app.icon;
+              return (
+                <div key={app.title} className="flex items-start gap-4 p-4 rounded-lg border">
+                  <Icon className="h-6 w-6 mt-1 text-purple-500" />
+                  <div className="flex-1">
+                    <h3 className="font-semibold mb-2">{app.title}</h3>
+                    <p className="text-sm text-muted-foreground mb-3">{app.description}</p>
+                    <div className="mb-3">
+                      <h4 className="text-xs font-medium mb-1">Key Features:</h4>
+                      <ul className="text-xs text-muted-foreground">
+                        {app.features.map((feature, index) => (
+                          <li key={index}>• {feature}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    <Button size="sm" variant="outline" className="gap-2" onClick={() => { closeGuide(); navigate('/apps'); }}>
+                      <ExternalLink className="h-3 w-3" />
+                      Open App
+                    </Button>
                   </div>
-                  <Button size="sm" variant="outline" className="gap-2" onClick={() => { closeGuide(); navigate('/apps'); }}>
-                    <ExternalLink className="h-3 w-3" />
-                    Open App
-                  </Button>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </CardContent>
       </Card>

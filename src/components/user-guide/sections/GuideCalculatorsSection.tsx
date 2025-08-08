@@ -63,38 +63,41 @@ export function GuideCalculatorsSection({ onComplete, isCompleted }: GuideSectio
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {calculators.map((calc) => (
-              <div key={calc.title} className="flex items-start gap-4 p-4 rounded-lg border">
-                <calc.icon className="h-6 w-6 mt-1 text-blue-500" />
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <h3 className="font-semibold">{calc.title}</h3>
-                    {calc.status === 'validated' ? (
-                      <Badge variant="default" className="bg-green-100 text-green-800">
-                        <CheckCircle className="h-3 w-3 mr-1" />
-                        Validated
-                      </Badge>
-                    ) : (
-                      <Badge variant="destructive">
-                        <AlertTriangle className="h-3 w-3 mr-1" />
-                        Not Validated
-                      </Badge>
-                    )}
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-2">{calc.description}</p>
-                  <div className="space-y-1">
-                    <p className="text-xs"><strong>Purpose:</strong> {calc.purpose}</p>
-                    <p className="text-xs"><strong>Usage:</strong> {calc.usage}</p>
-                  </div>
-                  <div className="mt-3">
-                    <Button size="sm" variant="outline" className="gap-2" onClick={() => { closeGuide(); navigate('/calculators'); }}>
-                      <ExternalLink className="h-3 w-3" />
-                      Open Calculator
-                    </Button>
+            {calculators.map((calc) => {
+              const Icon = calc.icon;
+              return (
+                <div key={calc.title} className="flex items-start gap-4 p-4 rounded-lg border">
+                  <Icon className="h-6 w-6 mt-1 text-blue-500" />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="font-semibold">{calc.title}</h3>
+                      {calc.status === 'validated' ? (
+                        <Badge variant="default" className="bg-green-100 text-green-800">
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          Validated
+                        </Badge>
+                      ) : (
+                        <Badge variant="destructive">
+                          <AlertTriangle className="h-3 w-3 mr-1" />
+                          Not Validated
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-2">{calc.description}</p>
+                    <div className="space-y-1">
+                      <p className="text-xs"><strong>Purpose:</strong> {calc.purpose}</p>
+                      <p className="text-xs"><strong>Usage:</strong> {calc.usage}</p>
+                    </div>
+                    <div className="mt-3">
+                      <Button size="sm" variant="outline" className="gap-2" onClick={() => { closeGuide(); navigate('/calculators'); }}>
+                        <ExternalLink className="h-3 w-3" />
+                        Open Calculator
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </CardContent>
       </Card>
