@@ -315,7 +315,7 @@ export default function Auth() {
   };
 
   return (
-    <div className={`flex flex-col items-center justify-center min-h-screen ${isMobile ? 'p-2' : 'p-4'} bg-muted/30`}>
+    <div className={`relative flex flex-col items-center justify-center min-h-screen ${isMobile ? 'p-2' : 'p-4'} bg-muted/30 lg:pr-[50%]`}>
       <div className={`${isMobile ? 'mb-4' : 'mb-8'}`}>
         <BrandLogo size={isMobile ? "md" : "lg"} />
       </div>
@@ -891,6 +891,20 @@ export default function Auth() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <aside className="pointer-events-none hidden lg:flex absolute inset-y-0 right-0 w-1/2 items-center justify-center p-8 bg-card">
+        <div className="w-full max-w-3xl">
+          <img
+            src="/lovable-uploads/650eab19-9a32-4ddf-b21d-2558a0466747.png"
+            alt="Bunting GPT authentication illustration"
+            loading="lazy"
+            decoding="async"
+            className="w-full h-auto rounded-xl shadow-xl object-contain"
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).src = '/lovable-uploads/895df273-f223-4819-bb53-93cf01043469.png';
+            }}
+          />
+        </div>
+      </aside>
     </div>
   );
 }
