@@ -1,6 +1,7 @@
 import { createContext, useContext, ReactNode, useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { isDemoMode, getDemoEmail, disableDemoMode } from "@/utils/demoMode";
 
 // Define a more complete auth context interface
 interface AuthContextType {
@@ -46,19 +47,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Set up authentication state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, currentSession) => {
+      (event, currentSession) => {
         console.log('Auth state change:', event, currentSession?.user?.email);
         
-        if (!mounted) return;
-
         if (event === 'SIGNED_OUT') {
           setSession(null);
           setUser(null);
+          // Support demo mode fallback after sign out
+          if (isDemoMode()) {
+            setUser({ id: 'demo', email: getDemoEmail() || 'demo@buntingmagnetics.com' });
+          }
         } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           setSession(currentSession);
           setUser(currentSession?.user ?? null);
         } else if (event === 'USER_UPDATED') {
           setUser(currentSession?.user ?? null);
+        } else if (!currentSession && isDemoMode()) {
+          // No session but demo mode enabled
+          setUser({ id: 'demo', email: getDemoEmail() || 'demo@buntingmagnetics.com' });
         }
         
         setIsLoading(false);
@@ -72,25 +78,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         if (error) {
           console.warn('Session recovery error:', error.message);
-          // Clear potentially corrupted session data
           await supabase.auth.signOut();
-        } else if (currentSession && mounted) {
+        } else if (currentSession) {
           setSession(currentSession);
           setUser(currentSession.user);
+        } else if (isDemoMode()) {
+          // No Supabase session but demo mode enabled
+          setSession(null);
+          setUser({ id: 'demo', email: getDemoEmail() || 'demo@buntingmagnetics.com' });
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
-      } finally {
-        if (mounted) {
-          setIsLoading(false);
+        // Still allow demo mode on initialization errors
+        if (isDemoMode()) {
+          setUser({ id: 'demo', email: getDemoEmail() || 'demo@buntingmagnetics.com' });
         }
+      } finally {
+        setIsLoading(false);
       }
     };
 
     initializeAuth();
 
     return () => {
-      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
@@ -148,13 +158,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Sign out with cleanup
   const signOut = async () => {
     setIsLoading(true);
     try {
       await supabase.auth.signOut();
       setUser(null);
       setSession(null);
+      // Exit demo mode on sign out
+      disableDemoMode();
     } catch (error) {
       console.error('Sign out error:', error);
     } finally {

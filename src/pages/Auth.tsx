@@ -26,6 +26,8 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { Eye, EyeOff } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { enableDemoMode } from "@/utils/demoMode";
 
 // Define schemas for form validation
 const loginSchema = z.object({
@@ -98,6 +100,8 @@ export default function Auth() {
   const location = useLocation();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const [secretOpen, setSecretOpen] = useState(false);
+  const [secretCode, setSecretCode] = useState("");
 
   // Form for login
   const loginForm = useForm<z.infer<typeof loginSchema>>({
