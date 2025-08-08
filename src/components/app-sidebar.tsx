@@ -137,6 +137,16 @@ export function AppSidebar({ className }: AppSidebarProps) {
           <NavItem icon={MessageSquare} title="Chat" href="/chat" />
           <NavItem icon={History} title="History" href="/history" />
         </NavSection>
+
+        {/* Tools first */}
+        <NavSection title="Tools">
+          <NavItem icon={Calculator} title="Calculators" href="/calculators" />
+          <NavItem icon={LineChart} title="Sales" href="/sales" />
+          <NavItem icon={Grid3X3} title="Apps" href="/apps" />
+          <NavItem icon={FileChartLine} title="Reports" href="/reports" />
+        </NavSection>
+
+        {/* Favorites under Tools */}
         {favItems.length > 0 && (
           <NavSection title="Favorites">
             {favItems.map((it) => {
@@ -150,13 +160,6 @@ export function AppSidebar({ className }: AppSidebarProps) {
             })}
           </NavSection>
         )}
-        
-        <NavSection title="Tools">
-          <NavItem icon={Calculator} title="Calculators" href="/calculators" />
-          <NavItem icon={LineChart} title="Sales" href="/sales" />
-          <NavItem icon={Grid3X3} title="Apps" href="/apps" />
-          <NavItem icon={FileChartLine} title="Reports" href="/reports" />
-        </NavSection>
       </SidebarContent>
       
       <SidebarFooter className="mt-auto border-t bg-background/95 backdrop-blur">
@@ -235,3 +238,4 @@ export function AppSidebar({ className }: AppSidebarProps) {
     </Sidebar>
   );
 }
+

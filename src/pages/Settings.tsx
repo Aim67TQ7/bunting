@@ -17,6 +17,8 @@ import { ProfilePicture } from "@/components/settings/ProfilePicture";
 import { ConversationPreferences } from "@/components/settings/ConversationPreferences";
 import { supabase } from "@/integrations/supabase/client";
 import { AppItemsSecretPanel } from "@/components/admin/AppItemsSecretPanel";
+import { ReportIssueForm } from "@/components/issues/ReportIssueForm";
+import { MyIssuesList } from "@/components/issues/MyIssuesList";
  
 // Modified schema to remove current password requirement since user is already authenticated
 const passwordSchema = z.object({
@@ -85,10 +87,7 @@ export default function Settings() {
           variant: "destructive",
         });
       } else {
-        toast({
-          title: "Password Updated",
-          description: "Your password has been updated successfully",
-        });
+        // Success toasts are suppressed by our toast hook update
         setIsChangePasswordOpen(false);
         passwordForm.reset();
       }
@@ -133,6 +132,10 @@ export default function Settings() {
                       currentPreferences={profile?.conversation_preferences || ""}
                       onPreferencesUpdate={handlePreferencesUpdate}
                     />
+
+                    {/* Report Issue Section */}
+                    <ReportIssueForm />
+                    <MyIssuesList />
                     
                     <Card>
                     <CardHeader>
@@ -232,3 +235,4 @@ export default function Settings() {
     </SidebarProvider>
   );
 }
+

@@ -91,8 +91,6 @@ export const reducer = (state: State, action: Action): State => {
     case "DISMISS_TOAST": {
       const { toastId } = action;
 
-      // ! Side effects ! - This could be extracted into a dismissToast() action,
-      // but I'll keep it here for simplicity
       if (toastId) {
         addToRemoveQueue(toastId);
       } else {
@@ -140,32 +138,34 @@ function dispatch(action: Action) {
 
 type Toast = Omit<ToasterToast, "id">;
 
+// Only show error notifications as a simple popup; suppress all other toasts
 function toast({ ...props }: Toast) {
   const id = genId();
+  const variant = (props as any)?.variant;
 
-  const update = (props: ToasterToast) =>
-    dispatch({
-      type: "UPDATE_TOAST",
-      toast: { ...props, id },
-    });
-  const dismiss = () => dispatch({ type: "DISMISS_TOAST", toastId: id });
+  if (variant === "destructive") {
+    const title = props.title ? String(props.title) : "Error";
+    const description = props.description ? String(props.description) : "";
+    // Use a simple, obvious popup
+    setTimeout(() => {
+      // eslint-disable-next-line no-alert
+      alert(`${title}${description ? `\n\n${description}` : ""}`);
+    }, 0);
 
-  dispatch({
-    type: "ADD_TOAST",
-    toast: {
-      ...props,
+    // Don't enqueue a bottom-right toast
+    return {
       id,
-      open: true,
-      onOpenChange: (open) => {
-        if (!open) dismiss();
-      },
-    },
-  });
+      dismiss: () => {},
+      update: () => {},
+    };
+  }
 
+  // Suppress non-error toasts entirely
+  console.log("Toast suppressed:", { title: props.title, description: props.description });
   return {
-    id: id,
-    dismiss,
-    update,
+    id,
+    dismiss: () => {},
+    update: () => {},
   };
 }
 
@@ -190,3 +190,4 @@ function useToast() {
 }
 
 export { useToast, toast };
+
