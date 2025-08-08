@@ -1,10 +1,13 @@
 
 import React, { useState } from 'react';
 import { Card } from "@/components/ui/card";
-import { ExternalLink, Video } from "lucide-react";
+import { ExternalLink, Video, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useNavigate } from 'react-router-dom';
+import { toast } from "@/hooks/use-toast";
+import { useFavorites } from "@/hooks/use-favorites";
+
 
 interface FlipCardProps {
   title: string;
@@ -31,9 +34,22 @@ export const FlipCard = ({
 }: FlipCardProps) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const navigate = useNavigate();
+  const { isFavorite, toggleFavorite } = useFavorites();
 
   const handleFlip = () => {
     setIsFlipped(!isFlipped);
+  };
+
+  const onToggleFavorite = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!id) return;
+    try {
+      const result = await toggleFavorite(id);
+      toast({ title: result === 'added' ? 'Added to favorites' : 'Removed from favorites' });
+    } catch (err: any) {
+      const message = err?.message || 'Could not update favorite';
+      toast({ title: 'Action failed', description: message, variant: 'destructive' });
+    }
   };
 
   const handleOpenItem = (e: React.MouseEvent) => {
@@ -72,6 +88,17 @@ export const FlipCard = ({
       )}>
         {/* Front of card */}
         <Card className="flip-card-front absolute w-full h-full backface-hidden flex flex-col items-center justify-center p-6 border-2 hover:border-primary/20 transition-colors">
+          {id && (
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Toggle favorite"
+              className="absolute right-3 top-3 rounded-full text-primary hover:bg-accent/70"
+              onClick={onToggleFavorite}
+            >
+              <Star className="h-4 w-4" fill={isFavorite(id) ? "currentColor" : "none"} />
+            </Button>
+          )}
           <div className="rounded-full bg-muted p-6 mb-6">
             {iconPath ? (
               <img src={iconPath} alt={title} className="h-16 w-16" />
@@ -100,6 +127,17 @@ export const FlipCard = ({
 
         {/* Back of card */}
         <Card className="flip-card-back absolute w-full h-full backface-hidden rotate-y-180 flex flex-col p-6 border-2 border-primary/20">
+          {id && (
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Toggle favorite"
+              className="absolute right-3 top-3 rounded-full text-primary hover:bg-accent/70"
+              onClick={onToggleFavorite}
+            >
+              <Star className="h-4 w-4" fill={isFavorite(id) ? "currentColor" : "none"} />
+            </Button>
+          )}
           <div className="flex-1 flex flex-col text-center">
             <h3 className="text-lg font-bold mb-4">{title}</h3>
             <p className="text-sm text-muted-foreground overflow-y-auto flex-1 mb-6">

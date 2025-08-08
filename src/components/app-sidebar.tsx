@@ -15,6 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useFavorites } from "@/hooks/use-favorites";
 
 interface AppSidebarProps {
   className?: string;
@@ -26,6 +27,8 @@ export function AppSidebar({ className }: AppSidebarProps) {
   const { user, signOut } = useAuth();
   const { state, open } = useSidebar();
   const [profile, setProfile] = useState<any>(null);
+  const { favorites } = useFavorites();
+  const [favItems, setFavItems] = useState<any[]>([]);
 
   // Fetch user profile data
   useEffect(() => {
@@ -48,6 +51,28 @@ export function AppSidebar({ className }: AppSidebarProps) {
 
     fetchProfile();
   }, [user?.id]);
+
+  // Fetch favorited items details for sidebar display
+  useEffect(() => {
+    const loadFavs = async () => {
+      if (!favorites || favorites.length === 0) {
+        setFavItems([]);
+        return;
+      }
+      const { data, error } = await (supabase as any)
+        .from('app_items')
+        .select('id,name,url,category')
+        .in('id', favorites)
+        .eq('is_active', true);
+      if (error) {
+        console.error('Error fetching favorite items', error);
+        setFavItems([]);
+        return;
+      }
+      setFavItems(data || []);
+    };
+    loadFavs();
+  }, [favorites]);
 
   const handleSettingsClick = () => {
     navigate("/settings");
@@ -112,6 +137,19 @@ export function AppSidebar({ className }: AppSidebarProps) {
           <NavItem icon={MessageSquare} title="Chat" href="/chat" />
           <NavItem icon={History} title="History" href="/history" />
         </NavSection>
+        {favItems.length > 0 && (
+          <NavSection title="Favorites">
+            {favItems.map((it) => {
+              const href = it.url?.startsWith('/iframe')
+                ? it.url
+                : `/iframe?${new URLSearchParams({ url: it.url, title: it.name, id: it.id, sourceTable: 'app_items' }).toString()}`;
+              const Icon = it.category === 'calculator' ? Calculator : Grid3X3;
+              return (
+                <NavItem key={it.id} icon={Icon} title={it.name} href={href} />
+              );
+            })}
+          </NavSection>
+        )}
         
         <NavSection title="Tools">
           <NavItem icon={Calculator} title="Calculators" href="/calculators" />
