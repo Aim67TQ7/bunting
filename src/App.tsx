@@ -23,6 +23,7 @@ import AdminKnowledge from "./pages/AdminKnowledge";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import PrivateRoute from "./components/PrivateRoute";
+import DemoModeBadge from "./components/DemoModeBadge";
 
 function App() {
   return (
@@ -127,6 +128,7 @@ function App() {
                 />
                 <Route path="*" element={<NotFound />} />
               </Routes>
+              <DemoModeBadge />
             </SidebarProvider>
             <UserGuideDialog />
           </Router>

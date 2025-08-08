@@ -832,11 +832,6 @@ export default function Auth() {
               </Button>
             </div>
           )}
-          {authMode === "reset" && (
-            <Button variant="link" onClick={() => setAuthMode("login")} className={`${isMobile ? 'text-sm h-auto p-2' : 'text-sm'}`}>
-              Back to login
-            </Button>
-          )}
           {authMode === "otp-reset" && (
             <div className="flex flex-col space-y-2 w-full">
               <Button variant="link" onClick={() => setAuthMode("reset")} className={`${isMobile ? 'text-sm h-auto p-2' : 'text-sm'}`}>
@@ -849,6 +844,53 @@ export default function Auth() {
           )}
         </CardFooter>
       </Card>
+
+      {/* Secret demo mode trigger */}
+      <button
+        aria-label="Open secret demo access"
+        className="fixed bottom-4 right-4 h-4 w-4 rounded-full bg-accent z-50 ring-2 ring-primary/30 hover:bg-accent/80 focus:outline-none"
+        onClick={() => setSecretOpen(true)}
+      />
+
+      <Dialog open={secretOpen} onOpenChange={setSecretOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Enter Access Code</DialogTitle>
+            <DialogDescription>
+              Enter the passcode to start Demo Mode.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Input
+              type="password"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              placeholder="Passcode"
+              value={secretCode}
+              onChange={(e) => setSecretCode(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={() => {
+                if (secretCode.trim() === '203') {
+                  enableDemoMode('demo@buntingmagnetics.com');
+                  toast({ title: 'Demo mode enabled', description: 'You can now explore the app. Conversations will not be saved.' });
+                  const origin = (location as any)?.state?.from?.pathname || '/';
+                  setTimeout(() => {
+                    setSecretOpen(false);
+                    navigate(origin, { replace: true });
+                  }, 100);
+                } else {
+                  toast({ title: 'Invalid code', description: 'Please try again.', variant: 'destructive' });
+                }
+              }}
+            >
+              Unlock
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
