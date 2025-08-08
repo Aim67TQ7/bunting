@@ -31,30 +31,45 @@ serve(async (req) => {
 
     const messagesWithSystem = [systemMessage, ...messages.filter((m: any) => m.role !== 'system')];
 
-    // Helper to call OpenAI with a given model and token cap
+    // Helper to call OpenAI with robust token param handling
     const callOpenAI = async (model: string, maxTokens: number) => {
-      const res = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${OPENAI_API_KEY}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
+      const makeReq = async (param: 'max_completion_tokens' | 'max_tokens') => {
+        const body: any = {
           model,
           messages: messagesWithSystem,
           temperature: 0.2,
-          max_completion_tokens: maxTokens
-        })
-      });
-      const body = await res.text();
-      let json: any = null;
-      try { json = body ? JSON.parse(body) : null; } catch (_) {}
-      return { ok: res.ok, status: res.status, json, text: body };
+        };
+        body[param] = maxTokens;
+        const res = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${OPENAI_API_KEY}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(body)
+        });
+        const text = await res.text();
+        let json: any = null;
+        try { json = text ? JSON.parse(text) : null; } catch (_) {}
+        return { ok: res.ok, status: res.status, json, text };
+      };
+
+      // First try with max_completion_tokens, then fall back to max_tokens if needed
+      let attempt = await makeReq('max_completion_tokens');
+      const msg = attempt.json?.error?.message || attempt.text || '';
+      if (!attempt.ok && /max_completion_tokens/i.test(msg)) {
+        console.log('Retrying with max_tokens param');
+        attempt = await makeReq('max_tokens');
+      } else if (!attempt.ok && /max_tokens/i.test(msg)) {
+        console.log('Retrying with max_completion_tokens param');
+        attempt = await makeReq('max_completion_tokens');
+      }
+      return attempt;
     };
 
     // Attempt primary model first
     const primaryModel = "gpt-5-mini-2025-08-07";
-    const primaryMax = 8192; // safe cap; adjust when higher limits become available
+    const primaryMax = 8192; // safe cap; real 4,000,000-token contexts are not supported by OpenAI
     let attempt = await callOpenAI(primaryModel, primaryMax);
 
     // If primary fails due to unsupported model/params, fall back to a known-good model
@@ -62,7 +77,7 @@ serve(async (req) => {
       const errMsg = attempt.json?.error?.message || attempt.text || "Unknown error";
       console.error("Primary model failed:", errMsg);
       const looksLikeUnsupportedModel = /model|unsupported|does not exist|unknown/i.test(errMsg);
-      const fallbackModel = "o4-mini-2025-04-16"; // fast reasoning model available per platform docs
+      const fallbackModel = "gpt-4.1-2025-04-14"; // recommended default per platform docs
       if (looksLikeUnsupportedModel) {
         console.log(`Falling back to ${fallbackModel}`);
         attempt = await callOpenAI(fallbackModel, 8192);
@@ -79,7 +94,7 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({
       content: data?.choices?.[0]?.message?.content ?? "",
-      model: data?.model || (attempt.ok ? "o4-mini-2025-04-16" : primaryModel)
+      model: data?.model || primaryModel
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });

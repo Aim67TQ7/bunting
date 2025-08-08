@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { MessageSquare, Calculator, TrendingUp, Grid3X3, BarChart3 } from 'lucide-react';
+import { MessageSquare, Calculator, TrendingUp, Grid3X3, BarChart3, PanelLeft } from 'lucide-react';
 
 interface GuideSectionProps {
   onComplete: () => void;
@@ -10,6 +10,12 @@ interface GuideSectionProps {
 
 export function GuideOverview({ onComplete, isCompleted }: GuideSectionProps) {
   const platformSections = [
+    {
+      icon: PanelLeft,
+      title: 'The Sidebar',
+      description: 'Global navigation: collapse/expand, mini mode, and quick access to all sections.',
+      color: 'text-slate-500'
+    },
     {
       icon: BarChart3,
       title: 'Dashboard',
@@ -56,7 +62,7 @@ export function GuideOverview({ onComplete, isCompleted }: GuideSectionProps) {
         <CardHeader>
           <CardTitle>Platform Overview</CardTitle>
           <CardDescription>
-            BuntingGPT is organized into five main sections accessible from the left navigation
+            The sidebar and core sections are accessible from the left navigation
           </CardDescription>
         </CardHeader>
         <CardContent>
