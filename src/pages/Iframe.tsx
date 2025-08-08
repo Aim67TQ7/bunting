@@ -66,15 +66,15 @@ const Iframe = () => {
                 error
               } = await supabase.from('app_items').select('access_token, license, auth_passcode').eq('id', id).single();
               if (!error && data) {
-                if ('access_token' in data) {
+                if ('access_token' in data && (data as any).access_token) {
                   fetchedToken = (data as any).access_token;
                 }
                 if ('license' in data) {
                   fetchedLicense = (data as any).license;
                 }
-                // Use auth_passcode as fallback token if no access_token
-                if (!fetchedToken && 'auth_passcode' in data) {
-                  fetchedToken = (data as any).auth_passcode;
+                // For this specific app, use "203" as the default passcode if no tokens are set
+                if (!fetchedToken) {
+                  fetchedToken = "203"; // Default passcode for app authentication
                 }
               }
             }
@@ -125,6 +125,18 @@ const Iframe = () => {
             };
             iframe.contentWindow.postMessage(licenseMessage, '*');
             console.log('License sent to iframe via postMessage');
+          }
+
+          // Proactively send password (passcode) to auto-fill any login forms
+          if (token) {
+            const passwordMessage: TokenMessage = {
+              type: 'PROVIDE_PASSWORD',
+              password: token,
+              origin: window.location.origin,
+              timestamp: Date.now()
+            };
+            iframe.contentWindow.postMessage(passwordMessage, '*');
+            console.log('Password sent proactively to iframe via postMessage');
           }
         } catch (error) {
           console.warn('Failed to send data via postMessage:', error);
