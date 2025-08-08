@@ -45,7 +45,10 @@ export function MyIssuesList() {
         });
         setIssues([]);
       } else {
-        setIssues((data || []) as Issue[]);
+        // Ensure TypeScript accepts the shape when using an untyped table reference.
+        const safeIssues = ((data ?? []) as unknown) as Issue[];
+        console.log("Loaded issues:", safeIssues);
+        setIssues(safeIssues);
       }
       setLoading(false);
     };
@@ -130,4 +133,3 @@ export function MyIssuesList() {
     </Card>
   );
 }
-
