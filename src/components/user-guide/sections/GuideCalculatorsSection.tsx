@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Calculator, Package, Zap, AlertTriangle, CheckCircle, ExternalLink } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface GuideSectionProps {
   onComplete: () => void;
@@ -11,9 +12,9 @@ interface GuideSectionProps {
 }
 
 export function GuideCalculatorsSection({ onComplete, isCompleted }: GuideSectionProps) {
+  const navigate = useNavigate();
   const calculators = [
     {
-      icon: Package,
       title: 'Stock Levels Calculator',
       purpose: 'Formula-based stock level calculations',
       usage: 'Reference tool for inventory planning',
@@ -83,7 +84,7 @@ export function GuideCalculatorsSection({ onComplete, isCompleted }: GuideSectio
                     <p className="text-xs"><strong>Usage:</strong> {calc.usage}</p>
                   </div>
                   <div className="mt-3">
-                    <Button size="sm" variant="outline" className="gap-2">
+                    <Button size="sm" variant="outline" className="gap-2" onClick={() => navigate('/calculators')}>
                       <ExternalLink className="h-3 w-3" />
                       Open Calculator
                     </Button>

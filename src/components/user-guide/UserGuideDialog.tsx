@@ -44,7 +44,7 @@ export function UserGuideDialog() {
 
   return (
     <Dialog open={isGuideOpen} onOpenChange={closeGuide}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b">
           <div className="flex-1">
             <DialogTitle className="text-2xl font-bold">BuntingGPT User Guide</DialogTitle>
@@ -57,13 +57,10 @@ export function UserGuideDialog() {
               Progress: {completedSections}/{totalSections} sections
             </div>
             <Progress value={progressPercentage} className="w-24" />
-            <Button variant="ghost" size="sm" onClick={closeGuide}>
-              <X className="h-4 w-4" />
-            </Button>
           </div>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 overflow-hidden">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 min-h-0 overflow-hidden">
           <TabsList className="grid w-full grid-cols-7 mb-4">
             {guideSections.map((section) => (
               <TabsTrigger
