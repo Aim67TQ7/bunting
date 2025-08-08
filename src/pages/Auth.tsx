@@ -894,8 +894,8 @@ export default function Auth() {
       <aside className="pointer-events-none hidden lg:flex absolute inset-y-0 right-0 w-1/2 items-center justify-center p-8 bg-card">
         <div className="w-full max-w-3xl">
           <img
-            src="/lovable-uploads/650eab19-9a32-4ddf-b21d-2558a0466747.png"
-            alt="Bunting GPT authentication illustration"
+            src="/lovable-uploads/08bab623-2a52-4657-becd-c5cd967a11fe.png"
+            alt="Bunting website hero banner - electromagnetic dry filter"
             loading="lazy"
             decoding="async"
             className="w-full h-auto rounded-xl shadow-xl object-contain"
