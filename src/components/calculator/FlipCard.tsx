@@ -62,8 +62,7 @@ export const FlipCard = ({
         url: url,
         title: title,
         ...(id && { id }),
-        ...(sourceTable && { sourceTable }),
-        ...(license && { license })
+        ...(sourceTable && { sourceTable })
       });
       navigate(`/iframe?${params.toString()}`);
     }

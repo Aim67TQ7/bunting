@@ -30,12 +30,9 @@ const Iframe = () => {
       const titleParam = params.get("title");
       const id = params.get("id");
       const sourceTable = params.get("sourceTable");
-      const license = params.get("license");
+      // License will be fetched from the database using id + sourceTable
       if (titleParam) {
         setTitle(titleParam);
-      }
-      if (license) {
-        setLicenseValue(license);
       }
       if (urlParam) {
         let finalUrl = urlParam;
