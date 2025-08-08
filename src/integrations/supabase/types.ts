@@ -248,6 +248,157 @@ export type Database = {
         }
         Relationships: []
       }
+      attendance_points: {
+        Row: {
+          attendance_record_id: string
+          created_at: string
+          date_assessed: string
+          employee_id: string
+          expires_on: string
+          id: string
+          is_active: boolean
+          points: number
+          violation_type: string
+        }
+        Insert: {
+          attendance_record_id: string
+          created_at?: string
+          date_assessed: string
+          employee_id: string
+          expires_on: string
+          id?: string
+          is_active?: boolean
+          points: number
+          violation_type: string
+        }
+        Update: {
+          attendance_record_id?: string
+          created_at?: string
+          date_assessed?: string
+          employee_id?: string
+          expires_on?: string
+          id?: string
+          is_active?: boolean
+          points?: number
+          violation_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_points_attendance_record_id_fkey"
+            columns: ["attendance_record_id"]
+            isOneToOne: false
+            referencedRelation: "attendance_records"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_points_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      attendance_records: {
+        Row: {
+          clock_in: string | null
+          clock_out: string | null
+          created_at: string
+          date: string
+          employee_id: string
+          id: string
+          is_excused: boolean | null
+          notes: string | null
+          points_assessed: number | null
+          pto_used: boolean | null
+          scheduled_end: string | null
+          scheduled_start: string | null
+          updated_at: string
+          violation_type: string | null
+        }
+        Insert: {
+          clock_in?: string | null
+          clock_out?: string | null
+          created_at?: string
+          date: string
+          employee_id: string
+          id?: string
+          is_excused?: boolean | null
+          notes?: string | null
+          points_assessed?: number | null
+          pto_used?: boolean | null
+          scheduled_end?: string | null
+          scheduled_start?: string | null
+          updated_at?: string
+          violation_type?: string | null
+        }
+        Update: {
+          clock_in?: string | null
+          clock_out?: string | null
+          created_at?: string
+          date?: string
+          employee_id?: string
+          id?: string
+          is_excused?: boolean | null
+          notes?: string | null
+          points_assessed?: number | null
+          pto_used?: boolean | null
+          scheduled_end?: string | null
+          scheduled_start?: string | null
+          updated_at?: string
+          violation_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_records_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      attendance_warnings: {
+        Row: {
+          created_at: string
+          employee_id: string
+          id: string
+          issued_by: string | null
+          issued_date: string
+          notes: string | null
+          total_points: number
+          warning_type: string
+        }
+        Insert: {
+          created_at?: string
+          employee_id: string
+          id?: string
+          issued_by?: string | null
+          issued_date?: string
+          notes?: string | null
+          total_points: number
+          warning_type: string
+        }
+        Update: {
+          created_at?: string
+          employee_id?: string
+          id?: string
+          issued_by?: string | null
+          issued_date?: string
+          notes?: string | null
+          total_points?: number
+          warning_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_warnings_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       baq_stoplight: {
         Row: {
           Asm: number | null
@@ -717,6 +868,51 @@ export type Database = {
         }
         Relationships: []
       }
+      employees: {
+        Row: {
+          created_at: string
+          department: string | null
+          email: string | null
+          employee_id: string
+          employment_type: string
+          first_name: string
+          hire_date: string
+          id: string
+          is_active: boolean
+          last_name: string
+          position: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          department?: string | null
+          email?: string | null
+          employee_id: string
+          employment_type?: string
+          first_name: string
+          hire_date: string
+          id?: string
+          is_active?: boolean
+          last_name: string
+          position?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          department?: string | null
+          email?: string | null
+          employee_id?: string
+          employment_type?: string
+          first_name?: string
+          hire_date?: string
+          id?: string
+          is_active?: boolean
+          last_name?: string
+          position?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       entities: {
         Row: {
           created_at: string | null
@@ -887,6 +1083,83 @@ export type Database = {
         }
         Relationships: []
       }
+      license_users: {
+        Row: {
+          created_at: string
+          id: string
+          last_access: string | null
+          license_id: string
+          user_identifier: string
+          user_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_access?: string | null
+          license_id: string
+          user_identifier: string
+          user_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_access?: string | null
+          license_id?: string
+          user_identifier?: string
+          user_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "license_users_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "licenses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      licenses: {
+        Row: {
+          company_name: string
+          contact_email: string
+          contact_name: string | null
+          created_at: string
+          custom_domain: string | null
+          id: string
+          is_active: boolean
+          license_code: string
+          qr_code_url: string | null
+          settings: Json | null
+          updated_at: string
+        }
+        Insert: {
+          company_name: string
+          contact_email: string
+          contact_name?: string | null
+          created_at?: string
+          custom_domain?: string | null
+          id?: string
+          is_active?: boolean
+          license_code: string
+          qr_code_url?: string | null
+          settings?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          company_name?: string
+          contact_email?: string
+          contact_name?: string | null
+          created_at?: string
+          custom_domain?: string | null
+          id?: string
+          is_active?: boolean
+          license_code?: string
+          qr_code_url?: string | null
+          settings?: Json | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       market_research_reports: {
         Row: {
           competitive_landscape: Json
@@ -1012,6 +1285,7 @@ export type Database = {
           duration_seconds: number | null
           id: string
           is_processed: boolean | null
+          license_id: string | null
           title: string | null
           token: string | null
           updated_at: string | null
@@ -1023,6 +1297,7 @@ export type Database = {
           duration_seconds?: number | null
           id?: string
           is_processed?: boolean | null
+          license_id?: string | null
           title?: string | null
           token?: string | null
           updated_at?: string | null
@@ -1034,18 +1309,28 @@ export type Database = {
           duration_seconds?: number | null
           id?: string
           is_processed?: boolean | null
+          license_id?: string | null
           title?: string | null
           token?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "meeting_recordings_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "licenses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       meeting_summaries: {
         Row: {
           created_at: string | null
           id: string
           key_points: Json | null
+          license_id: string | null
           recording_id: string | null
           summary: string
           user_id: string | null
@@ -1054,6 +1339,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           key_points?: Json | null
+          license_id?: string | null
           recording_id?: string | null
           summary: string
           user_id?: string | null
@@ -1062,11 +1348,19 @@ export type Database = {
           created_at?: string | null
           id?: string
           key_points?: Json | null
+          license_id?: string | null
           recording_id?: string | null
           summary?: string
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "meeting_summaries_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "licenses"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "meeting_summaries_recording_id_fkey"
             columns: ["recording_id"]
@@ -1084,6 +1378,7 @@ export type Database = {
           due_date: string | null
           id: string
           is_completed: boolean | null
+          license_id: string | null
           recording_id: string | null
           user_id: string | null
         }
@@ -1094,6 +1389,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           is_completed?: boolean | null
+          license_id?: string | null
           recording_id?: string | null
           user_id?: string | null
         }
@@ -1104,10 +1400,18 @@ export type Database = {
           due_date?: string | null
           id?: string
           is_completed?: boolean | null
+          license_id?: string | null
           recording_id?: string | null
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "meeting_tasks_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "licenses"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "meeting_tasks_recording_id_fkey"
             columns: ["recording_id"]
@@ -1651,6 +1955,59 @@ export type Database = {
           },
         ]
       }
+      pto_requests: {
+        Row: {
+          approved_by: string | null
+          approved_date: string | null
+          created_at: string
+          employee_id: string
+          end_date: string
+          hours_requested: number
+          id: string
+          notes: string | null
+          request_type: string
+          start_date: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          approved_by?: string | null
+          approved_date?: string | null
+          created_at?: string
+          employee_id: string
+          end_date: string
+          hours_requested: number
+          id?: string
+          notes?: string | null
+          request_type: string
+          start_date: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          approved_by?: string | null
+          approved_date?: string | null
+          created_at?: string
+          employee_id?: string
+          end_date?: string
+          hours_requested?: number
+          id?: string
+          notes?: string | null
+          request_type?: string
+          start_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pto_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pulltest_entities: {
         Row: {
           address: string | null
@@ -1948,6 +2305,35 @@ export type Database = {
           },
         ]
       }
+      user_favorite_app_items: {
+        Row: {
+          app_item_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          app_item_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          app_item_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_favorite_app_items_app_item_id_fkey"
+            columns: ["app_item_id"]
+            isOneToOne: false
+            referencedRelation: "app_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_feedback: {
         Row: {
           content: string
@@ -2130,6 +2516,10 @@ export type Database = {
         Args: { "": string } | { "": unknown }
         Returns: unknown
       }
+      calculate_rolling_points: {
+        Args: { emp_id: string }
+        Returns: number
+      }
       check_embedding_status: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -2149,6 +2539,25 @@ export type Database = {
       cleanup_expired_sessions: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      create_license: {
+        Args: {
+          company_name_param: string
+          contact_email_param: string
+          contact_name_param?: string
+        }
+        Returns: {
+          license_id: string
+          license_code: string
+        }[]
+      }
+      expire_old_points: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      generate_license_code: {
+        Args: Record<PropertyKey, never>
+        Returns: string
       }
       get_available_employees: {
         Args: Record<PropertyKey, never>
