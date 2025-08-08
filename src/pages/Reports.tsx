@@ -6,6 +6,7 @@ import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { FileChartLine, Loader2 } from "lucide-react";
 import { FlipCard } from "@/components/calculator/FlipCard";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import PrivateRoute from "@/components/PrivateRoute";
 
@@ -78,9 +79,9 @@ const Reports = () => {
                     <div className="relative">
                       {report.coming_soon && (
                         <div className="absolute -top-3 -right-3 z-10">
-                          <span className="inline-flex items-center rounded-full bg-yellow-50 px-3 py-1 text-xs font-medium text-yellow-800 ring-1 ring-inset ring-yellow-600/20">
-                            Coming Soon
-                          </span>
+                          <Badge variant="destructive" className="text-xs px-2 py-1">
+                            In Development
+                          </Badge>
                         </div>
                       )}
                       <FlipCard 
