@@ -117,7 +117,8 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
       // This simulates the AI starting the conversation after user selections
       addAIMessage(question);
     } else {
-      handleSendMessage(question, false);
+      // Force GPT-5 mini for starter prompts regardless of toggle states
+      sendMessage(question, false, 'gpt5');
     }
   };
 
