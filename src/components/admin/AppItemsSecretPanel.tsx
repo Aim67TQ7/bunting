@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 
 type Category = "calculator" | "report" | "application" | "sales_tool";
 
@@ -65,6 +66,29 @@ export function AppItemsSecretPanel({ open, onOpenChange }: AppItemsSecretPanelP
     if (open) fetchItems();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  const [updatingIds, setUpdatingIds] = useState<Set<string>>(new Set());
+  const handleToggleActive = async (item: AppItem, next: boolean) => {
+    setUpdatingIds((s) => new Set(s).add(item.id));
+    const prev = !!item.is_active;
+    // Optimistic update
+    setItems((prevItems) => prevItems.map((it) => (it.id === item.id ? { ...it, is_active: next } : it)));
+
+    const { error } = await supabase.from("app_items").update({ is_active: next }).eq("id", item.id);
+    if (error) {
+      // Revert
+      setItems((prevItems) => prevItems.map((it) => (it.id === item.id ? { ...it, is_active: prev } : it)));
+      toast({ title: "Update failed", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Status updated", description: `${item.name} is now ${next ? "Active" : "Inactive"}` });
+    }
+
+    setUpdatingIds((s) => {
+      const n = new Set(s);
+      n.delete(item.id);
+      return n;
+    });
+  };
 
   const handleCreate = async () => {
     if (!form.name || !form.description || !form.url || !form.category) {
@@ -172,7 +196,14 @@ export function AppItemsSecretPanel({ open, onOpenChange }: AppItemsSecretPanelP
                     <TableRow key={item.id}>
                       <TableCell className="font-medium">{item.name}</TableCell>
                       <TableCell>{item.category}</TableCell>
-                      <TableCell>{item.is_active ? "Active" : "Inactive"}</TableCell>
+                      <TableCell>
+                        <Switch
+                          checked={!!item.is_active}
+                          disabled={updatingIds.has(item.id)}
+                          onCheckedChange={(v) => handleToggleActive(item, v)}
+                          aria-label={`Toggle ${item.name} active status`}
+                        />
+                      </TableCell>
                       <TableCell className="truncate max-w-[260px]">{item.url}</TableCell>
                       <TableCell>{item.created_at ? new Date(item.created_at).toLocaleDateString() : ""}</TableCell>
                     </TableRow>
