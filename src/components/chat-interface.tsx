@@ -95,17 +95,15 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
     // Determine query type based on enabled modes and file uploads
     let actualQueryType = queryType;
     
-    // If a file is uploaded or vision mode is explicitly set, force Claude
-    if (file || queryType === 'vision' || visionEnabled) {
+    // Prioritize GPT-5 mini and disengage vision when active
+    if (gpt5Enabled) {
+      actualQueryType = "gpt5";
+    } else if (file || queryType === 'vision' || visionEnabled) {
+      // Vision only when explicitly enabled and GPT-5 is not active
       actualQueryType = "vision";
-      // Auto-enable vision mode if file is uploaded
-      if (file && !visionEnabled) {
-        setVisionEnabled(true);
-      }
+      // Do not auto-toggle vision for file uploads
     } else if (o3Enabled) {
       actualQueryType = "gpt-o3";
-    } else if (gpt5Enabled) {
-      actualQueryType = "gpt5";
     } else if (webEnabled) {
       actualQueryType = "web";
     }

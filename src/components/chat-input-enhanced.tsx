@@ -110,15 +110,8 @@ export function ChatInputEnhanced({
       return;
     }
     
-    // Check if vision mode is enabled - if not, enable it for file uploads
-    if (!visionEnabled && onVisionToggle) {
-      onVisionToggle();
-      toast({
-        title: "Vision analysis enabled",
-        description: "Automatically enabled for document processing",
-        duration: 2000
-      });
-    }
+    // Do not auto-enable vision mode for file uploads
+    // Vision remains a manual toggle only
     
     // Store the file and show intent dialog
     setPendingFile(file);

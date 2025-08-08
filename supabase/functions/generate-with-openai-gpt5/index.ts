@@ -41,7 +41,7 @@ serve(async (req) => {
         model: "gpt-5-mini-2025-08-07",
         messages: messagesWithSystem,
         temperature: 0.2,
-        max_tokens: 2048
+        max_completion_tokens: 2048
       })
     });
 
