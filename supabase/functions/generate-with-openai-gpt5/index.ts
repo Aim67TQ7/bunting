@@ -31,31 +31,55 @@ serve(async (req) => {
 
     const messagesWithSystem = [systemMessage, ...messages.filter((m: any) => m.role !== 'system')];
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${OPENAI_API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model: "gpt-5-mini-2025-08-07",
-        messages: messagesWithSystem,
-        temperature: 0.2,
-        max_completion_tokens: 2048
-      })
-    });
+    // Helper to call OpenAI with a given model and token cap
+    const callOpenAI = async (model: string, maxTokens: number) => {
+      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${OPENAI_API_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model,
+          messages: messagesWithSystem,
+          temperature: 0.2,
+          max_completion_tokens: maxTokens
+        })
+      });
+      const body = await res.text();
+      let json: any = null;
+      try { json = body ? JSON.parse(body) : null; } catch (_) {}
+      return { ok: res.ok, status: res.status, json, text: body };
+    };
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      console.error('OpenAI error payload:', error);
-      throw new Error(`OpenAI API error: ${error.message || response.statusText}`);
+    // Attempt primary model first
+    const primaryModel = "gpt-5-mini-2025-08-07";
+    const primaryMax = 8192; // safe cap; adjust when higher limits become available
+    let attempt = await callOpenAI(primaryModel, primaryMax);
+
+    // If primary fails due to unsupported model/params, fall back to a known-good model
+    if (!attempt.ok) {
+      const errMsg = attempt.json?.error?.message || attempt.text || "Unknown error";
+      console.error("Primary model failed:", errMsg);
+      const looksLikeUnsupportedModel = /model|unsupported|does not exist|unknown/i.test(errMsg);
+      const fallbackModel = "o4-mini-2025-04-16"; // fast reasoning model available per platform docs
+      if (looksLikeUnsupportedModel) {
+        console.log(`Falling back to ${fallbackModel}`);
+        attempt = await callOpenAI(fallbackModel, 8192);
+      }
     }
 
-    const data = await response.json();
+    if (!attempt.ok) {
+      console.error('OpenAI error payload:', attempt.json || attempt.text);
+      const message = attempt.json?.error?.message || attempt.text || `HTTP ${attempt.status}`;
+      throw new Error(`OpenAI API error: ${message}`);
+    }
+
+    const data = attempt.json;
 
     return new Response(JSON.stringify({
-      content: data.choices?.[0]?.message?.content ?? "",
-      model: "gpt-5-mini-2025-08-07"
+      content: data?.choices?.[0]?.message?.content ?? "",
+      model: data?.model || (attempt.ok ? "o4-mini-2025-04-16" : primaryModel)
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
