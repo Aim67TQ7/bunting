@@ -315,7 +315,7 @@ export default function Auth() {
   };
 
   return (
-    <div className={`relative flex flex-col items-center justify-center min-h-screen ${isMobile ? 'p-2' : 'p-4'} bg-muted/30 lg:pr-[50%]`}>
+    <div className={`flex flex-col items-center justify-center min-h-screen ${isMobile ? 'p-2' : 'p-4'} bg-muted/30`}>
       <div className={`${isMobile ? 'mb-4' : 'mb-8'}`}>
         <BrandLogo size={isMobile ? "md" : "lg"} />
       </div>
@@ -892,20 +892,7 @@ export default function Auth() {
         </DialogContent>
       </Dialog>
 
-      {/* Desktop-only right-side video */}
-      <aside className="hidden lg:block fixed inset-y-0 right-0 w-1/2 z-10">
-        <video
-          className="h-full w-full object-cover"
-          src="/nancy2.mp4"
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="metadata"
-          aria-label="Nancy brand video"
-          title="Nancy brand video"
-        />
-      </aside>
+      
     </div>
   );
 }
