@@ -90,9 +90,11 @@ export function useChatMessages() {
         
         // Handle auto-summarization if requested
         if (autoSummarize) {
-          // Get the last user message and AI response
           const messagesToSummarize = finalMessages.slice(-2);
-          await handleAutoSummary(messagesToSummarize);
+          // Run asynchronously so UI isn't blocked by summarization
+          Promise.resolve(handleAutoSummary(messagesToSummarize)).catch((err) => {
+            console.error('Auto-summary failed:', err);
+          });
         }
       } catch (error) {
         console.error("Error sending message:", error);
