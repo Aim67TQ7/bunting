@@ -12,7 +12,7 @@ const Index = () => {
   
   return (
     <div className="flex h-screen w-full overflow-hidden safe-area-top safe-area-bottom">
-      <AppSidebar className={`${isMobile ? 'w-full fixed z-50' : 'w-64'} flex-shrink-0`} />
+      <AppSidebar />
       
       <SidebarInset className="flex flex-1 flex-col overflow-hidden">
         <ChatInterface conversationId={conversationId} />

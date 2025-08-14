@@ -135,6 +135,9 @@ useEffect(() => {
           "flex items-center transition-all duration-200",
           isMobile ? "gap-3" : "gap-2"
         )}>
+          {isMobile && (
+            <SidebarTrigger className="h-8 w-8 rounded-lg hover:bg-accent/50 mr-1" />
+          )}
           <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
             <BrandLogo size="sm" />
           </div>
@@ -145,7 +148,9 @@ useEffect(() => {
             <h1 className="font-semibold text-base">BuntingGPT</h1>
             <p className="text-xs text-muted-foreground">Magnetic Solutions</p>
           </div>
-          <SidebarTrigger className="h-8 w-8 rounded-lg hover:bg-accent/50" />
+          {!isMobile && (
+            <SidebarTrigger className="h-8 w-8 rounded-lg hover:bg-accent/50" />
+          )}
         </div>
       </SidebarHeader>
       

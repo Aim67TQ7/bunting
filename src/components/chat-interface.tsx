@@ -11,6 +11,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { isDemoMode } from "@/utils/demoMode";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ChatInterfaceProps {
   conversationId: string | null;
@@ -19,6 +20,7 @@ interface ChatInterfaceProps {
 export function ChatInterface({ conversationId }: ChatInterfaceProps) {
   const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [loadAttempts, setLoadAttempts] = useState(0);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
@@ -235,14 +237,16 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between p-2 border-b">
-        <div className="flex items-center gap-2">
-          <SidebarTrigger className="md:hidden" />
-          <h1 className="text-lg font-semibold ml-2">
-            {conversationId ? (activeConversationId ? "Chat" : "Loading...") : "New Chat"}
-          </h1>
+      {isMobile && (
+        <div className="flex items-center justify-between p-3 border-b bg-background/95 backdrop-blur safe-area-top">
+          <div className="flex items-center gap-3">
+            <SidebarTrigger className="h-8 w-8 rounded-lg hover:bg-accent/50" />
+            <h1 className="text-lg font-semibold">
+              {conversationId ? (activeConversationId ? "Chat" : "Loading...") : "New Chat"}
+            </h1>
+          </div>
         </div>
-      </div>
+      )}
       
       <div className="flex-1 overflow-y-auto p-4">
         {showWelcomeScreen && (
