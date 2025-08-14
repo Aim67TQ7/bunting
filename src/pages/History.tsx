@@ -2,9 +2,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { AppSidebar } from "@/components/app-sidebar";
+import { PageLayout } from "@/components/page-layout";
 import { History as HistoryIcon, Loader2, Trash2, RefreshCw, Search, Cpu, MessageSquare } from "lucide-react";
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -283,28 +283,17 @@ const History = () => {
   if (authLoading) {
     return (
       <SidebarProvider>
-        <div className="flex h-screen w-full overflow-hidden">
-          <AppSidebar className="w-64 flex-shrink-0" />
-          
-          <SidebarInset className="flex flex-1 flex-col overflow-hidden">
-            <div className="flex items-center justify-between border-b px-4 py-2">
-              <div className="flex gap-2 items-center">
-                <SidebarTrigger className="md:hidden" />
-                <h1 className="text-lg font-semibold">Chat History</h1>
-              </div>
+        <PageLayout title="Chat History">
+          <div className="flex h-full flex-col items-center justify-center text-center p-4">
+            <div className="rounded-full bg-muted p-4">
+              <Loader2 className="h-6 w-6 animate-spin" />
             </div>
-            
-            <div className="flex h-full flex-col items-center justify-center text-center p-4">
-              <div className="rounded-full bg-muted p-4">
-                <Loader2 className="h-6 w-6 animate-spin" />
-              </div>
-              <h3 className="mt-4 text-lg font-medium">Loading...</h3>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Please wait while we verify your authentication
-              </p>
-            </div>
-          </SidebarInset>
-        </div>
+            <h3 className="mt-4 text-lg font-medium">Loading...</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Please wait while we verify your authentication
+            </p>
+          </div>
+        </PageLayout>
       </SidebarProvider>
     );
   }
@@ -312,28 +301,17 @@ const History = () => {
   if (!user) {
     return (
       <SidebarProvider>
-        <div className="flex h-screen w-full overflow-hidden">
-          <AppSidebar className="w-64 flex-shrink-0" />
-          
-          <SidebarInset className="flex flex-1 flex-col overflow-hidden">
-            <div className="flex items-center justify-between border-b px-4 py-2">
-              <div className="flex gap-2 items-center">
-                <SidebarTrigger className="md:hidden" />
-                <h1 className="text-lg font-semibold">Chat History</h1>
-              </div>
+        <PageLayout title="Chat History">
+          <div className="flex h-full flex-col items-center justify-center text-center p-4">
+            <div className="rounded-full bg-muted p-4">
+              <HistoryIcon className="h-6 w-6 text-muted-foreground" />
             </div>
-            
-            <div className="flex h-full flex-col items-center justify-center text-center p-4">
-              <div className="rounded-full bg-muted p-4">
-                <HistoryIcon className="h-6 w-6 text-muted-foreground" />
-              </div>
-              <h3 className="mt-4 text-lg font-medium">You need to sign in</h3>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Please sign in to view your chat history
-              </p>
-            </div>
-          </SidebarInset>
-        </div>
+            <h3 className="mt-4 text-lg font-medium">You need to sign in</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Please sign in to view your chat history
+            </p>
+          </div>
+        </PageLayout>
       </SidebarProvider>
     );
   }
@@ -342,41 +320,30 @@ const History = () => {
   if (authError) {
     return (
       <SidebarProvider>
-        <div className="flex h-screen w-full overflow-hidden">
-          <AppSidebar className="w-64 flex-shrink-0" />
-          
-          <SidebarInset className="flex flex-1 flex-col overflow-hidden">
-            <div className="flex items-center justify-between border-b px-4 py-2">
-              <div className="flex gap-2 items-center">
-                <SidebarTrigger className="md:hidden" />
-                <h1 className="text-lg font-semibold">Chat History</h1>
-              </div>
+        <PageLayout title="Chat History">
+          <div className="flex h-full flex-col items-center justify-center text-center p-4">
+            <div className="rounded-full bg-red-100 dark:bg-red-900/20 p-4">
+              <HistoryIcon className="h-6 w-6 text-red-500" />
             </div>
-            
-            <div className="flex h-full flex-col items-center justify-center text-center p-4">
-              <div className="rounded-full bg-red-100 dark:bg-red-900/20 p-4">
-                <HistoryIcon className="h-6 w-6 text-red-500" />
-              </div>
-              <h3 className="mt-4 text-lg font-medium">Authentication Error</h3>
-              <p className="mt-2 text-sm text-muted-foreground max-w-md">
-                {authError}
-              </p>
-              <div className="mt-4 flex gap-4">
-                <Button variant="outline" onClick={handleRetry}>
-                  {isRetrying ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                  )}
-                  Retry
-                </Button>
-                <Button onClick={() => navigate("/auth")}>
-                  Sign in again
-                </Button>
-              </div>
+            <h3 className="mt-4 text-lg font-medium">Authentication Error</h3>
+            <p className="mt-2 text-sm text-muted-foreground max-w-md">
+              {authError}
+            </p>
+            <div className="mt-4 flex gap-4">
+              <Button variant="outline" onClick={handleRetry}>
+                {isRetrying ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                )}
+                Retry
+              </Button>
+              <Button onClick={() => navigate("/auth")}>
+                Sign in again
+              </Button>
             </div>
-          </SidebarInset>
-        </div>
+          </div>
+        </PageLayout>
       </SidebarProvider>
     );
   }
@@ -384,15 +351,10 @@ const History = () => {
   // Main history display
   return (
     <SidebarProvider>
-      <div className="flex h-screen w-full overflow-hidden">
-        <AppSidebar className="w-64 flex-shrink-0" />
-        
-        <SidebarInset className="flex flex-1 flex-col overflow-hidden">
+      <PageLayout title="Chat History">
+        <div className="flex flex-col h-full">
           <div className="flex items-center justify-between border-b px-4 py-2">
-            <div className="flex gap-2 items-center">
-              <SidebarTrigger className="md:hidden" />
-              <h1 className="text-lg font-semibold">Chat History</h1>
-            </div>
+            <h1 className="text-lg font-semibold hidden md:block">Chat History</h1>
             
             <Button
               variant="ghost"
@@ -475,100 +437,67 @@ const History = () => {
                             <AlertDialogHeader>
                               <AlertDialogTitle>Delete conversation history?</AlertDialogTitle>
                               <AlertDialogDescription>
-                                This action cannot be undone. This will permanently delete this
-                                conversation from your history.
+                                This action cannot be undone. This will permanently delete this conversation and all its messages.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                               <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction
-                                className="bg-destructive hover:bg-destructive/90"
+                              <AlertDialogAction 
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                 onClick={() => handleDeleteConversation(chat.id)}
                                 disabled={isDeletingId === chat.id}
                               >
                                 {isDeletingId === chat.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                ) : null}
-                                Delete
+                                  <>
+                                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                    Deleting...
+                                  </>
+                                ) : (
+                                  "Delete"
+                                )}
                               </AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
                       </div>
                     </div>
-
-                    {/* Model badge is still shown below the title */}
-                    {getLastModelUsed(chat.content) && (
-                      <div className="mt-1">
-                        <Badge 
-                          variant="secondary" 
-                          className="flex items-center gap-1 text-xs px-1.5 py-0.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300"
-                        >
-                          <Cpu className="h-3 w-3" />
-                          <span>{getLastModelUsed(chat.content)}</span>
-                        </Badge>
-                      </div>
-                    )}
                     
-                    <p className="text-sm text-muted-foreground line-clamp-2 mt-2 flex items-center">
-                      <span className="flex-1">{getPreviewText(chat.content)}</span>
-                      <span className="ml-2 flex items-center gap-1 text-xs px-1.5 py-0.5 bg-muted rounded whitespace-nowrap">
-                        <MessageSquare className="h-3 w-3" />
-                        <span>{getMessageCount(chat.content)} messages</span>
-                      </span>
-                    </p>
+                    <div className="mt-2 text-sm text-muted-foreground line-clamp-2">
+                      {getPreviewText(chat.content)}
+                    </div>
+                    
+                    <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-1">
+                          <MessageSquare className="h-3 w-3" />
+                          <span>{getMessageCount(chat.content)} messages</span>
+                        </div>
+                        
+                        {getLastModelUsed(chat.content) && (
+                          <div className="flex items-center gap-1">
+                            <Cpu className="h-3 w-3" />
+                            <span>{getLastModelUsed(chat.content)}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
-            ) : searchQuery ? (
-              <div className="flex h-full flex-col items-center justify-center text-center">
-                <div className="rounded-full bg-muted p-4">
-                  <Search className="h-6 w-6 text-muted-foreground" />
-                </div>
-                <h3 className="mt-4 text-lg font-medium">No results found</h3>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  No conversations match your search query
-                </p>
-                <Button 
-                  variant="outline" 
-                  className="mt-4"
-                  onClick={() => {
-                    setSearchQuery("");
-                    setFilteredChatHistory(chatHistory);
-                  }}
-                >
-                  Clear Search
-                </Button>
-              </div>
             ) : (
-              <div className="flex h-full flex-col items-center justify-center text-center">
+              <div className="flex h-full flex-col items-center justify-center text-center p-4">
                 <div className="rounded-full bg-muted p-4">
                   <HistoryIcon className="h-6 w-6 text-muted-foreground" />
                 </div>
-                <h3 className="mt-4 text-lg font-medium">No chat history</h3>
+                <h3 className="mt-4 text-lg font-medium">No Chat History</h3>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  When you chat with BuntingGPT, your conversations will appear here
+                  Start a conversation to see your chat history appear here.
                 </p>
-                {!isLoading && (
-                  <Button 
-                    variant="outline" 
-                    className="mt-4"
-                    onClick={handleRetry}
-                    disabled={isRetrying}
-                  >
-                    {isRetrying ? (
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    ) : (
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                    )}
-                    Retry Loading History
-                  </Button>
-                )}
               </div>
             )}
           </div>
-        </SidebarInset>
-      </div>
+        </div>
+      </PageLayout>
     </SidebarProvider>
   );
 };
