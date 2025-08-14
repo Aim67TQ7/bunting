@@ -26,9 +26,9 @@ export function PageLayout({
       
       <SidebarInset className="flex flex-1 flex-col overflow-hidden">
         {isMobile && showMobileHeader && (
-          <div className="flex items-center justify-between p-3 border-b bg-background/95 backdrop-blur safe-area-top">
+          <div className="flex items-center justify-between p-3 pt-6 border-b bg-background/95 backdrop-blur safe-area-top">
             <div className="flex items-center gap-3">
-              <SidebarTrigger className="h-8 w-8 rounded-lg hover:bg-accent/50" />
+              <SidebarTrigger className="h-10 w-10 rounded-lg hover:bg-accent/50 touch-manipulation" />
               <h1 className="text-lg font-semibold">{title}</h1>
             </div>
           </div>
