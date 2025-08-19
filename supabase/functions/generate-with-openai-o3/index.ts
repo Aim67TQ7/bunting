@@ -1,8 +1,11 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+const supabaseUrl = Deno.env.get('SUPABASE_URL');
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -23,14 +26,44 @@ serve(async (req) => {
 
     console.log(`Processing o3 request for user ${userId}, conversation ${conversationId || 'new'}`);
 
+    // Initialize Supabase client
+    const supabase = createClient(supabaseUrl!, supabaseServiceKey!);
+    
+    // Get the user's question from the last message
+    const userMessage = messages[messages.length - 1]?.content || '';
+    
+    // Search the 'don' table for relevant narrative context
+    console.log('Searching don table for relevant context...');
+    
+    let contextualInfo = '';
+    try {
+      const { data: donResults, error: donError } = await supabase
+        .from('don')
+        .select('narrative')
+        .not('narrative', 'is', null)
+        .limit(3);
+
+      if (donError) {
+        console.error('Error searching don table:', donError);
+      } else if (donResults && donResults.length > 0) {
+        console.log(`Found ${donResults.length} relevant narratives in don table`);
+        contextualInfo = '\n\nRelevant Bunting technical knowledge:\n' + 
+          donResults.map((doc: any) => `- ${doc.narrative}`).join('\n');
+      } else {
+        console.log('No narratives found in don table');
+      }
+    } catch (error) {
+      console.error('Error accessing don table:', error);
+    }
+
     // Technical sales engineer system message for deep thinking mode
     const enhancedSystemMessage = { 
       role: "system", 
       content: `You are a highly technical sales engineer for Bunting Magnetics, a manufacturer of magnetic separation equipment for multiple industries. In this enhanced analysis mode, you provide expert technical guidance with deep thinking capabilities.
 
 Your approach:
-1. Always reference the embeddings table first for context and insight into the Bunting way of thinking
-2. Provide detailed technical information based on the embeddings data
+1. Always reference the don table first for context and insight into the Bunting way of thinking
+2. Provide detailed technical information based on the don table narratives
 3. For food industry applications, always consider CPC (Critical Control Points) and CCP (Critical Control Points)
 4. For recycling, metals, and material handling industries, provide comprehensive technical specifications and applications
 5. Use your deep reasoning to analyze customer needs and recommend appropriate magnetic separation solutions
@@ -42,7 +75,7 @@ Your expertise areas:
 - Technical specifications and performance criteria
 - Installation and maintenance considerations
 
-Provide direct, technical responses focused on solving customer problems. Do not ask follow-up questions to continue conversation unless clarification is specifically needed for technical accuracy.`
+Provide direct, technical responses focused on solving customer problems. Do not ask follow-up questions to continue conversation unless clarification is specifically needed for technical accuracy.${contextualInfo}`
     };
     
     const messagesWithSystem = [enhancedSystemMessage];
