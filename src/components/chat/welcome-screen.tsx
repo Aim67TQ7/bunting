@@ -40,7 +40,7 @@ export function WelcomeScreen({ onStarterClick }: WelcomeScreenProps) {
               <Card
                 key={s.title}
                 className="p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer transition-colors border-2 hover:border-primary/20"
-                onClick={() => onStarterClick(s.prompt)}
+                onClick={() => onStarterClick(s.prompt, s.title === "Create Metaprompt")}
               >
                 <div className="flex flex-col items-center text-center">
                   <div className="rounded-full bg-muted p-3 mb-3">
