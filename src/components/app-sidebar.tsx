@@ -156,8 +156,7 @@ useEffect(() => {
         isMobile ? "px-4 py-2" : "px-3 py-4"
       )}>
         <NavSection title="Assistant">
-          <NavItem icon={BarChart3} title="Dashboard" href="/" />
-          <NavItem icon={MessageSquare} title="Chat" href="/chat" />
+          <NavItem icon={MessageSquare} title="Chat" href="/" />
           <NavItem icon={History} title="History" href="/history" />
         </NavSection>
 
