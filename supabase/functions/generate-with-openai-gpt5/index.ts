@@ -55,8 +55,12 @@ serve(async (req) => {
         const body: any = {
           model,
           messages: messagesWithSystem,
-          temperature: 0.2,
         };
+        // GPT-5 and newer models don't support temperature parameter
+        // Only add temperature for legacy models
+        if (!model.includes('gpt-5') && !model.includes('o3') && !model.includes('o4')) {
+          body.temperature = 0.2;
+        }
         body[param] = maxTokens;
         const res = await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
