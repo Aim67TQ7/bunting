@@ -26,9 +26,7 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [hasAttemptedLoad, setHasAttemptedLoad] = useState(false);
   const [webEnabled, setWebEnabled] = useState(false);
-  const [o3Enabled, setO3Enabled] = useState(false);
   const [gpt5Enabled, setGpt5Enabled] = useState(false);
-  const [visionEnabled, setVisionEnabled] = useState(false);
   
   const { 
     messages, 
@@ -98,17 +96,17 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
     // Determine query type based on enabled modes and file uploads
     let actualQueryType = queryType;
     
-    // Prioritize GPT-5 mini and disengage vision when active
+    // If GPT-5 is enabled, use GPT-5 (can combine with web)
     if (gpt5Enabled) {
       actualQueryType = "gpt5";
-    } else if ((files && files.length > 0) || queryType === 'vision' || visionEnabled) {
-      // If files are attached, use smart analysis; otherwise vision when explicitly enabled
-      actualQueryType = files && files.length > 0 ? 'smart' : 'vision';
-    } else if (o3Enabled) {
-      actualQueryType = "gpt-o3";
+    } else if ((files && files.length > 0) || queryType === 'smart') {
+      // If files are attached, use smart analysis
+      actualQueryType = 'smart';
     } else if (webEnabled) {
+      // Web search with Groq (default when GPT-5 not selected)
       actualQueryType = "web";
     }
+    // Otherwise, default to Groq (no queryType specified)
     
     sendMessage(finalContent, shouldAutoSummarize, actualQueryType, files);
   };
@@ -135,75 +133,24 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
   };
 
   const toggleWebAccess = () => {
-    if (o3Enabled) {
-      setO3Enabled(false);
-    }
     setWebEnabled(!webEnabled);
+    const modelName = gpt5Enabled ? "GPT-5" : "Groq";
     toast({
       title: webEnabled ? "Web access disabled" : "Web access enabled",
       description: webEnabled 
-        ? "The AI will no longer search the web for information."
-        : "The AI will now search the web for up-to-date information.",
-      duration: 3000
-    });
-  };
-
-  const toggleO3Mode = () => {
-    if (webEnabled) {
-      setWebEnabled(false);
-    }
-    if (gpt5Enabled) {
-      setGpt5Enabled(false);
-    }
-    if (visionEnabled) {
-      setVisionEnabled(false);
-    }
-    setO3Enabled(!o3Enabled);
-    toast({
-      title: o3Enabled ? "Deep thinking mode disabled" : "Deep thinking mode enabled",
-      description: o3Enabled 
-        ? "The AI will use standard processing for faster responses."
-        : "The AI will use deep reasoning for enhanced analysis and problem-solving.",
+        ? "Web search is now disabled."
+        : `Web search enabled with ${modelName}.`,
       duration: 3000
     });
   };
 
   const toggleGpt5Mode = () => {
-    if (webEnabled) {
-      setWebEnabled(false);
-    }
-    if (o3Enabled) {
-      setO3Enabled(false);
-    }
-    if (visionEnabled) {
-      setVisionEnabled(false);
-    }
     setGpt5Enabled(!gpt5Enabled);
     toast({
-      title: gpt5Enabled ? "GPT-5 mini disabled" : "GPT-5 mini enabled",
+      title: gpt5Enabled ? "GPT-5 disabled" : "GPT-5 enabled",
       description: gpt5Enabled 
-        ? "The AI will use standard processing."
-        : "The AI will use GPT-5 mini for responses.",
-      duration: 3000
-    });
-  };
-
-  const toggleVisionMode = () => {
-    if (webEnabled) {
-      setWebEnabled(false);
-    }
-    if (o3Enabled) {
-      setO3Enabled(false);
-    }
-    if (gpt5Enabled) {
-      setGpt5Enabled(false);
-    }
-    setVisionEnabled(!visionEnabled);
-    toast({
-      title: visionEnabled ? "Vision analysis mode disabled" : "Vision analysis mode enabled",
-      description: visionEnabled 
-        ? "The AI will use standard text processing."
-        : "The AI will use Claude for advanced vision analysis of images and documents.",
+        ? "Switched back to Groq (default)."
+        : "Using GPT-5 for responses.",
       duration: 3000
     });
   };
@@ -301,13 +248,9 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
           conversationId={activeConversationId}
           webEnabled={webEnabled}
           onWebToggle={toggleWebAccess}
-          o3Enabled={o3Enabled}
-          onO3Toggle={toggleO3Mode}
           onNewChat={handleStartNewChat}
           gpt5Enabled={gpt5Enabled}
           onGpt5Toggle={toggleGpt5Mode}
-          visionEnabled={visionEnabled}
-          onVisionToggle={toggleVisionMode}
         />
       </div>
     </div>

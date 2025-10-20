@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Info, Send, Upload, Plus, Globe, Brain, Eye } from "lucide-react";
+import { Info, Send, Upload, Plus, Globe } from "lucide-react";
 import { useState, FormEvent, useRef, ChangeEvent, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -14,13 +14,9 @@ interface ChatInputEnhancedProps {
   conversationId?: string | null;
   webEnabled?: boolean;
   onWebToggle?: () => void;
-  o3Enabled?: boolean;
-  onO3Toggle?: () => void;
   onNewChat?: () => void;
   gpt5Enabled?: boolean;
   onGpt5Toggle?: () => void;
-  visionEnabled?: boolean;
-  onVisionToggle?: () => void;
 }
 
 export function ChatInputEnhanced({ 
@@ -30,13 +26,9 @@ export function ChatInputEnhanced({
   conversationId, 
   webEnabled = false,
   onWebToggle,
-  o3Enabled = false,
-  onO3Toggle,
   onNewChat,
   gpt5Enabled = false,
-  onGpt5Toggle,
-  visionEnabled = false,
-  onVisionToggle
+  onGpt5Toggle
 }: ChatInputEnhancedProps) {
   const [message, setMessage] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -130,17 +122,14 @@ export function ChatInputEnhanced({
   };
 
   const getPlaceholder = () => {
-    if (visionEnabled) {
-      return "Send a message (vision analysis mode enabled)...";
+    if (gpt5Enabled && webEnabled) {
+      return "Send a message (GPT-5 + web search enabled)...";
     }
-    if (o3Enabled) {
-      return "Send a message (deep thinking mode enabled)...";
+    if (gpt5Enabled) {
+      return "Send a message (GPT-5 enabled)...";
     }
     if (webEnabled) {
       return "Send a message (web search enabled)...";
-    }
-    if (gpt5Enabled) {
-      return "Send a message (GPT-5 mini mode enabled)...";
     }
     return "Send a message... (& to auto-summarize)";
   };
@@ -159,21 +148,9 @@ export function ChatInputEnhanced({
     }
   };
 
-  const handleO3Toggle = () => {
-    if (onO3Toggle) {
-      onO3Toggle();
-    }
-  };
-
   const handleGpt5Toggle = () => {
     if (onGpt5Toggle) {
       onGpt5Toggle();
-    }
-  };
-
-  const handleVisionToggle = () => {
-    if (onVisionToggle) {
-      onVisionToggle();
     }
   };
   
@@ -202,31 +179,24 @@ export function ChatInputEnhanced({
         </div>
       )}
       
-      {visionEnabled && !willAutoSummarize && (
-        <div className="flex items-center px-4 py-2 text-xs bg-emerald-100 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-300 rounded-t-md mx-4 mb-0 mt-2">
+      {gpt5Enabled && webEnabled && !willAutoSummarize && (
+        <div className="flex items-center px-4 py-2 text-xs bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 rounded-t-md mx-4 mb-0 mt-2">
           <Info className="h-3 w-3 mr-1.5" />
-          <span>Vision analysis mode is enabled for image and document analysis</span>
+          <span>GPT-5 with web search is enabled</span>
         </div>
       )}
 
-      {o3Enabled && !willAutoSummarize && !visionEnabled && (
-        <div className="flex items-center px-4 py-2 text-xs bg-purple-100 dark:bg-purple-900/20 text-purple-800 dark:text-purple-300 rounded-t-md mx-4 mb-0 mt-2">
+      {gpt5Enabled && !webEnabled && !willAutoSummarize && (
+        <div className="flex items-center px-4 py-2 text-xs bg-orange-100 dark:bg-orange-900/20 text-orange-800 dark:text-orange-300 rounded-t-md mx-4 mb-0 mt-2">
           <Info className="h-3 w-3 mr-1.5" />
-          <span>Deep thinking mode is enabled for enhanced analysis</span>
+          <span>GPT-5 mode is enabled</span>
         </div>
       )}
       
-      {webEnabled && !willAutoSummarize && !o3Enabled && !visionEnabled && (
+      {webEnabled && !gpt5Enabled && !willAutoSummarize && (
         <div className="flex items-center px-4 py-2 text-xs bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 rounded-t-md mx-4 mb-0 mt-2">
           <Info className="h-3 w-3 mr-1.5" />
-          <span>Web search is enabled for this message</span>
-        </div>
-      )}
-
-      {gpt5Enabled && !willAutoSummarize && !o3Enabled && !visionEnabled && !webEnabled && (
-        <div className="flex items-center px-4 py-2 text-xs bg-gray-100 dark:bg-gray-800/40 text-gray-600 dark:text-gray-400 rounded-t-md mx-4 mb-0 mt-2">
-          <Info className="h-3 w-3 mr-1.5" />
-          <span>GPT-5 mini mode is enabled</span>
+          <span>Web search is enabled (using Groq)</span>
         </div>
       )}
       
@@ -234,15 +204,15 @@ export function ChatInputEnhanced({
         onSubmit={handleSubmit}
         className={cn(
           "relative flex w-full items-start gap-3 p-4", 
-          (willAutoSummarize || webEnabled || o3Enabled || visionEnabled || gpt5Enabled || selectedFiles.length > 0) ? "pt-2" : "",
+          (willAutoSummarize || webEnabled || gpt5Enabled || selectedFiles.length > 0) ? "pt-2" : "",
           className
         )}
       >
         {/* Left side controls */}
         <div className="flex flex-col gap-2">
-          {/* 2x3 Mode Selection Grid with Plus and Upload at top */}
+          {/* 2x2 Mode Selection Grid */}
           <div className="grid grid-cols-2 gap-1">
-            {/* Top row - Plus and Upload */}
+            {/* Top row - New and Upload */}
             <Button 
               type="button" 
               variant="ghost" 
@@ -268,32 +238,7 @@ export function ChatInputEnhanced({
               <span className="sr-only">Upload file</span>
             </Button>
 
-            {/* Middle row - Brain and Eye */}
-            <Button 
-              type="button" 
-              variant="ghost" 
-              size="icon"
-              onClick={handleO3Toggle}
-              className={cn("h-8 w-8", o3Enabled ? "bg-purple-100 text-purple-600 dark:bg-purple-900/40 dark:text-purple-400" : "")}
-              title={o3Enabled ? "Deep Thinking Mode Enabled" : "Enable Deep Thinking Mode"}
-            >
-              <Brain className="h-4 w-4" />
-              <span className="sr-only">Deep Thinking</span>
-            </Button>
-
-            <Button 
-              type="button" 
-              variant="ghost" 
-              size="icon"
-              onClick={handleVisionToggle}
-              className={cn("h-8 w-8", visionEnabled ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400" : "")}
-              title={visionEnabled ? "Vision Analysis Mode Enabled" : "Enable Vision Analysis Mode"}
-            >
-              <Eye className="h-4 w-4" />
-              <span className="sr-only">Vision Analysis</span>
-            </Button>
-
-            {/* Bottom row - Globe and Server */}
+            {/* Bottom row - Web and GPT-5 */}
             <Button 
               type="button" 
               variant="ghost" 
@@ -312,10 +257,10 @@ export function ChatInputEnhanced({
               size="icon"
               onClick={handleGpt5Toggle}
               className={cn("h-8 w-8", gpt5Enabled ? "bg-orange-100 text-orange-600 dark:bg-orange-900/40 dark:text-orange-400" : "")}
-              title={gpt5Enabled ? "GPT-5 mini enabled" : "Enable GPT-5 mini"}
+              title={gpt5Enabled ? "GPT-5 enabled" : "Enable GPT-5"}
             >
               <span className="text-xs font-bold">5</span>
-              <span className="sr-only">GPT-5 mini</span>
+              <span className="sr-only">GPT-5</span>
             </Button>
           </div>
         </div>
@@ -327,10 +272,8 @@ export function ChatInputEnhanced({
           className={cn(
             "min-h-[120px] resize-none flex-1",
             willAutoSummarize ? "border-secondary focus-visible:ring-secondary" : "",
-            visionEnabled && !willAutoSummarize ? "border-emerald-400 focus-visible:ring-emerald-400" : "",
-            o3Enabled && !willAutoSummarize && !visionEnabled ? "border-purple-400 focus-visible:ring-purple-400" : "",
-            webEnabled && !willAutoSummarize && !o3Enabled && !visionEnabled ? "border-blue-400 focus-visible:ring-blue-400" : "",
-            gpt5Enabled && !willAutoSummarize && !o3Enabled && !visionEnabled && !webEnabled ? "border-orange-400 focus-visible:ring-orange-400" : ""
+            gpt5Enabled && !willAutoSummarize ? "border-orange-400 focus-visible:ring-orange-400" : "",
+            webEnabled && !gpt5Enabled && !willAutoSummarize ? "border-blue-400 focus-visible:ring-blue-400" : ""
           )}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
