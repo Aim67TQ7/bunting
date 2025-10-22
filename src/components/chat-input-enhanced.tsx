@@ -15,8 +15,8 @@ interface ChatInputEnhancedProps {
   webEnabled?: boolean;
   onWebToggle?: () => void;
   onNewChat?: () => void;
-  gpt5Enabled?: boolean;
-  onGpt5Toggle?: () => void;
+  gpt4oEnabled?: boolean;
+  onGpt4oToggle?: () => void;
 }
 
 export function ChatInputEnhanced({ 
@@ -27,8 +27,8 @@ export function ChatInputEnhanced({
   webEnabled = false,
   onWebToggle,
   onNewChat,
-  gpt5Enabled = false,
-  onGpt5Toggle
+  gpt4oEnabled = false,
+  onGpt4oToggle
 }: ChatInputEnhancedProps) {
   const [message, setMessage] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -122,11 +122,11 @@ export function ChatInputEnhanced({
   };
 
   const getPlaceholder = () => {
-    if (gpt5Enabled && webEnabled) {
-      return "Send a message (GPT-5 + web search enabled)...";
+    if (gpt4oEnabled && webEnabled) {
+      return "Send a message (GPT-4o-mini + web search enabled)...";
     }
-    if (gpt5Enabled) {
-      return "Send a message (GPT-5 enabled)...";
+    if (gpt4oEnabled) {
+      return "Send a message (GPT-4o-mini enabled)...";
     }
     if (webEnabled) {
       return "Send a message (web search enabled)...";
@@ -148,9 +148,9 @@ export function ChatInputEnhanced({
     }
   };
 
-  const handleGpt5Toggle = () => {
-    if (onGpt5Toggle) {
-      onGpt5Toggle();
+  const handleGpt4oToggle = () => {
+    if (onGpt4oToggle) {
+      onGpt4oToggle();
     }
   };
   
@@ -179,21 +179,21 @@ export function ChatInputEnhanced({
         </div>
       )}
       
-      {gpt5Enabled && webEnabled && !willAutoSummarize && (
+      {gpt4oEnabled && webEnabled && !willAutoSummarize && (
         <div className="flex items-center px-4 py-2 text-xs bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 rounded-t-md mx-4 mb-0 mt-2">
           <Info className="h-3 w-3 mr-1.5" />
-          <span>GPT-5 with web search is enabled</span>
+          <span>GPT-4o-mini with web search is enabled</span>
         </div>
       )}
 
-      {gpt5Enabled && !webEnabled && !willAutoSummarize && (
+      {gpt4oEnabled && !webEnabled && !willAutoSummarize && (
         <div className="flex items-center px-4 py-2 text-xs bg-orange-100 dark:bg-orange-900/20 text-orange-800 dark:text-orange-300 rounded-t-md mx-4 mb-0 mt-2">
           <Info className="h-3 w-3 mr-1.5" />
-          <span>GPT-5 mode is enabled</span>
+          <span>GPT-4o-mini mode is enabled</span>
         </div>
       )}
       
-      {webEnabled && !gpt5Enabled && !willAutoSummarize && (
+      {webEnabled && !gpt4oEnabled && !willAutoSummarize && (
         <div className="flex items-center px-4 py-2 text-xs bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 rounded-t-md mx-4 mb-0 mt-2">
           <Info className="h-3 w-3 mr-1.5" />
           <span>Web search is enabled (using Groq)</span>
@@ -204,7 +204,7 @@ export function ChatInputEnhanced({
         onSubmit={handleSubmit}
         className={cn(
           "relative flex w-full items-start gap-3 p-4", 
-          (willAutoSummarize || webEnabled || gpt5Enabled || selectedFiles.length > 0) ? "pt-2" : "",
+          (willAutoSummarize || webEnabled || gpt4oEnabled || selectedFiles.length > 0) ? "pt-2" : "",
           className
         )}
       >
@@ -255,12 +255,12 @@ export function ChatInputEnhanced({
               type="button" 
               variant="ghost" 
               size="icon"
-              onClick={handleGpt5Toggle}
-              className={cn("h-8 w-8", gpt5Enabled ? "bg-orange-100 text-orange-600 dark:bg-orange-900/40 dark:text-orange-400" : "")}
-              title={gpt5Enabled ? "GPT-5 enabled" : "Enable GPT-5"}
+              onClick={handleGpt4oToggle}
+              className={cn("h-8 w-8", gpt4oEnabled ? "bg-orange-100 text-orange-600 dark:bg-orange-900/40 dark:text-orange-400" : "")}
+              title={gpt4oEnabled ? "GPT-4o-mini enabled" : "Enable GPT-4o-mini"}
             >
-              <span className="text-xs font-bold">5</span>
-              <span className="sr-only">GPT-5</span>
+              <span className="text-xs font-bold">4o</span>
+              <span className="sr-only">GPT-4o</span>
             </Button>
           </div>
         </div>
@@ -272,8 +272,8 @@ export function ChatInputEnhanced({
           className={cn(
             "min-h-[120px] resize-none flex-1",
             willAutoSummarize ? "border-secondary focus-visible:ring-secondary" : "",
-            gpt5Enabled && !willAutoSummarize ? "border-orange-400 focus-visible:ring-orange-400" : "",
-            webEnabled && !gpt5Enabled && !willAutoSummarize ? "border-blue-400 focus-visible:ring-blue-400" : ""
+            gpt4oEnabled && !willAutoSummarize ? "border-orange-400 focus-visible:ring-orange-400" : "",
+            webEnabled && !gpt4oEnabled && !willAutoSummarize ? "border-blue-400 focus-visible:ring-blue-400" : ""
           )}
           value={message}
           onChange={(e) => setMessage(e.target.value)}

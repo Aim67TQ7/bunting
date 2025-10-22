@@ -26,7 +26,7 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [hasAttemptedLoad, setHasAttemptedLoad] = useState(false);
   const [webEnabled, setWebEnabled] = useState(false);
-  const [gpt5Enabled, setGpt5Enabled] = useState(false);
+  const [gpt4oEnabled, setGpt4oEnabled] = useState(false);
   
   const { 
     messages, 
@@ -96,9 +96,9 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
     // Determine query type based on enabled modes and file uploads
     let actualQueryType = queryType;
     
-    // If GPT-5 is enabled, use GPT-5 (can combine with web)
-    if (gpt5Enabled) {
-      actualQueryType = "gpt5";
+    // If GPT-4o is enabled, use GPT-4o (can combine with web)
+    if (gpt4oEnabled) {
+      actualQueryType = "gpt4o";
     } else if ((files && files.length > 0) || queryType === 'smart') {
       // If files are attached, use smart analysis
       actualQueryType = 'smart';
@@ -117,8 +117,8 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
       // This simulates the AI starting the conversation after user selections
       addAIMessage(question);
     } else {
-      // Force GPT-5 mini for starter prompts regardless of toggle states
-      sendMessage(question, false, 'gpt5');
+      // Force GPT-4o-mini for starter prompts regardless of toggle states
+      sendMessage(question, false, 'gpt4o');
     }
   };
 
@@ -134,7 +134,7 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
 
   const toggleWebAccess = () => {
     setWebEnabled(!webEnabled);
-    const modelName = gpt5Enabled ? "GPT-5" : "Groq";
+    const modelName = gpt4oEnabled ? "GPT-4o-mini" : "Groq";
     toast({
       title: webEnabled ? "Web access disabled" : "Web access enabled",
       description: webEnabled 
@@ -144,13 +144,13 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
     });
   };
 
-  const toggleGpt5Mode = () => {
-    setGpt5Enabled(!gpt5Enabled);
+  const toggleGpt4oMode = () => {
+    setGpt4oEnabled(!gpt4oEnabled);
     toast({
-      title: gpt5Enabled ? "GPT-5 disabled" : "GPT-5 enabled",
-      description: gpt5Enabled 
+      title: gpt4oEnabled ? "GPT-4o-mini disabled" : "GPT-4o-mini enabled",
+      description: gpt4oEnabled 
         ? "Switched back to Groq (default)."
-        : "Using GPT-5 for responses.",
+        : "Using GPT-4o-mini for responses.",
       duration: 3000
     });
   };
@@ -249,8 +249,8 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
           webEnabled={webEnabled}
           onWebToggle={toggleWebAccess}
           onNewChat={handleStartNewChat}
-          gpt5Enabled={gpt5Enabled}
-          onGpt5Toggle={toggleGpt5Mode}
+          gpt4oEnabled={gpt4oEnabled}
+          onGpt4oToggle={toggleGpt4oMode}
         />
       </div>
     </div>

@@ -114,10 +114,10 @@ export function useMessageSending() {
           aiResponse = data.content;
           modelUsed = data.model || "gpt-o3-mini";
         }
-        // Use GPT-5 mini if queryType is 'gpt5' or 'smart'
-        else if (queryType === 'gpt5' || queryType === 'smart') {
+        // Use GPT-4o-mini if queryType is 'gpt4o' or 'smart'
+        else if (queryType === 'gpt4o' || queryType === 'smart') {
           const isSmart = queryType === 'smart';
-          console.log(`Using GPT-5 mini for ${isSmart ? 'Smart Analysis' : 'response'}`, Array.isArray(fileOrFiles) ? `(with ${fileOrFiles.length} attachment(s) preview)` : (fileOrFiles ? '(with attachment preview)' : ''));
+          console.log(`Using GPT-4o-mini for ${isSmart ? 'Smart Analysis' : 'response'}`, Array.isArray(fileOrFiles) ? `(with ${fileOrFiles.length} attachment(s) preview)` : (fileOrFiles ? '(with attachment preview)' : ''));
 
           // Build previews for up to 10 files (safe limits per file and total)
           const filesArray: File[] = Array.isArray(fileOrFiles)
@@ -174,7 +174,7 @@ export function useMessageSending() {
             });
           }
 
-          const { data, error } = await supabase.functions.invoke('generate-with-openai-gpt5', {
+          const { data, error } = await supabase.functions.invoke('generate-with-openai-o3', {
             body: {
               messages: messages.map(m => ({ role: m.role, content: m.content })),
               conversationId: conversationId,
@@ -186,7 +186,7 @@ export function useMessageSending() {
           
           if (error) throw error;
           aiResponse = data.content;
-          modelUsed = data.model || 'gpt-5-mini-2025-08-07';
+          modelUsed = data.model || 'gpt-4o-mini';
         }
         // Use OpenAI 4o with embeddings if queryType is 'server'
         else if (queryType === 'server') {
