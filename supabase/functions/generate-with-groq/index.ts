@@ -80,7 +80,7 @@ Background context (use when relevant): ${productContext}`
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: "llama3-70b-8192",
+        model: "llama-3.3-70b-versatile",
         messages: messagesWithSystem,
         stream,
         temperature: 0.1,

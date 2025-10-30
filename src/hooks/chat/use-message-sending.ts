@@ -39,7 +39,7 @@ export function useMessageSending() {
       
       try {
         let aiResponse: any;
-        let modelUsed: string = "gpt-4o-mini"; // Default model name
+        let modelUsed: string = "llama-3.3-70b-versatile"; // Default model name
         
         // Route to Claude only when vision is explicitly requested and GPT-5 is not selected
         const filesArray: File[] = Array.isArray(fileOrFiles)
@@ -223,19 +223,20 @@ export function useMessageSending() {
             modelUsed = data.model;
           }
         } else {
-          // Default to GPT-4o-mini endpoint
-          console.log('Using default GPT-4o-mini endpoint');
-          const { data, error } = await supabase.functions.invoke('generate-with-openai-o3', {
+          // Default to Groq endpoint for fast responses
+          console.log('Using default Groq endpoint');
+          const { data, error } = await supabase.functions.invoke('generate-with-groq', {
             body: { 
               messages: messages.map(m => ({ role: m.role, content: m.content })),
+              stream: false,
               conversationId: conversationId,
               userId: user.id
             }
           });
             
           if (error) throw error;
-          aiResponse = data.content;
-          modelUsed = data.model || "gpt-4o-mini";
+          aiResponse = data.choices[0].message.content;
+          modelUsed = data.model || "llama-3.3-70b-versatile";
         }
         
         return {
