@@ -89,8 +89,16 @@ Background context (use when relevant): ${productContext}`
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(`GROQ API error: ${error.message || response.statusText}`);
+      const errorText = await response.text();
+      console.error("GROQ API error response:", errorText);
+      let errorMessage = response.statusText;
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorMessage = errorJson.error?.message || errorJson.message || errorText;
+      } catch (e) {
+        errorMessage = errorText;
+      }
+      throw new Error(`GROQ API error (${response.status}): ${errorMessage}`);
     }
 
     if (stream) {
