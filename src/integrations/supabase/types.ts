@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -71,6 +71,51 @@ export type Database = {
           id?: string
           last_activity?: string | null
           session_id?: string
+        }
+        Relationships: []
+      }
+      ai_test_analyses: {
+        Row: {
+          analysis_text: string
+          created_at: string | null
+          filters_applied: Json | null
+          generation_time_ms: number | null
+          id: string
+          is_favorite: boolean | null
+          model_used: string
+          notes: string | null
+          prompt_version: string | null
+          rating: number | null
+          response_count: number
+          tokens_used: number | null
+        }
+        Insert: {
+          analysis_text: string
+          created_at?: string | null
+          filters_applied?: Json | null
+          generation_time_ms?: number | null
+          id?: string
+          is_favorite?: boolean | null
+          model_used: string
+          notes?: string | null
+          prompt_version?: string | null
+          rating?: number | null
+          response_count: number
+          tokens_used?: number | null
+        }
+        Update: {
+          analysis_text?: string
+          created_at?: string | null
+          filters_applied?: Json | null
+          generation_time_ms?: number | null
+          id?: string
+          is_favorite?: boolean | null
+          model_used?: string
+          notes?: string | null
+          prompt_version?: string | null
+          rating?: number | null
+          response_count?: number
+          tokens_used?: number | null
         }
         Relationships: []
       }
@@ -754,6 +799,51 @@ export type Database = {
         }
         Relationships: []
       }
+      don: {
+        Row: {
+          embedding_b64_f16: string | null
+          narrative: string | null
+          uuid: string
+        }
+        Insert: {
+          embedding_b64_f16?: string | null
+          narrative?: string | null
+          uuid?: string
+        }
+        Update: {
+          embedding_b64_f16?: string | null
+          narrative?: string | null
+          uuid?: string
+        }
+        Relationships: []
+      }
+      don2: {
+        Row: {
+          context: string | null
+          job_number: string | null
+          line_number: string
+          mentions_media_gallery: boolean | null
+          order_number: string | null
+          picture_ref: string | null
+        }
+        Insert: {
+          context?: string | null
+          job_number?: string | null
+          line_number: string
+          mentions_media_gallery?: boolean | null
+          order_number?: string | null
+          picture_ref?: string | null
+        }
+        Update: {
+          context?: string | null
+          job_number?: string | null
+          line_number?: string
+          mentions_media_gallery?: boolean | null
+          order_number?: string | null
+          picture_ref?: string | null
+        }
+        Relationships: []
+      }
       embeddings: {
         Row: {
           embedding: string | null
@@ -867,6 +957,155 @@ export type Database = {
           userType?: string | null
         }
         Relationships: []
+      }
+      employee_survey_responses: {
+        Row: {
+          additional_comments: string | null
+          advancement_opportunities: number | null
+          collaboration_feedback: string | null
+          comfortable_suggesting_improvements: number | null
+          communication_clarity: number | null
+          communication_preferences: string[] | null
+          company_value_alignment: number | null
+          completion_time_seconds: number | null
+          configuration_id: string | null
+          consent_given: boolean
+          consent_ip_hash: string | null
+          consent_timestamp: string | null
+          continent: string | null
+          created_at: string
+          cross_functional_collaboration: number | null
+          data_retention_date: string | null
+          deleted_at: string | null
+          division: string | null
+          follow_up_responses: Json | null
+          id: string
+          information_preferences: string[] | null
+          is_draft: boolean | null
+          job_satisfaction: number | null
+          last_autosave_at: string | null
+          leadership_openness: number | null
+          manager_alignment: number | null
+          manual_processes_focus: number | null
+          motivation_factors: string[] | null
+          performance_awareness: number | null
+          pride_in_work: number | null
+          recommend_company: number | null
+          responses_jsonb: Json | null
+          role: string | null
+          safety_reporting_comfort: number | null
+          session_id: string
+          strategic_confidence: number | null
+          submitted_at: string
+          team_morale: number | null
+          tools_equipment_quality: number | null
+          training_satisfaction: number | null
+          updated_at: string
+          work_life_balance: number | null
+          workload_manageability: number | null
+          workplace_safety: number | null
+        }
+        Insert: {
+          additional_comments?: string | null
+          advancement_opportunities?: number | null
+          collaboration_feedback?: string | null
+          comfortable_suggesting_improvements?: number | null
+          communication_clarity?: number | null
+          communication_preferences?: string[] | null
+          company_value_alignment?: number | null
+          completion_time_seconds?: number | null
+          configuration_id?: string | null
+          consent_given?: boolean
+          consent_ip_hash?: string | null
+          consent_timestamp?: string | null
+          continent?: string | null
+          created_at?: string
+          cross_functional_collaboration?: number | null
+          data_retention_date?: string | null
+          deleted_at?: string | null
+          division?: string | null
+          follow_up_responses?: Json | null
+          id?: string
+          information_preferences?: string[] | null
+          is_draft?: boolean | null
+          job_satisfaction?: number | null
+          last_autosave_at?: string | null
+          leadership_openness?: number | null
+          manager_alignment?: number | null
+          manual_processes_focus?: number | null
+          motivation_factors?: string[] | null
+          performance_awareness?: number | null
+          pride_in_work?: number | null
+          recommend_company?: number | null
+          responses_jsonb?: Json | null
+          role?: string | null
+          safety_reporting_comfort?: number | null
+          session_id: string
+          strategic_confidence?: number | null
+          submitted_at?: string
+          team_morale?: number | null
+          tools_equipment_quality?: number | null
+          training_satisfaction?: number | null
+          updated_at?: string
+          work_life_balance?: number | null
+          workload_manageability?: number | null
+          workplace_safety?: number | null
+        }
+        Update: {
+          additional_comments?: string | null
+          advancement_opportunities?: number | null
+          collaboration_feedback?: string | null
+          comfortable_suggesting_improvements?: number | null
+          communication_clarity?: number | null
+          communication_preferences?: string[] | null
+          company_value_alignment?: number | null
+          completion_time_seconds?: number | null
+          configuration_id?: string | null
+          consent_given?: boolean
+          consent_ip_hash?: string | null
+          consent_timestamp?: string | null
+          continent?: string | null
+          created_at?: string
+          cross_functional_collaboration?: number | null
+          data_retention_date?: string | null
+          deleted_at?: string | null
+          division?: string | null
+          follow_up_responses?: Json | null
+          id?: string
+          information_preferences?: string[] | null
+          is_draft?: boolean | null
+          job_satisfaction?: number | null
+          last_autosave_at?: string | null
+          leadership_openness?: number | null
+          manager_alignment?: number | null
+          manual_processes_focus?: number | null
+          motivation_factors?: string[] | null
+          performance_awareness?: number | null
+          pride_in_work?: number | null
+          recommend_company?: number | null
+          responses_jsonb?: Json | null
+          role?: string | null
+          safety_reporting_comfort?: number | null
+          session_id?: string
+          strategic_confidence?: number | null
+          submitted_at?: string
+          team_morale?: number | null
+          tools_equipment_quality?: number | null
+          training_satisfaction?: number | null
+          updated_at?: string
+          work_life_balance?: number | null
+          workload_manageability?: number | null
+          workplace_safety?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_survey_responses_configuration_id_fkey"
+            columns: ["configuration_id"]
+            isOneToOne: false
+            referencedRelation: "survey_configurations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       employees: {
         Row: {
@@ -1157,6 +1396,57 @@ export type Database = {
           qr_code_url?: string | null
           settings?: Json | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      "MAI Customers": {
+        Row: {
+          Customer: string | null
+          CustomerAddress: string | null
+          CustomerGoogleMarker: string | null
+          CustomerPhone: string | null
+          "Quote $$ (12mo)": number | null
+          "Quotes(12mo)": number | null
+          sales2022: number | null
+          sales2023: number | null
+          sales2024: number | null
+          sales2025: number | null
+          "Ship To Name": string | null
+          shipid: number
+          ShipToAddress: string | null
+          ShipToGoogleMarker: string | null
+        }
+        Insert: {
+          Customer?: string | null
+          CustomerAddress?: string | null
+          CustomerGoogleMarker?: string | null
+          CustomerPhone?: string | null
+          "Quote $$ (12mo)"?: number | null
+          "Quotes(12mo)"?: number | null
+          sales2022?: number | null
+          sales2023?: number | null
+          sales2024?: number | null
+          sales2025?: number | null
+          "Ship To Name"?: string | null
+          shipid: number
+          ShipToAddress?: string | null
+          ShipToGoogleMarker?: string | null
+        }
+        Update: {
+          Customer?: string | null
+          CustomerAddress?: string | null
+          CustomerGoogleMarker?: string | null
+          CustomerPhone?: string | null
+          "Quote $$ (12mo)"?: number | null
+          "Quotes(12mo)"?: number | null
+          sales2022?: number | null
+          sales2023?: number | null
+          sales2024?: number | null
+          sales2025?: number | null
+          "Ship To Name"?: string | null
+          shipid?: number
+          ShipToAddress?: string | null
+          ShipToGoogleMarker?: string | null
         }
         Relationships: []
       }
@@ -1688,6 +1978,405 @@ export type Database = {
         }
         Relationships: []
       }
+      notes_audit: {
+        Row: {
+          actor_employee_id: string
+          created_at: string | null
+          event_metadata: Json | null
+          event_type: string
+          id: string
+          note_id: string
+        }
+        Insert: {
+          actor_employee_id: string
+          created_at?: string | null
+          event_metadata?: Json | null
+          event_type: string
+          id?: string
+          note_id: string
+        }
+        Update: {
+          actor_employee_id?: string
+          created_at?: string | null
+          event_metadata?: Json | null
+          event_type?: string
+          id?: string
+          note_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notes_audit_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "notes_notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notes_board_permissions: {
+        Row: {
+          board_id: string
+          created_at: string | null
+          employee_id: string
+          id: string
+          permission_type: string
+        }
+        Insert: {
+          board_id: string
+          created_at?: string | null
+          employee_id: string
+          id?: string
+          permission_type: string
+        }
+        Update: {
+          board_id?: string
+          created_at?: string | null
+          employee_id?: string
+          id?: string
+          permission_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notes_board_permissions_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "notes_boards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notes_boards: {
+        Row: {
+          board_name: string
+          board_type: string
+          created_at: string | null
+          department: string | null
+          facility: string | null
+          id: string
+          is_active: boolean | null
+          owner_employee_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          board_name: string
+          board_type: string
+          created_at?: string | null
+          department?: string | null
+          facility?: string | null
+          id?: string
+          is_active?: boolean | null
+          owner_employee_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          board_name?: string
+          board_type?: string
+          created_at?: string | null
+          department?: string | null
+          facility?: string | null
+          id?: string
+          is_active?: boolean | null
+          owner_employee_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      notes_notes: {
+        Row: {
+          author_employee_id: string
+          board_id: string
+          content: string
+          created_at: string | null
+          expires_at: string
+          id: string
+          is_active: boolean | null
+          is_company_wide: boolean | null
+          original_note_id: string | null
+          target_departments: string[] | null
+          target_facilities: string[] | null
+          target_roles: string[] | null
+          target_user_ids: string[] | null
+        }
+        Insert: {
+          author_employee_id: string
+          board_id: string
+          content: string
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          is_active?: boolean | null
+          is_company_wide?: boolean | null
+          original_note_id?: string | null
+          target_departments?: string[] | null
+          target_facilities?: string[] | null
+          target_roles?: string[] | null
+          target_user_ids?: string[] | null
+        }
+        Update: {
+          author_employee_id?: string
+          board_id?: string
+          content?: string
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          is_active?: boolean | null
+          is_company_wide?: boolean | null
+          original_note_id?: string | null
+          target_departments?: string[] | null
+          target_facilities?: string[] | null
+          target_roles?: string[] | null
+          target_user_ids?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notes_notes_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "notes_boards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notes_notes_original_note_id_fkey"
+            columns: ["original_note_id"]
+            isOneToOne: false
+            referencedRelation: "notes_notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notes_visibility: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_dimmed: boolean | null
+          note_id: string
+          updated_at: string | null
+          viewer_employee_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_dimmed?: boolean | null
+          note_id: string
+          updated_at?: string | null
+          viewer_employee_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_dimmed?: boolean | null
+          note_id?: string
+          updated_at?: string | null
+          viewer_employee_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notes_visibility_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "notes_notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      OCW_magwiz: {
+        Row: {
+          ambient_temperature_A: number | null
+          ambient_temperature_B: number | null
+          ambient_temperature_C: number | null
+          backbar_dimension: string | null
+          backbar_mass: number | null
+          coil_height: number | null
+          cold_ampere_turns_A: number | null
+          cold_ampere_turns_B: number | null
+          cold_ampere_turns_C: number | null
+          cold_current_A: number | null
+          cold_current_B: number | null
+          cold_current_C: number | null
+          conservator_dimension: string | null
+          conservator_mass: number | null
+          coolant_mass: number | null
+          core_backbar_dimension: string | null
+          core_backbar_mass: number | null
+          core_dimension: string | null
+          core_insulator_dimension: string | null
+          core_insulator_mass: number | null
+          core_mass: number | null
+          diameter: number | null
+          expected_rise_A: number | null
+          expected_rise_B: number | null
+          expected_rise_C: number | null
+          filename: string
+          hot_ampere_turns_A: number | null
+          hot_ampere_turns_B: number | null
+          hot_ampere_turns_C: number | null
+          hot_current_A: number | null
+          hot_current_B: number | null
+          hot_current_C: number | null
+          magnet_dimension: string | null
+          maximum_rise_A: number | null
+          maximum_rise_B: number | null
+          maximum_rise_C: number | null
+          mean_length_of_turn: number | null
+          number_of_sections: number | null
+          number_of_turns: string | null
+          prefix: string | null
+          radial_depth: number | null
+          resistance_A: number | null
+          resistance_B: number | null
+          resistance_C: number | null
+          sealing_plate_dimension: string | null
+          sealing_plate_mass: number | null
+          side_pole_dimension: string | null
+          side_pole_mass: number | null
+          suffix: string | null
+          surface_area: number | null
+          temperature_rise_A: number | null
+          temperature_rise_B: number | null
+          temperature_rise_C: number | null
+          total_mass: number | null
+          voltage_A: number | null
+          voltage_B: number | null
+          voltage_C: number | null
+          watts_A: number | null
+          watts_B: number | null
+          watts_C: number | null
+          winding_dimension: string | null
+          winding_mass: number | null
+          wires_in_parallel: number | null
+        }
+        Insert: {
+          ambient_temperature_A?: number | null
+          ambient_temperature_B?: number | null
+          ambient_temperature_C?: number | null
+          backbar_dimension?: string | null
+          backbar_mass?: number | null
+          coil_height?: number | null
+          cold_ampere_turns_A?: number | null
+          cold_ampere_turns_B?: number | null
+          cold_ampere_turns_C?: number | null
+          cold_current_A?: number | null
+          cold_current_B?: number | null
+          cold_current_C?: number | null
+          conservator_dimension?: string | null
+          conservator_mass?: number | null
+          coolant_mass?: number | null
+          core_backbar_dimension?: string | null
+          core_backbar_mass?: number | null
+          core_dimension?: string | null
+          core_insulator_dimension?: string | null
+          core_insulator_mass?: number | null
+          core_mass?: number | null
+          diameter?: number | null
+          expected_rise_A?: number | null
+          expected_rise_B?: number | null
+          expected_rise_C?: number | null
+          filename: string
+          hot_ampere_turns_A?: number | null
+          hot_ampere_turns_B?: number | null
+          hot_ampere_turns_C?: number | null
+          hot_current_A?: number | null
+          hot_current_B?: number | null
+          hot_current_C?: number | null
+          magnet_dimension?: string | null
+          maximum_rise_A?: number | null
+          maximum_rise_B?: number | null
+          maximum_rise_C?: number | null
+          mean_length_of_turn?: number | null
+          number_of_sections?: number | null
+          number_of_turns?: string | null
+          prefix?: string | null
+          radial_depth?: number | null
+          resistance_A?: number | null
+          resistance_B?: number | null
+          resistance_C?: number | null
+          sealing_plate_dimension?: string | null
+          sealing_plate_mass?: number | null
+          side_pole_dimension?: string | null
+          side_pole_mass?: number | null
+          suffix?: string | null
+          surface_area?: number | null
+          temperature_rise_A?: number | null
+          temperature_rise_B?: number | null
+          temperature_rise_C?: number | null
+          total_mass?: number | null
+          voltage_A?: number | null
+          voltage_B?: number | null
+          voltage_C?: number | null
+          watts_A?: number | null
+          watts_B?: number | null
+          watts_C?: number | null
+          winding_dimension?: string | null
+          winding_mass?: number | null
+          wires_in_parallel?: number | null
+        }
+        Update: {
+          ambient_temperature_A?: number | null
+          ambient_temperature_B?: number | null
+          ambient_temperature_C?: number | null
+          backbar_dimension?: string | null
+          backbar_mass?: number | null
+          coil_height?: number | null
+          cold_ampere_turns_A?: number | null
+          cold_ampere_turns_B?: number | null
+          cold_ampere_turns_C?: number | null
+          cold_current_A?: number | null
+          cold_current_B?: number | null
+          cold_current_C?: number | null
+          conservator_dimension?: string | null
+          conservator_mass?: number | null
+          coolant_mass?: number | null
+          core_backbar_dimension?: string | null
+          core_backbar_mass?: number | null
+          core_dimension?: string | null
+          core_insulator_dimension?: string | null
+          core_insulator_mass?: number | null
+          core_mass?: number | null
+          diameter?: number | null
+          expected_rise_A?: number | null
+          expected_rise_B?: number | null
+          expected_rise_C?: number | null
+          filename?: string
+          hot_ampere_turns_A?: number | null
+          hot_ampere_turns_B?: number | null
+          hot_ampere_turns_C?: number | null
+          hot_current_A?: number | null
+          hot_current_B?: number | null
+          hot_current_C?: number | null
+          magnet_dimension?: string | null
+          maximum_rise_A?: number | null
+          maximum_rise_B?: number | null
+          maximum_rise_C?: number | null
+          mean_length_of_turn?: number | null
+          number_of_sections?: number | null
+          number_of_turns?: string | null
+          prefix?: string | null
+          radial_depth?: number | null
+          resistance_A?: number | null
+          resistance_B?: number | null
+          resistance_C?: number | null
+          sealing_plate_dimension?: string | null
+          sealing_plate_mass?: number | null
+          side_pole_dimension?: string | null
+          side_pole_mass?: number | null
+          suffix?: string | null
+          surface_area?: number | null
+          temperature_rise_A?: number | null
+          temperature_rise_B?: number | null
+          temperature_rise_C?: number | null
+          total_mass?: number | null
+          voltage_A?: number | null
+          voltage_B?: number | null
+          voltage_C?: number | null
+          watts_A?: number | null
+          watts_B?: number | null
+          watts_C?: number | null
+          winding_dimension?: string | null
+          winding_mass?: number | null
+          wires_in_parallel?: number | null
+        }
+        Relationships: []
+      }
       photos: {
         Row: {
           content_type: string
@@ -1795,6 +2484,114 @@ export type Database = {
           id?: string
           is_demo_user?: boolean
           updated_at?: string
+        }
+        Relationships: []
+      }
+      prospector: {
+        Row: {
+          csv: string | null
+          cust_Latitude: string | null
+          cust_Longitude: string | null
+          cust_name: string | null
+          customer_address: string | null
+          group: string | null
+          order: number | null
+          part: string | null
+          part_desc: string | null
+          qty: number | null
+          ship_date: string | null
+          shipto_address: string | null
+          shipto_Latitude: string | null
+          shipto_Longitude: string | null
+          terrotory: string | null
+          uuid: string
+          value: number | null
+        }
+        Insert: {
+          csv?: string | null
+          cust_Latitude?: string | null
+          cust_Longitude?: string | null
+          cust_name?: string | null
+          customer_address?: string | null
+          group?: string | null
+          order?: number | null
+          part?: string | null
+          part_desc?: string | null
+          qty?: number | null
+          ship_date?: string | null
+          shipto_address?: string | null
+          shipto_Latitude?: string | null
+          shipto_Longitude?: string | null
+          terrotory?: string | null
+          uuid?: string
+          value?: number | null
+        }
+        Update: {
+          csv?: string | null
+          cust_Latitude?: string | null
+          cust_Longitude?: string | null
+          cust_name?: string | null
+          customer_address?: string | null
+          group?: string | null
+          order?: number | null
+          part?: string | null
+          part_desc?: string | null
+          qty?: number | null
+          ship_date?: string | null
+          shipto_address?: string | null
+          shipto_Latitude?: string | null
+          shipto_Longitude?: string | null
+          terrotory?: string | null
+          uuid?: string
+          value?: number | null
+        }
+        Relationships: []
+      }
+      prospector2: {
+        Row: {
+          Address: string | null
+          "Cust ID": number
+          Customer: string | null
+          Latitude: number | null
+          Longitude: number | null
+          Phone: string | null
+          QuotedAmtLastYear: number | null
+          QuotesLastYear: number | null
+          sales2022: number | null
+          sales2023: number | null
+          sales2024: number | null
+          sales2025: number | null
+          salesFourYear: number | null
+        }
+        Insert: {
+          Address?: string | null
+          "Cust ID": number
+          Customer?: string | null
+          Latitude?: number | null
+          Longitude?: number | null
+          Phone?: string | null
+          QuotedAmtLastYear?: number | null
+          QuotesLastYear?: number | null
+          sales2022?: number | null
+          sales2023?: number | null
+          sales2024?: number | null
+          sales2025?: number | null
+          salesFourYear?: number | null
+        }
+        Update: {
+          Address?: string | null
+          "Cust ID"?: number
+          Customer?: string | null
+          Latitude?: number | null
+          Longitude?: number | null
+          Phone?: string | null
+          QuotedAmtLastYear?: number | null
+          QuotesLastYear?: number | null
+          sales2022?: number | null
+          sales2023?: number | null
+          sales2024?: number | null
+          sales2025?: number | null
+          salesFourYear?: number | null
         }
         Relationships: []
       }
@@ -2083,6 +2880,257 @@ export type Database = {
         }
         Relationships: []
       }
+      rvw_organizations: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          subscription_tier: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          subscription_tier?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          subscription_tier?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      rvw_review_cycles: {
+        Row: {
+          created_at: string
+          end_date: string
+          id: string
+          org_id: string
+          start_date: string
+          status: Database["public"]["Enums"]["rvw_cycle_status"]
+          template_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          end_date: string
+          id?: string
+          org_id: string
+          start_date: string
+          status?: Database["public"]["Enums"]["rvw_cycle_status"]
+          template_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          end_date?: string
+          id?: string
+          org_id?: string
+          start_date?: string
+          status?: Database["public"]["Enums"]["rvw_cycle_status"]
+          template_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rvw_review_cycles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "rvw_organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rvw_review_cycles_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "rvw_review_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rvw_review_responses: {
+        Row: {
+          author_role: Database["public"]["Enums"]["rvw_author_role"]
+          created_at: string
+          id: string
+          question_id: string
+          review_id: string
+          updated_at: string
+          value_boolean: boolean | null
+          value_goal_progress: number | null
+          value_rating: number | null
+          value_text: string | null
+        }
+        Insert: {
+          author_role: Database["public"]["Enums"]["rvw_author_role"]
+          created_at?: string
+          id?: string
+          question_id: string
+          review_id: string
+          updated_at?: string
+          value_boolean?: boolean | null
+          value_goal_progress?: number | null
+          value_rating?: number | null
+          value_text?: string | null
+        }
+        Update: {
+          author_role?: Database["public"]["Enums"]["rvw_author_role"]
+          created_at?: string
+          id?: string
+          question_id?: string
+          review_id?: string
+          updated_at?: string
+          value_boolean?: boolean | null
+          value_goal_progress?: number | null
+          value_rating?: number | null
+          value_text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rvw_review_responses_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "rvw_reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rvw_review_templates: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          org_id: string
+          questions_json: Json
+          template_type: Database["public"]["Enums"]["rvw_template_type"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          org_id: string
+          questions_json?: Json
+          template_type: Database["public"]["Enums"]["rvw_template_type"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          org_id?: string
+          questions_json?: Json
+          template_type?: Database["public"]["Enums"]["rvw_template_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rvw_review_templates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "rvw_organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rvw_reviews: {
+        Row: {
+          created_at: string
+          cycle_id: string
+          employee_id: string
+          employee_submitted_at: string | null
+          id: string
+          manager_submitted_at: string | null
+          reviewer_id: string
+          signed_at: string | null
+          status: Database["public"]["Enums"]["rvw_review_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          cycle_id: string
+          employee_id: string
+          employee_submitted_at?: string | null
+          id?: string
+          manager_submitted_at?: string | null
+          reviewer_id: string
+          signed_at?: string | null
+          status?: Database["public"]["Enums"]["rvw_review_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          cycle_id?: string
+          employee_id?: string
+          employee_submitted_at?: string | null
+          id?: string
+          manager_submitted_at?: string | null
+          reviewer_id?: string
+          signed_at?: string | null
+          status?: Database["public"]["Enums"]["rvw_review_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rvw_reviews_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "rvw_review_cycles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rvw_user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          job_title: string | null
+          manager_id: string | null
+          org_id: string
+          role: Database["public"]["Enums"]["rvw_user_role"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          job_title?: string | null
+          manager_id?: string | null
+          org_id: string
+          role: Database["public"]["Enums"]["rvw_user_role"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          job_title?: string | null
+          manager_id?: string | null
+          org_id?: string
+          role?: Database["public"]["Enums"]["rvw_user_role"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rvw_user_roles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "rvw_organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sales_tools: {
         Row: {
           coming_soon: boolean | null
@@ -2124,6 +3172,409 @@ export type Database = {
           video_url?: string | null
         }
         Relationships: []
+      }
+      search_analytics: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          geocoded_lat: number | null
+          geocoded_lng: number | null
+          google_results_count: number | null
+          id: string
+          ip_address: unknown
+          prospector_results_count: number | null
+          search_duration_ms: number | null
+          search_location: string
+          search_query: string | null
+          search_radius: number
+          total_results_count: number | null
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          geocoded_lat?: number | null
+          geocoded_lng?: number | null
+          google_results_count?: number | null
+          id?: string
+          ip_address?: unknown
+          prospector_results_count?: number | null
+          search_duration_ms?: number | null
+          search_location: string
+          search_query?: string | null
+          search_radius?: number
+          total_results_count?: number | null
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          geocoded_lat?: number | null
+          geocoded_lng?: number | null
+          google_results_count?: number | null
+          id?: string
+          ip_address?: unknown
+          prospector_results_count?: number | null
+          search_duration_ms?: number | null
+          search_location?: string
+          search_query?: string | null
+          search_radius?: number
+          total_results_count?: number | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
+      shipment_history: {
+        Row: {
+          created_at: string | null
+          id: string
+          month: string
+          month_index: number
+          monthly_value: number | null
+          target_value: number
+          updated_at: string | null
+          year: number
+          ytd_value: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          month: string
+          month_index: number
+          monthly_value?: number | null
+          target_value: number
+          updated_at?: string | null
+          year: number
+          ytd_value: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          month?: string
+          month_index?: number
+          monthly_value?: number | null
+          target_value?: number
+          updated_at?: string | null
+          year?: number
+          ytd_value?: number
+        }
+        Relationships: []
+      }
+      supplier_data: {
+        Row: {
+          created_at: string | null
+          display_order: number
+          id: string
+          spend_percentage: number
+          spend_value: number
+          supplier_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          display_order: number
+          id?: string
+          spend_percentage: number
+          spend_value: number
+          supplier_name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          display_order?: number
+          id?: string
+          spend_percentage?: number
+          spend_value?: number
+          supplier_name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      survey_analysis_reports: {
+        Row: {
+          analysis_text: string
+          created_at: string
+          generated_at: string
+          id: string
+          pdf_url: string | null
+          total_responses: number
+        }
+        Insert: {
+          analysis_text: string
+          created_at?: string
+          generated_at?: string
+          id?: string
+          pdf_url?: string | null
+          total_responses: number
+        }
+        Update: {
+          analysis_text?: string
+          created_at?: string
+          generated_at?: string
+          id?: string
+          pdf_url?: string | null
+          total_responses?: number
+        }
+        Relationships: []
+      }
+      survey_answer_options: {
+        Row: {
+          answer_set_id: string | null
+          created_at: string | null
+          display_order: number
+          id: string
+          is_active: boolean | null
+          labels: Json
+          metadata: Json | null
+          option_key: string
+        }
+        Insert: {
+          answer_set_id?: string | null
+          created_at?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean | null
+          labels: Json
+          metadata?: Json | null
+          option_key: string
+        }
+        Update: {
+          answer_set_id?: string | null
+          created_at?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean | null
+          labels?: Json
+          metadata?: Json | null
+          option_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "survey_answer_options_answer_set_id_fkey"
+            columns: ["answer_set_id"]
+            isOneToOne: false
+            referencedRelation: "survey_answer_sets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      survey_answer_sets: {
+        Row: {
+          created_at: string | null
+          description: Json | null
+          id: string
+          is_active: boolean | null
+          name: Json
+          set_key: string
+          set_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: Json | null
+          id?: string
+          is_active?: boolean | null
+          name: Json
+          set_key: string
+          set_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: Json | null
+          id?: string
+          is_active?: boolean | null
+          name?: Json
+          set_key?: string
+          set_type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      survey_configurations: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          enabled_demographics: Json | null
+          enabled_multiselect_questions: Json | null
+          enabled_rating_questions: Json | null
+          id: string
+          is_active: boolean | null
+          languages_enabled: string[] | null
+          name: string
+          require_low_score_feedback: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          enabled_demographics?: Json | null
+          enabled_multiselect_questions?: Json | null
+          enabled_rating_questions?: Json | null
+          id?: string
+          is_active?: boolean | null
+          languages_enabled?: string[] | null
+          name: string
+          require_low_score_feedback?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          enabled_demographics?: Json | null
+          enabled_multiselect_questions?: Json | null
+          enabled_rating_questions?: Json | null
+          id?: string
+          is_active?: boolean | null
+          languages_enabled?: string[] | null
+          name?: string
+          require_low_score_feedback?: boolean | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      survey_consent_log: {
+        Row: {
+          consent_given: boolean
+          consent_timestamp: string
+          consent_version: string
+          created_at: string
+          id: string
+          ip_hash: string | null
+          session_id: string
+          user_agent: string | null
+        }
+        Insert: {
+          consent_given: boolean
+          consent_timestamp?: string
+          consent_version?: string
+          created_at?: string
+          id?: string
+          ip_hash?: string | null
+          session_id: string
+          user_agent?: string | null
+        }
+        Update: {
+          consent_given?: boolean
+          consent_timestamp?: string
+          consent_version?: string
+          created_at?: string
+          id?: string
+          ip_hash?: string | null
+          session_id?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
+      survey_question_config: {
+        Row: {
+          allow_na: boolean | null
+          answer_set_id: string | null
+          configuration_id: string | null
+          created_at: string | null
+          custom_label: Json | null
+          description: Json | null
+          display_order: number | null
+          follow_up_rules: Json | null
+          id: string
+          is_enabled: boolean | null
+          is_required: boolean | null
+          labels: Json | null
+          options: Json | null
+          question_id: string
+          question_type: string
+          section: string | null
+        }
+        Insert: {
+          allow_na?: boolean | null
+          answer_set_id?: string | null
+          configuration_id?: string | null
+          created_at?: string | null
+          custom_label?: Json | null
+          description?: Json | null
+          display_order?: number | null
+          follow_up_rules?: Json | null
+          id?: string
+          is_enabled?: boolean | null
+          is_required?: boolean | null
+          labels?: Json | null
+          options?: Json | null
+          question_id: string
+          question_type: string
+          section?: string | null
+        }
+        Update: {
+          allow_na?: boolean | null
+          answer_set_id?: string | null
+          configuration_id?: string | null
+          created_at?: string | null
+          custom_label?: Json | null
+          description?: Json | null
+          display_order?: number | null
+          follow_up_rules?: Json | null
+          id?: string
+          is_enabled?: boolean | null
+          is_required?: boolean | null
+          labels?: Json | null
+          options?: Json | null
+          question_id?: string
+          question_type?: string
+          section?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "survey_question_config_answer_set_id_fkey"
+            columns: ["answer_set_id"]
+            isOneToOne: false
+            referencedRelation: "survey_answer_sets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "survey_question_config_configuration_id_fkey"
+            columns: ["configuration_id"]
+            isOneToOne: false
+            referencedRelation: "survey_configurations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      survey_question_responses: {
+        Row: {
+          answer_value: Json
+          created_at: string
+          display_order: number | null
+          id: string
+          question_id: string
+          question_type: string
+          response_id: string
+        }
+        Insert: {
+          answer_value: Json
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          question_id: string
+          question_type: string
+          response_id: string
+        }
+        Update: {
+          answer_value?: Json
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          question_id?: string
+          question_type?: string
+          response_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "survey_question_responses_response_id_fkey"
+            columns: ["response_id"]
+            isOneToOne: false
+            referencedRelation: "employee_survey_responses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       test_results: {
         Row: {
@@ -2505,41 +3956,36 @@ export type Database = {
     }
     Functions: {
       assign_user_role: {
-        Args: { target_user_id: string; role_to_assign: string }
+        Args: { role_to_assign: string; target_user_id: string }
         Returns: boolean
       }
-      backfill_training_data_embeddings: {
-        Args: Record<PropertyKey, never>
-        Returns: number
+      backfill_training_data_embeddings: { Args: never; Returns: number }
+      calculate_rolling_points: { Args: { emp_id: string }; Returns: number }
+      can_access_notes_board: {
+        Args: { p_board_id: string; p_employee_id: string }
+        Returns: boolean
       }
-      binary_quantize: {
-        Args: { "": string } | { "": unknown }
-        Returns: unknown
+      can_post_to_notes_board: {
+        Args: { p_board_id: string; p_employee_id: string }
+        Returns: boolean
       }
-      calculate_rolling_points: {
-        Args: { emp_id: string }
-        Returns: number
+      can_see_note: {
+        Args: { p_employee_id: string; p_note_id: string }
+        Returns: boolean
       }
       check_embedding_status: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
-          total_entries: number
-          entries_with_embeddings: number
           entries_missing_embeddings: number
+          entries_with_embeddings: number
+          total_entries: number
         }[]
       }
-      clean_old_weather_entries: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      cleanup_expired_admin_sessions: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      cleanup_expired_sessions: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      clean_old_weather_entries: { Args: never; Returns: undefined }
+      cleanup_expired_admin_sessions: { Args: never; Returns: undefined }
+      cleanup_expired_notes: { Args: never; Returns: undefined }
+      cleanup_expired_sessions: { Args: never; Returns: undefined }
+      cleanup_expired_survey_data: { Args: never; Returns: number }
       create_license: {
         Args: {
           company_name_param: string
@@ -2547,220 +3993,139 @@ export type Database = {
           contact_name_param?: string
         }
         Returns: {
-          license_id: string
           license_code: string
+          license_id: string
         }[]
       }
-      expire_old_points: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      generate_license_code: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      expire_old_points: { Args: never; Returns: undefined }
+      generate_license_code: { Args: never; Returns: string }
       get_available_employees: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
-          employee_id: string
           displayname: string
+          employee_id: string
           userprincipalname: string
         }[]
       }
       get_employee_by_user_id: {
         Args: { user_id_param: string }
         Returns: {
-          employee_id: string
-          user_id: string
-          displayname: string
-          userprincipalname: string
+          city: string
+          country: string
           department: string
+          displayname: string
+          employee_id: string
           jobtitle: string
           officelocation: string
-          city: string
           state: string
-          country: string
+          user_id: string
+          userprincipalname: string
         }[]
       }
       get_or_create_conversation_id: {
         Args: { user1_id: string; user2_id: string }
         Returns: string
       }
-      halfvec_avg: {
-        Args: { "": number[] }
-        Returns: unknown
-      }
-      halfvec_out: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      halfvec_send: {
-        Args: { "": unknown }
-        Returns: string
-      }
-      halfvec_typmod_in: {
-        Args: { "": unknown[] }
-        Returns: number
+      get_user_rvw_org_id: { Args: { _user_id: string }; Returns: string }
+      has_rvw_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["rvw_user_role"]
+          _user_id: string
+        }
+        Returns: boolean
       }
       has_user_role: {
-        Args: { user_id_param: string; role_param: string }
+        Args: { role_param: string; user_id_param: string }
         Returns: boolean
       }
-      hnsw_bit_support: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      hnsw_halfvec_support: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      hnsw_sparsevec_support: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      hnswhandler: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      is_demo_user: {
-        Args: { user_email: string }
+      is_demo_user: { Args: { user_email: string }; Returns: boolean }
+      is_notes_board_admin: {
+        Args: { _board_id: string; _employee_id: string }
         Returns: boolean
       }
-      ivfflat_bit_support: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      ivfflat_halfvec_support: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      ivfflathandler: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      l2_norm: {
-        Args: { "": unknown } | { "": unknown }
-        Returns: number
-      }
-      l2_normalize: {
-        Args: { "": string } | { "": unknown } | { "": unknown }
-        Returns: unknown
+      is_rvw_manager_of: {
+        Args: { _employee_id: string; _manager_id: string }
+        Returns: boolean
       }
       log_admin_action: {
         Args: {
           action_type: string
-          table_name: string
-          record_id?: string
-          old_values?: Json
           new_values?: Json
+          old_values?: Json
+          record_id?: string
+          table_name: string
         }
         Returns: undefined
       }
-      log_application_usage: {
-        Args:
-          | { app_id: string; action: string }
-          | { app_id: string; action: string; session_id?: string }
-        Returns: undefined
-      }
+      log_application_usage:
+        | {
+            Args: { action: string; app_id: string; session_id?: string }
+            Returns: string
+          }
+        | { Args: { action: string; app_id: string }; Returns: undefined }
       match_documents: {
         Args: {
-          query_embedding: string
-          match_threshold: number
           match_count: number
+          match_threshold: number
+          query_embedding: string
         }
         Returns: {
-          id: string
           content: Json
+          id: string
           similarity: number
         }[]
       }
       match_documents_with_scope: {
         Args: {
-          query_embedding: string
-          match_threshold: number
-          match_count: number
-          user_id: string
           include_user_scope: boolean
+          match_count: number
+          match_threshold: number
+          query_embedding: string
+          user_id: string
         }
         Returns: {
-          id: string
           content: Json
-          scope: string
-          user_id: string
           document_type: string
+          id: string
+          scope: string
           similarity: number
+          user_id: string
         }[]
       }
       search_product_knowledge: {
         Args: {
-          query_text: string
-          match_threshold?: number
           match_count?: number
+          match_threshold?: number
+          query_text: string
         }
         Returns: {
-          id: string
-          content_md: string
           chunk_title: string
+          content_md: string
+          id: string
           product_line: string
-          source_doc: string
           similarity: number
+          source_doc: string
         }[]
-      }
-      sparsevec_out: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      sparsevec_send: {
-        Args: { "": unknown }
-        Returns: string
-      }
-      sparsevec_typmod_in: {
-        Args: { "": unknown[] }
-        Returns: number
       }
       update_employee_data: {
         Args: {
-          user_id_param: string
+          city_param: string
+          country_param: string
           department_param: string
           jobtitle_param: string
           officelocation_param: string
-          city_param: string
           state_param: string
-          country_param: string
+          user_id_param: string
         }
         Returns: undefined
       }
       validate_iframe_session: {
         Args: { token_hash_param: string }
         Returns: {
-          user_id: string
-          user_data: Json
           is_valid: boolean
+          user_data: Json
+          user_id: string
         }[]
-      }
-      vector_avg: {
-        Args: { "": number[] }
-        Returns: string
-      }
-      vector_dims: {
-        Args: { "": string } | { "": unknown }
-        Returns: number
-      }
-      vector_norm: {
-        Args: { "": string }
-        Returns: number
-      }
-      vector_out: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      vector_send: {
-        Args: { "": string }
-        Returns: string
-      }
-      vector_typmod_in: {
-        Args: { "": unknown[] }
-        Returns: number
       }
     }
     Enums: {
@@ -2778,6 +4143,11 @@ export type Database = {
         | "md_flow_calculator"
         | "five_s"
         | "fmea"
+      rvw_author_role: "manager" | "employee"
+      rvw_cycle_status: "draft" | "active" | "closed"
+      rvw_review_status: "draft" | "pending_approval" | "published" | "signed"
+      rvw_template_type: "hourly" | "salaried"
+      rvw_user_role: "admin" | "manager" | "employee"
       scroll_pattern_type: "continuous" | "fade" | "slide"
       training_data_scope: "user" | "global"
       vote_type: "up" | "down"
@@ -2928,6 +4298,11 @@ export const Constants = {
         "five_s",
         "fmea",
       ],
+      rvw_author_role: ["manager", "employee"],
+      rvw_cycle_status: ["draft", "active", "closed"],
+      rvw_review_status: ["draft", "pending_approval", "published", "signed"],
+      rvw_template_type: ["hourly", "salaried"],
+      rvw_user_role: ["admin", "manager", "employee"],
       scroll_pattern_type: ["continuous", "fade", "slide"],
       training_data_scope: ["user", "global"],
       vote_type: ["up", "down"],
