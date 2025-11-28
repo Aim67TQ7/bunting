@@ -135,16 +135,21 @@ useEffect(() => {
           "flex items-center transition-all duration-200",
           isMobile ? "gap-3" : "gap-2"
         )}>
-          <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
-            <BrandLogo size="sm" />
-          </div>
-          <div className={cn(
-            "flex-1 transition-opacity duration-200",
-            isCollapsed ? "opacity-0" : "opacity-100"
-          )}>
-            <h1 className="font-semibold text-base">BuntingGPT</h1>
-            <p className="text-xs text-muted-foreground">Magnetic Solutions</p>
-          </div>
+          <button 
+            onClick={() => navigate("/")}
+            className="flex items-center gap-2 flex-1 hover:opacity-80 transition-opacity cursor-pointer"
+          >
+            <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
+              <BrandLogo size="sm" />
+            </div>
+            <div className={cn(
+              "flex-1 transition-opacity duration-200",
+              isCollapsed ? "opacity-0" : "opacity-100"
+            )}>
+              <h1 className="font-semibold text-base text-left">BuntingGPT</h1>
+              <p className="text-xs text-muted-foreground text-left">Magnetic Solutions</p>
+            </div>
+          </button>
           {!isMobile && (
             <SidebarTrigger className="h-8 w-8 rounded-lg hover:bg-accent/50" />
           )}
@@ -156,7 +161,7 @@ useEffect(() => {
         isMobile ? "px-4 py-2" : "px-3 py-4"
       )}>
         <NavSection title="Assistant">
-          <NavItem icon={MessageSquare} title="Chat" href="/" />
+          <NavItem icon={MessageSquare} title="Chat" href="/chat" />
           <NavItem icon={History} title="History" href="/history" />
         </NavSection>
 
