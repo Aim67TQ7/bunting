@@ -4,7 +4,7 @@ const Dashboard = () => {
   return (
     <PageLayout title="Dashboard">
       <iframe
-        src="https://dashboard.buntinggpt.com"
+        src="https://notes.buntinggpt.com"
         className="w-full h-full border-0"
         title="Dashboard"
         sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads"
