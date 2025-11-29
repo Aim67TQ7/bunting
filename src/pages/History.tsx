@@ -25,7 +25,7 @@ interface ChatHistoryItem {
 }
 
 const History = () => {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, session, isLoading: authLoading } = useAuth();
   const [chatHistory, setChatHistory] = useState<ChatHistoryItem[]>([]);
   const [filteredChatHistory, setFilteredChatHistory] = useState<ChatHistoryItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -39,16 +39,33 @@ const History = () => {
 
   // Memoize fetchChatHistory to prevent unnecessary function recreations
   const fetchChatHistory = useCallback(async () => {
-    if (!user) {
+    if (!user || !session) {
       setChatHistory([]);
       setFilteredChatHistory([]);
       setIsLoading(false);
+      if (user && !session) {
+        setAuthError("Session expired. Please sign in again.");
+      }
       return;
     }
     
     try {
       setIsLoading(true);
       setAuthError(null);
+      
+      // Verify session is still valid before making API calls
+      const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !currentSession) {
+        setAuthError("Your session has expired. Please sign in again.");
+        toast({
+          title: "Session expired",
+          description: "Your session has expired. Please sign in again.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
       
       // Use the edge function to get conversations
       const { data, error } = await supabase.functions.invoke('manage-conversations', {
@@ -107,7 +124,7 @@ const History = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [user, toast]);
+  }, [user, session, toast]);
   
   // Search conversations with improved error handling
   const searchConversations = useCallback(async (query: string) => {
@@ -168,11 +185,11 @@ const History = () => {
   
   // Update dependency array to include authError to trigger a refresh if needed
   useEffect(() => {
-    // Only fetch if user is authenticated and not already loading
-    if (user && !authLoading) {
+    // Only fetch if user is authenticated, has a valid session, and not already loading
+    if (user && session && !authLoading) {
       fetchChatHistory();
     }
-  }, [fetchChatHistory, user, authLoading]);
+  }, [fetchChatHistory, user, session, authLoading]);
 
   const handleDeleteConversation = async (id: string) => {
     if (!user) return;

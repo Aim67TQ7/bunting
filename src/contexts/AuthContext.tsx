@@ -6,6 +6,7 @@ import { isDemoMode, getDemoEmail, disableDemoMode } from "@/utils/demoMode";
 // Define a more complete auth context interface
 interface AuthContextType {
   user: any;
+  session: any;
   isLoading: boolean;
   signUp: (email: string, password: string) => Promise<{ error: any | null }>;
   signUpWithEmailOnly: (email: string) => Promise<{ error: any | null }>;
@@ -20,6 +21,7 @@ interface AuthContextType {
 // Create context with default values
 const AuthContext = createContext<AuthContextType>({
   user: null,
+  session: null,
   isLoading: true,
   signUp: async () => ({ error: null }),
   signUpWithEmailOnly: async () => ({ error: null }),
@@ -306,6 +308,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const value = {
     user,
+    session,
     isLoading,
     signUp,
     signUpWithEmailOnly,
