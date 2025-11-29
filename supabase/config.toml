@@ -2,3 +2,6 @@ project_id = "qzwxisdfwswsrbzvpzlo"
 
 [functions.generate-with-openai-gpt5]
 verify_jwt = true
+
+[functions.analyze-contract]
+verify_jwt = true
