@@ -77,8 +77,8 @@ export function ContractUploadSection({
       setIsAnalyzing(false);
     }
   };
-  return <div className="flex flex-col items-center justify-center h-full max-w-3xl mx-auto p-4">
-      <Card className="p-8 w-full">
+  return <div className="flex flex-col items-start justify-start h-full max-w-md p-4">
+      <Card className="p-6 w-full">
         <div className="flex flex-col items-center text-center space-y-6">
           
           
