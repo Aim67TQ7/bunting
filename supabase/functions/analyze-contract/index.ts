@@ -343,8 +343,9 @@ serve(async (req) => {
 
     console.log(`Analyzing contract document: ${fileName}`);
 
-    // Truncate document content to fit within token limits (roughly 400k chars = 100k tokens)
-    const maxChars = 400000;
+    // Truncate document content to fit within token limits (roughly 250k chars = 62k tokens)
+    // gpt-4o has 128k context: ~3k system prompt + ~16k response + ~100k document content
+    const maxChars = 250000;
     const truncatedContent = documentContent.length > maxChars 
       ? documentContent.substring(0, maxChars) + "\n\n[Document truncated due to length...]"
       : documentContent;
