@@ -2084,6 +2084,7 @@ export type Database = {
       notes_notes: {
         Row: {
           author_employee_id: string
+          background_color: string | null
           board_id: string
           content: string
           created_at: string | null
@@ -2099,6 +2100,7 @@ export type Database = {
         }
         Insert: {
           author_employee_id: string
+          background_color?: string | null
           board_id: string
           content: string
           created_at?: string | null
@@ -2114,6 +2116,7 @@ export type Database = {
         }
         Update: {
           author_employee_id?: string
+          background_color?: string | null
           board_id?: string
           content?: string
           created_at?: string | null
