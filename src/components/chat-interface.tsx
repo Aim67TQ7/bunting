@@ -2,7 +2,7 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useChatMessages } from "@/hooks/use-chat-messages";
-import { WelcomeScreen } from "@/components/chat/welcome-screen";
+import { ContractUploadSection } from "@/components/chat/contract-upload-section";
 import { MessageList } from "@/components/chat/message-list";
 import { LoginPrompt } from "@/components/chat/login-prompt";
 import { ChatInputEnhanced } from "@/components/chat-input-enhanced";
@@ -111,15 +111,9 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
     sendMessage(finalContent, shouldAutoSummarize, actualQueryType, files);
   };
 
-  const handleStarterClick = (question: string, isAiResponse?: boolean) => {
-    if (isAiResponse) {
-      // Add the AI response directly to messages without sending a user message
-      // This simulates the AI starting the conversation after user selections
-      addAIMessage(question);
-    } else {
-      // Force GPT-4o-mini for starter prompts regardless of toggle states
-      sendMessage(question, false, 'gpt4o');
-    }
+  const handleContractAnalysis = (analysis: string, fileName: string) => {
+    // Add the analysis result as an AI message
+    addAIMessage(`## Contract Risk Analysis: ${fileName}\n\n${analysis}`);
   };
 
   const handleRetryLoad = () => {
@@ -178,7 +172,7 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
   }
 
   // Determine what to display based on loading and conversation state
-  const showWelcomeScreen = messages.length === 0 && !isAiResponding && !isHistoryLoading && !conversationId;
+  const showContractUpload = messages.length === 0 && !isAiResponding && !isHistoryLoading && !conversationId;
   const showLoadingError = messages.length === 0 && !isAiResponding && conversationId && loadError;
   const showHistoryLoadingIndicator = isHistoryLoading && messages.length === 0;
 
@@ -196,8 +190,8 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
       )}
       
       <div className="flex-1 overflow-y-auto p-4">
-        {showWelcomeScreen && (
-          <WelcomeScreen onStarterClick={handleStarterClick} />
+        {showContractUpload && (
+          <ContractUploadSection onAnalysisComplete={handleContractAnalysis} />
         )}
         
         {showLoadingError && (
@@ -230,7 +224,7 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
           </div>
         )}
         
-        {!showWelcomeScreen && !showLoadingError && !showHistoryLoadingIndicator && (
+        {!showContractUpload && !showLoadingError && !showHistoryLoadingIndicator && (
           <MessageList 
             messages={messages} 
             isAiResponding={isAiResponding && !hasAttemptedLoad}
