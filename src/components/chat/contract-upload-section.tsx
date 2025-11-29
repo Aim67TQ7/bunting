@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 interface ContractUploadSectionProps {
-  onAnalysisComplete: (analysis: string, fileName: string) => void;
+  onAnalysisComplete: (analysis: string, fileName: string, contractContent: string) => void;
 }
 
 export function ContractUploadSection({ onAnalysisComplete }: ContractUploadSectionProps) {
@@ -56,8 +56,8 @@ export function ContractUploadSection({ onAnalysisComplete }: ContractUploadSect
         throw new Error(data.error);
       }
 
-      // Pass analysis to parent
-      onAnalysisComplete(data.analysis, data.fileName);
+      // Pass analysis to parent with contract content
+      onAnalysisComplete(data.analysis, data.fileName, fileContent);
 
       // Reset
       setSelectedFile(null);

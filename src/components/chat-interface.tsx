@@ -7,11 +7,12 @@ import { MessageList } from "@/components/chat/message-list";
 import { LoginPrompt } from "@/components/chat/login-prompt";
 import { ChatInputEnhanced } from "@/components/chat-input-enhanced";
 import { useNavigate } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import { Loader2, FileText } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { isDemoMode } from "@/utils/demoMode";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Button } from "@/components/ui/button";
 
 interface ChatInterfaceProps {
   conversationId: string | null;
@@ -27,6 +28,11 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
   const [hasAttemptedLoad, setHasAttemptedLoad] = useState(false);
   const [webEnabled, setWebEnabled] = useState(false);
   const [gpt4oEnabled, setGpt4oEnabled] = useState(false);
+  const [contractContext, setContractContext] = useState<{
+    content: string;
+    analysis: string;
+    fileName: string;
+  } | null>(null);
   
   const { 
     messages, 
@@ -83,7 +89,7 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
   
-  const handleSendMessage = (content: string, autoSummarize = false, queryType?: string, files?: File[]) => {
+  const handleSendMessage = async (content: string, autoSummarize = false, queryType?: string, files?: File[]) => {
     // Check if message starts with "&" and mark for auto-summarization
     let finalContent = content;
     let shouldAutoSummarize = autoSummarize;
@@ -91,6 +97,37 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
     if (content.startsWith('&')) {
       finalContent = content.substring(1).trim();
       shouldAutoSummarize = true;
+    }
+    
+    // If contract context exists, route to contract chat
+    if (contractContext) {
+      try {
+        const { supabase } = await import("@/integrations/supabase/client");
+        const { data, error } = await supabase.functions.invoke('chat-with-contract', {
+          body: {
+            messages: [
+              ...messages.map(m => ({ role: m.role, content: m.content })),
+              { role: 'user', content: finalContent }
+            ],
+            contractContent: contractContext.content,
+            contractAnalysis: contractContext.analysis,
+            fileName: contractContext.fileName
+          }
+        });
+
+        if (error) throw error;
+        
+        // Add user message and AI response
+        addAIMessage(data.response);
+      } catch (error) {
+        console.error('Error in contract chat:', error);
+        toast({
+          title: "Error",
+          description: "Failed to send message. Please try again.",
+          variant: "destructive",
+        });
+      }
+      return;
     }
     
     // Determine query type based on enabled modes and file uploads
@@ -111,9 +148,24 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
     sendMessage(finalContent, shouldAutoSummarize, actualQueryType, files);
   };
 
-  const handleContractAnalysis = (analysis: string, fileName: string) => {
+  const handleContractAnalysis = (analysis: string, fileName: string, contractContent: string) => {
+    // Store contract context for follow-up questions
+    setContractContext({
+      content: contractContent,
+      analysis: analysis,
+      fileName: fileName
+    });
+    
     // Add the analysis result as an AI message
-    addAIMessage(`## Contract Risk Analysis: ${fileName}\n\n${analysis}`);
+    addAIMessage(analysis);
+  };
+
+  const handleClearContractContext = () => {
+    setContractContext(null);
+    toast({
+      title: "Contract context cleared",
+      description: "You can now start a new conversation or upload another contract.",
+    });
   };
 
   const handleRetryLoad = () => {
@@ -236,6 +288,23 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
       </div>
       
       <div className="border-t">
+        {contractContext && (
+          <div className="flex items-center justify-between px-4 py-2 bg-muted/50 border-b text-sm">
+            <div className="flex items-center gap-2">
+              <FileText className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium">Contract loaded:</span>
+              <span className="text-muted-foreground">{contractContext.fileName}</span>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClearContractContext}
+              className="h-7"
+            >
+              Clear
+            </Button>
+          </div>
+        )}
         <ChatInputEnhanced 
           onSubmit={handleSendMessage} 
           isDisabled={isAiResponding || isHistoryLoading} 
