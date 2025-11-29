@@ -16,7 +16,7 @@ export function BrandLogo({ className, size = "md" }: BrandLogoProps) {
   return (
     <div className={cn("relative", className)}>
       <img 
-        src="/lovable-uploads/895df273-f223-4819-bb53-93cf01043469.png" 
+        src="/lovable-uploads/bunting-logo-new.png" 
         alt="Bunting Logo"
         className={cn(sizeClasses[size])}
       />
