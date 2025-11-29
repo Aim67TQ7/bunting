@@ -343,6 +343,14 @@ serve(async (req) => {
 
     console.log(`Analyzing contract document: ${fileName}`);
 
+    // Truncate document content to fit within token limits (roughly 400k chars = 100k tokens)
+    const maxChars = 400000;
+    const truncatedContent = documentContent.length > maxChars 
+      ? documentContent.substring(0, maxChars) + "\n\n[Document truncated due to length...]"
+      : documentContent;
+
+    console.log(`Document length: ${documentContent.length} chars, truncated: ${truncatedContent.length} chars`);
+
     // Call OpenAI API directly for contract analysis
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -354,7 +362,7 @@ serve(async (req) => {
         model: "gpt-4o",
         messages: [
           { role: "system", content: PURCHASE_ORDER_PROMPT },
-          { role: "user", content: `Please analyze this purchase order document and provide a comprehensive risk assessment:\n\n${documentContent}` }
+          { role: "user", content: `Please analyze this purchase order document and provide a comprehensive risk assessment:\n\n${truncatedContent}` }
         ],
         temperature: 0.1,
         max_tokens: 16000
@@ -362,14 +370,23 @@ serve(async (req) => {
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error("OpenAI API error:", response.status, errorText);
+      
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "OpenAI rate limit exceeded. Please try again in a moment." }), {
           status: 429,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
-      const errorText = await response.text();
-      console.error("OpenAI API error:", response.status, errorText);
+      
+      if (response.status === 400 && errorText.includes("context_length_exceeded")) {
+        return new Response(JSON.stringify({ error: "Document too large. Please try a smaller document or contact support." }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      
       throw new Error(`OpenAI API error: ${response.statusText}`);
     }
 
