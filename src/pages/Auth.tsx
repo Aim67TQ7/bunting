@@ -317,7 +317,7 @@ export default function Auth() {
   return (
     <div className={`flex flex-col items-center justify-center min-h-screen ${isMobile ? 'p-2' : 'p-4'} bg-muted/30`}>
       <div className={`${isMobile ? 'mb-4' : 'mb-8'}`}>
-        <BrandLogo size={isMobile ? "md" : "lg"} />
+        <BrandLogo size={isMobile ? "md" : "lg"} className="scale-[3]" />
       </div>
 
       <Card className={`w-full ${isMobile ? 'max-w-sm mx-2' : 'max-w-md'}`}>
