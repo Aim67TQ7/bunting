@@ -47,33 +47,10 @@ export function ContractUploadSection({
           fileName: selectedFile.name
         }
       });
-      // Handle 402 payment required error specifically
-      if (error?.message?.includes('Payment required') || error?.message?.includes('402')) {
-        toast({
-          title: "AI Credits Required",
-          description: "Your Lovable workspace needs AI credits to analyze contracts. Please add credits in Settings → Workspace → Usage.",
-          variant: "destructive",
-          duration: 8000
-        });
-        setIsAnalyzing(false);
-        return;
-      }
-      
       if (error) {
         throw error;
       }
       if (data?.error) {
-        // Check if it's a payment error from the edge function
-        if (data.error.includes('Payment required') || data.error.includes('credits')) {
-          toast({
-            title: "AI Credits Required",
-            description: "Your Lovable workspace needs AI credits to analyze contracts. Please add credits in Settings → Workspace → Usage.",
-            variant: "destructive",
-            duration: 8000
-          });
-          setIsAnalyzing(false);
-          return;
-        }
         throw new Error(data.error);
       }
 
