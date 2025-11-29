@@ -11,6 +11,7 @@ import { CorrectionDialog } from "./chat/correction-dialog";
 import { KnowledgeFeedback } from "./chat/knowledge-feedback";
 import { toast } from "@/hooks/use-toast";
 import { useUserProfile } from "@/hooks/use-user-profile";
+import { ContractAnalysisDisplay } from "./chat/contract-analysis-display";
 
 export type MessageRole = "user" | "assistant";
 
@@ -207,6 +208,8 @@ export const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>(
                 <span className="inline-block h-2 w-2 animate-bounce rounded-full bg-muted-foreground [animation-delay:-.15s]"></span>
                 <span className="inline-block h-2 w-2 animate-bounce rounded-full bg-muted-foreground"></span>
               </div>
+            ) : content.includes('<po_intelligence>') ? (
+              <ContractAnalysisDisplay analysis={content} />
             ) : (
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
