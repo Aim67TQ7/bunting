@@ -13,7 +13,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 
 const LOCATIONS = ["Newton", "DuBois", "Redditch", "Berkhamsted", "Home-Office"] as const;
-const JOB_LEVELS = ["Executive", "Manager", "Supervisor", "Lead", "Employee"] as const;
 const DEPARTMENTS = [
   "Executive",
   "Engineering",
@@ -34,7 +33,6 @@ const DEPARTMENTS = [
 const employeeProfileSchema = z.object({
   display_name: z.string().min(1, "Display name is required"),
   location: z.enum(LOCATIONS, { required_error: "Please select a location" }),
-  job_level: z.enum(JOB_LEVELS, { required_error: "Please select a job level" }),
   department: z.string().optional(),
   manager_id: z.string().optional(),
 });
@@ -63,7 +61,6 @@ export function EmployeeProfileForm({ onProfileComplete }: EmployeeProfileFormPr
     defaultValues: {
       display_name: "",
       location: undefined,
-      job_level: undefined,
       department: "",
       manager_id: "",
     },
@@ -92,7 +89,6 @@ export function EmployeeProfileForm({ onProfileComplete }: EmployeeProfileFormPr
           form.reset({
             display_name: profile.display_name || "",
             location: profile.location as typeof LOCATIONS[number] || undefined,
-            job_level: profile.job_level as typeof JOB_LEVELS[number] || undefined,
             department: profile.department || "",
             manager_id: profile.manager_id || "__none__",
           });
@@ -125,33 +121,21 @@ export function EmployeeProfileForm({ onProfileComplete }: EmployeeProfileFormPr
 
     setIsLoading(true);
     try {
-      const profileData = {
-        user_id: user.id,
-        display_name: data.display_name,
-        location: data.location,
-        job_level: data.job_level,
-        department: data.department || null,
-        manager_id: data.manager_id && data.manager_id !== "__none__" ? data.manager_id : null,
-        updated_at: new Date().toISOString(),
-      };
-
-      let error;
-      if (profileExists) {
-        // Update existing profile
-        const result = await supabase
-          .from("emps")
-          .update(profileData)
-          .eq("user_id", user.id);
-        error = result.error;
-      } else {
-        // Insert new profile
-        const result = await supabase.from("emps").insert(profileData);
-        error = result.error;
-      }
+      // Use security definer function to bypass RLS
+      const { error } = await supabase.rpc("upsert_emp_record", {
+        p_user_id: user.id,
+        p_display_name: data.display_name,
+        p_location: data.location,
+        p_job_level: "Employee", // Default job level
+        p_department: data.department || null,
+        p_manager_id: data.manager_id && data.manager_id !== "__none__" ? data.manager_id : null,
+      });
 
       if (error) {
         throw error;
       }
+
+      setProfileExists(true);
 
       toast({
         title: "Profile saved",
@@ -243,31 +227,6 @@ export function EmployeeProfileForm({ onProfileComplete }: EmployeeProfileFormPr
               )}
             />
 
-            {/* Job Level */}
-            <FormField
-              control={form.control}
-              name="job_level"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Job Level *</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select your job level" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {JOB_LEVELS.map((level) => (
-                        <SelectItem key={level} value={level}>
-                          {level}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
 
             {/* Department */}
             <FormField
@@ -295,7 +254,7 @@ export function EmployeeProfileForm({ onProfileComplete }: EmployeeProfileFormPr
               )}
             />
 
-            {/* Direct Manager */}
+            {/* Report To */}
             <FormField
               control={form.control}
               name="manager_id"
@@ -303,19 +262,19 @@ export function EmployeeProfileForm({ onProfileComplete }: EmployeeProfileFormPr
                 <FormItem>
                   <FormLabel className="flex items-center gap-2">
                     <Users className="h-4 w-4" />
-                    Direct Manager
+                    Report To:
                   </FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select your direct manager" />
+                        <SelectValue placeholder="Select who you report to" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="__none__">No manager / Top level</SelectItem>
                       {managers.map((manager) => (
                         <SelectItem key={manager.id} value={manager.id}>
-                          {manager.display_name} {manager.job_level ? `(${manager.job_level})` : ""}
+                          {manager.display_name}
                         </SelectItem>
                       ))}
                     </SelectContent>
