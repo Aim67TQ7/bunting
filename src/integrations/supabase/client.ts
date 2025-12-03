@@ -8,7 +8,10 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-// Custom cookie storage for cross-subdomain authentication
+// Check if we're on the production domain
+const isProductionDomain = typeof window !== 'undefined' && window.location.hostname.endsWith('.buntinggpt.com');
+
+// Custom cookie storage for cross-subdomain authentication (production only)
 const cookieStorage = {
   getItem: (key: string): string | null => {
     const name = key + "=";
@@ -34,9 +37,12 @@ const cookieStorage = {
   }
 };
 
+// Use localStorage for non-production environments
+const devStorage = typeof window !== 'undefined' ? window.localStorage : undefined;
+
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    storage: cookieStorage,
+    storage: isProductionDomain ? cookieStorage : devStorage,
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
