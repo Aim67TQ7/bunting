@@ -865,93 +865,51 @@ export type Database = {
       Employee_id: {
         Row: {
           accountEnabled: boolean | null
-          ageGroup: string | null
           alternateEmailAddress: string | null
           city: string | null
-          companyName: string | null
-          consentProvidedForMinor: string | null
-          country: string | null
           createdDateTime: string | null
-          creationType: string | null
           department: string | null
-          directorySynced: string | null
           displayName: string | null
           employee_id: string
-          givenName: string | null
-          identityIssuer: string | null
           invitationState: string | null
           jobTitle: string | null
-          legalAgeGroupClassification: string | null
           mobilePhone: string | null
-          officeLocation: string | null
-          postalCode: string | null
-          state: string | null
-          streetAddress: string | null
           surname: string | null
           telephoneNumber: string | null
-          usageLocation: string | null
           user_id: string | null
           userPrincipalName: string
           userType: string | null
         }
         Insert: {
           accountEnabled?: boolean | null
-          ageGroup?: string | null
           alternateEmailAddress?: string | null
           city?: string | null
-          companyName?: string | null
-          consentProvidedForMinor?: string | null
-          country?: string | null
           createdDateTime?: string | null
-          creationType?: string | null
           department?: string | null
-          directorySynced?: string | null
           displayName?: string | null
           employee_id?: string
-          givenName?: string | null
-          identityIssuer?: string | null
           invitationState?: string | null
           jobTitle?: string | null
-          legalAgeGroupClassification?: string | null
           mobilePhone?: string | null
-          officeLocation?: string | null
-          postalCode?: string | null
-          state?: string | null
-          streetAddress?: string | null
           surname?: string | null
           telephoneNumber?: string | null
-          usageLocation?: string | null
           user_id?: string | null
           userPrincipalName: string
           userType?: string | null
         }
         Update: {
           accountEnabled?: boolean | null
-          ageGroup?: string | null
           alternateEmailAddress?: string | null
           city?: string | null
-          companyName?: string | null
-          consentProvidedForMinor?: string | null
-          country?: string | null
           createdDateTime?: string | null
-          creationType?: string | null
           department?: string | null
-          directorySynced?: string | null
           displayName?: string | null
           employee_id?: string
-          givenName?: string | null
-          identityIssuer?: string | null
           invitationState?: string | null
           jobTitle?: string | null
-          legalAgeGroupClassification?: string | null
           mobilePhone?: string | null
-          officeLocation?: string | null
-          postalCode?: string | null
-          state?: string | null
-          streetAddress?: string | null
           surname?: string | null
           telephoneNumber?: string | null
-          usageLocation?: string | null
           user_id?: string | null
           userPrincipalName?: string
           userType?: string | null
@@ -1167,6 +1125,51 @@ export type Database = {
           created_at?: string | null
           id?: string
           name?: string
+        }
+        Relationships: []
+      }
+      EpoxyMix: {
+        Row: {
+          "Cup A": string | null
+          "Cup B": string | null
+          "Daily Check": string | null
+          Employee: number | null
+          "Part A": string | null
+          "Part B": string | null
+          Ratio: string | null
+          "Ratio Check": string | null
+          Shutdown: string | null
+          Startup: string | null
+          Timestamp: string | null
+          UUID: string
+        }
+        Insert: {
+          "Cup A"?: string | null
+          "Cup B"?: string | null
+          "Daily Check"?: string | null
+          Employee?: number | null
+          "Part A"?: string | null
+          "Part B"?: string | null
+          Ratio?: string | null
+          "Ratio Check"?: string | null
+          Shutdown?: string | null
+          Startup?: string | null
+          Timestamp?: string | null
+          UUID: string
+        }
+        Update: {
+          "Cup A"?: string | null
+          "Cup B"?: string | null
+          "Daily Check"?: string | null
+          Employee?: number | null
+          "Part A"?: string | null
+          "Part B"?: string | null
+          Ratio?: string | null
+          "Ratio Check"?: string | null
+          Shutdown?: string | null
+          Startup?: string | null
+          Timestamp?: string | null
+          UUID?: string
         }
         Relationships: []
       }
@@ -2888,21 +2891,18 @@ export type Database = {
           created_at: string
           id: string
           name: string
-          subscription_tier: string
           updated_at: string
         }
         Insert: {
           created_at?: string
           id?: string
           name: string
-          subscription_tier?: string
           updated_at?: string
         }
         Update: {
           created_at?: string
           id?: string
           name?: string
-          subscription_tier?: string
           updated_at?: string
         }
         Relationships: []
@@ -2910,47 +2910,50 @@ export type Database = {
       rvw_review_cycles: {
         Row: {
           created_at: string
+          description: string | null
           end_date: string
           id: string
           org_id: string
           start_date: string
-          status: Database["public"]["Enums"]["rvw_cycle_status"]
+          status: string
           template_id: string
           title: string
           updated_at: string
         }
         Insert: {
           created_at?: string
+          description?: string | null
           end_date: string
           id?: string
           org_id: string
           start_date: string
-          status?: Database["public"]["Enums"]["rvw_cycle_status"]
+          status?: string
           template_id: string
           title: string
           updated_at?: string
         }
         Update: {
           created_at?: string
+          description?: string | null
           end_date?: string
           id?: string
           org_id?: string
           start_date?: string
-          status?: Database["public"]["Enums"]["rvw_cycle_status"]
+          status?: string
           template_id?: string
           title?: string
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "rvw_review_cycles_org_id_fkey"
+            foreignKeyName: "rvw_review_cycles_org_id_fkey1"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "rvw_organizations"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "rvw_review_cycles_template_id_fkey"
+            foreignKeyName: "rvw_review_cycles_template_id_fkey1"
             columns: ["template_id"]
             isOneToOne: false
             referencedRelation: "rvw_review_templates"
@@ -2960,44 +2963,32 @@ export type Database = {
       }
       rvw_review_responses: {
         Row: {
-          author_role: Database["public"]["Enums"]["rvw_author_role"]
           created_at: string
           id: string
-          question_id: string
+          responder_type: string
+          responses_json: Json
           review_id: string
           updated_at: string
-          value_boolean: boolean | null
-          value_goal_progress: number | null
-          value_rating: number | null
-          value_text: string | null
         }
         Insert: {
-          author_role: Database["public"]["Enums"]["rvw_author_role"]
           created_at?: string
           id?: string
-          question_id: string
+          responder_type: string
+          responses_json?: Json
           review_id: string
           updated_at?: string
-          value_boolean?: boolean | null
-          value_goal_progress?: number | null
-          value_rating?: number | null
-          value_text?: string | null
         }
         Update: {
-          author_role?: Database["public"]["Enums"]["rvw_author_role"]
           created_at?: string
           id?: string
-          question_id?: string
+          responder_type?: string
+          responses_json?: Json
           review_id?: string
           updated_at?: string
-          value_boolean?: boolean | null
-          value_goal_progress?: number | null
-          value_rating?: number | null
-          value_text?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "rvw_review_responses_review_id_fkey"
+            foreignKeyName: "rvw_review_responses_review_id_fkey1"
             columns: ["review_id"]
             isOneToOne: false
             referencedRelation: "rvw_reviews"
@@ -3008,37 +2999,40 @@ export type Database = {
       rvw_review_templates: {
         Row: {
           created_at: string
+          description: string | null
           id: string
           is_active: boolean
           name: string
           org_id: string
           questions_json: Json
-          template_type: Database["public"]["Enums"]["rvw_template_type"]
+          template_type: string
           updated_at: string
         }
         Insert: {
           created_at?: string
+          description?: string | null
           id?: string
           is_active?: boolean
           name: string
           org_id: string
           questions_json?: Json
-          template_type: Database["public"]["Enums"]["rvw_template_type"]
+          template_type: string
           updated_at?: string
         }
         Update: {
           created_at?: string
+          description?: string | null
           id?: string
           is_active?: boolean
           name?: string
           org_id?: string
           questions_json?: Json
-          template_type?: Database["public"]["Enums"]["rvw_template_type"]
+          template_type?: string
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "rvw_review_templates_org_id_fkey"
+            foreignKeyName: "rvw_review_templates_org_id_fkey1"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "rvw_organizations"
@@ -3053,10 +3047,11 @@ export type Database = {
           employee_id: string
           employee_submitted_at: string | null
           id: string
+          manager_id: string | null
           manager_submitted_at: string | null
-          reviewer_id: string
+          published_at: string | null
           signed_at: string | null
-          status: Database["public"]["Enums"]["rvw_review_status"]
+          status: string
           updated_at: string
         }
         Insert: {
@@ -3065,10 +3060,11 @@ export type Database = {
           employee_id: string
           employee_submitted_at?: string | null
           id?: string
+          manager_id?: string | null
           manager_submitted_at?: string | null
-          reviewer_id: string
+          published_at?: string | null
           signed_at?: string | null
-          status?: Database["public"]["Enums"]["rvw_review_status"]
+          status?: string
           updated_at?: string
         }
         Update: {
@@ -3077,18 +3073,33 @@ export type Database = {
           employee_id?: string
           employee_submitted_at?: string | null
           id?: string
+          manager_id?: string | null
           manager_submitted_at?: string | null
-          reviewer_id?: string
+          published_at?: string | null
           signed_at?: string | null
-          status?: Database["public"]["Enums"]["rvw_review_status"]
+          status?: string
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "rvw_reviews_cycle_id_fkey"
+            foreignKeyName: "rvw_reviews_cycle_id_fkey1"
             columns: ["cycle_id"]
             isOneToOne: false
             referencedRelation: "rvw_review_cycles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rvw_reviews_employee_id_fkey1"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "rvw_user_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rvw_reviews_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "rvw_user_roles"
             referencedColumns: ["id"]
           },
         ]
@@ -3100,7 +3111,7 @@ export type Database = {
           job_title: string | null
           manager_id: string | null
           org_id: string
-          role: Database["public"]["Enums"]["rvw_user_role"]
+          role: string
           updated_at: string
           user_id: string
         }
@@ -3110,7 +3121,7 @@ export type Database = {
           job_title?: string | null
           manager_id?: string | null
           org_id: string
-          role: Database["public"]["Enums"]["rvw_user_role"]
+          role: string
           updated_at?: string
           user_id: string
         }
@@ -3120,13 +3131,20 @@ export type Database = {
           job_title?: string | null
           manager_id?: string | null
           org_id?: string
-          role?: Database["public"]["Enums"]["rvw_user_role"]
+          role?: string
           updated_at?: string
           user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "rvw_user_roles_org_id_fkey"
+            foreignKeyName: "rvw_user_roles_manager_id_fkey1"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "rvw_user_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rvw_user_roles_org_id_fkey1"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "rvw_organizations"
@@ -3575,6 +3593,257 @@ export type Database = {
             columns: ["response_id"]
             isOneToOne: false
             referencedRelation: "employee_survey_responses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      talent_organizations: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          subscription_tier: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          subscription_tier?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          subscription_tier?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      talent_review_cycles: {
+        Row: {
+          created_at: string
+          end_date: string
+          id: string
+          org_id: string
+          start_date: string
+          status: Database["public"]["Enums"]["rvw_cycle_status"]
+          template_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          end_date: string
+          id?: string
+          org_id: string
+          start_date: string
+          status?: Database["public"]["Enums"]["rvw_cycle_status"]
+          template_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          end_date?: string
+          id?: string
+          org_id?: string
+          start_date?: string
+          status?: Database["public"]["Enums"]["rvw_cycle_status"]
+          template_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rvw_review_cycles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "talent_organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rvw_review_cycles_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "talent_review_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      talent_review_responses: {
+        Row: {
+          author_role: Database["public"]["Enums"]["rvw_author_role"]
+          created_at: string
+          id: string
+          question_id: string
+          review_id: string
+          updated_at: string
+          value_boolean: boolean | null
+          value_goal_progress: number | null
+          value_rating: number | null
+          value_text: string | null
+        }
+        Insert: {
+          author_role: Database["public"]["Enums"]["rvw_author_role"]
+          created_at?: string
+          id?: string
+          question_id: string
+          review_id: string
+          updated_at?: string
+          value_boolean?: boolean | null
+          value_goal_progress?: number | null
+          value_rating?: number | null
+          value_text?: string | null
+        }
+        Update: {
+          author_role?: Database["public"]["Enums"]["rvw_author_role"]
+          created_at?: string
+          id?: string
+          question_id?: string
+          review_id?: string
+          updated_at?: string
+          value_boolean?: boolean | null
+          value_goal_progress?: number | null
+          value_rating?: number | null
+          value_text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rvw_review_responses_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "talent_reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      talent_review_templates: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          org_id: string
+          questions_json: Json
+          template_type: Database["public"]["Enums"]["rvw_template_type"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          org_id: string
+          questions_json?: Json
+          template_type: Database["public"]["Enums"]["rvw_template_type"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          org_id?: string
+          questions_json?: Json
+          template_type?: Database["public"]["Enums"]["rvw_template_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rvw_review_templates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "talent_organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      talent_reviews: {
+        Row: {
+          created_at: string
+          cycle_id: string
+          employee_id: string
+          employee_submitted_at: string | null
+          id: string
+          manager_submitted_at: string | null
+          reviewer_id: string
+          signed_at: string | null
+          status: Database["public"]["Enums"]["rvw_review_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          cycle_id: string
+          employee_id: string
+          employee_submitted_at?: string | null
+          id?: string
+          manager_submitted_at?: string | null
+          reviewer_id: string
+          signed_at?: string | null
+          status?: Database["public"]["Enums"]["rvw_review_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          cycle_id?: string
+          employee_id?: string
+          employee_submitted_at?: string | null
+          id?: string
+          manager_submitted_at?: string | null
+          reviewer_id?: string
+          signed_at?: string | null
+          status?: Database["public"]["Enums"]["rvw_review_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rvw_reviews_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "talent_review_cycles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      talent_user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          job_title: string | null
+          manager_id: string | null
+          org_id: string
+          role: Database["public"]["Enums"]["rvw_user_role"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          job_title?: string | null
+          manager_id?: string | null
+          org_id: string
+          role: Database["public"]["Enums"]["rvw_user_role"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          job_title?: string | null
+          manager_id?: string | null
+          org_id?: string
+          role?: Database["public"]["Enums"]["rvw_user_role"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rvw_user_roles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "talent_organizations"
             referencedColumns: ["id"]
           },
         ]
