@@ -4,7 +4,7 @@ import { BrandLogo } from "@/components/brand-logo";
 import { NavItem, NavSection } from "@/components/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { UserGuideButton } from "@/components/user-guide/UserGuideButton";
-import { MessageSquare, History, Calculator, LineChart, Grid3X3, FileChartLine, Menu, User, LogOut, BarChart3 } from "lucide-react";
+import { MessageSquare, History, Calculator, LineChart, Grid3X3, Menu, User, LogOut, BarChart3 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarTrigger } from "@/components/ui/sidebar";
@@ -170,7 +170,7 @@ useEffect(() => {
           <NavItem icon={Calculator} title="Calculators" href="/calculators" />
           <NavItem icon={LineChart} title="Sales" href="/sales" />
           <NavItem icon={Grid3X3} title="Apps" href="/apps" />
-          <NavItem icon={FileChartLine} title="Reports" href="/reports" />
+          <NavItem icon={BarChart3} title="Metrics" href="/reports" />
         </NavSection>
 
         {/* Favorites under Tools */}
