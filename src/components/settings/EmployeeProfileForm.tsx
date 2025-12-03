@@ -35,6 +35,7 @@ const employeeProfileSchema = z.object({
   location: z.enum(LOCATIONS, { required_error: "Please select a location" }),
   department: z.string().optional(),
   manager_id: z.string().optional(),
+  badge_number: z.string().optional(),
 });
 
 type EmployeeProfileFormValues = z.infer<typeof employeeProfileSchema>;
@@ -63,6 +64,7 @@ export function EmployeeProfileForm({ onProfileComplete }: EmployeeProfileFormPr
       location: undefined,
       department: "",
       manager_id: "",
+      badge_number: "",
     },
   });
 
@@ -91,6 +93,7 @@ export function EmployeeProfileForm({ onProfileComplete }: EmployeeProfileFormPr
             location: profile.location as typeof LOCATIONS[number] || undefined,
             department: profile.department || "",
             manager_id: profile.manager_id || "__none__",
+            badge_number: profile.badge_number || "",
           });
         }
 
@@ -129,6 +132,7 @@ export function EmployeeProfileForm({ onProfileComplete }: EmployeeProfileFormPr
         p_job_level: "Employee", // Default job level
         p_department: data.department || null,
         p_manager_id: data.manager_id && data.manager_id !== "__none__" ? data.manager_id : null,
+        p_badge_number: data.badge_number || null,
       });
 
       if (error) {
@@ -196,6 +200,22 @@ export function EmployeeProfileForm({ onProfileComplete }: EmployeeProfileFormPr
                     <Input placeholder="John Doe" {...field} />
                   </FormControl>
                   <FormDescription>How you'll appear to others in the organization</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Badge Number */}
+            <FormField
+              control={form.control}
+              name="badge_number"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Employee ID / Badge Number</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g., 12345" {...field} />
+                  </FormControl>
+                  <FormDescription>Your employee badge number</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
