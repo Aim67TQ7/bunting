@@ -4447,17 +4447,30 @@ export type Database = {
         }
         Returns: undefined
       }
-      upsert_emp_record: {
-        Args: {
-          p_department?: string
-          p_display_name: string
-          p_job_level?: string
-          p_location: string
-          p_manager_id?: string
-          p_user_id: string
-        }
-        Returns: string
-      }
+      upsert_emp_record:
+        | {
+            Args: {
+              p_department?: string
+              p_display_name: string
+              p_job_level?: string
+              p_location: string
+              p_manager_id?: string
+              p_user_id: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_badge_number?: string
+              p_department?: string
+              p_display_name: string
+              p_job_level?: string
+              p_location: string
+              p_manager_id?: string
+              p_user_id: string
+            }
+            Returns: string
+          }
       validate_iframe_session: {
         Args: { token_hash_param: string }
         Returns: {
