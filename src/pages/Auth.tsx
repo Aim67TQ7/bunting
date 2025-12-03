@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Card,
   CardContent,
@@ -160,13 +161,40 @@ export default function Auth() {
     },
   });
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated - check if profile is complete
   useEffect(() => {
-    if (user && !isLoading) {
-      // Redirect to the page they were trying to access, or to home
-      const origin = location.state?.from?.pathname || "/";
-      navigate(origin, { replace: true });
-    }
+    const checkProfileAndRedirect = async () => {
+      if (user && !isLoading) {
+        try {
+          // Check if user has completed their employee profile
+          const { data: empProfile, error } = await supabase
+            .from("emps")
+            .select("location, job_level")
+            .eq("user_id", user.id)
+            .maybeSingle();
+
+          if (error && error.code !== "PGRST116") {
+            console.error("Error checking employee profile:", error);
+          }
+
+          // If no profile or missing required fields, redirect to settings
+          if (!empProfile || !empProfile.location || !empProfile.job_level) {
+            navigate("/settings", { replace: true });
+            return;
+          }
+
+          // Profile complete - redirect to original destination or home
+          const origin = location.state?.from?.pathname || "/";
+          navigate(origin, { replace: true });
+        } catch (err) {
+          console.error("Error in profile check:", err);
+          // On error, default to redirecting to settings
+          navigate("/settings", { replace: true });
+        }
+      }
+    };
+
+    checkProfileAndRedirect();
   }, [user, isLoading, navigate, location.state]);
 
   // If still loading, show loading indicator

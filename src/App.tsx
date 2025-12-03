@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,6 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { UserGuideProvider } from "@/components/user-guide/UserGuideProvider";
 import { UserGuideDialog } from "@/components/user-guide/UserGuideDialog";
+import { CookieConsent } from "@/components/CookieConsent";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import History from "./pages/History";
@@ -129,6 +129,7 @@ function App() {
                 <Route path="*" element={<NotFound />} />
               </Routes>
               <DemoModeBadge />
+              <CookieConsent />
             </SidebarProvider>
             <UserGuideDialog />
           </Router>

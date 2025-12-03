@@ -1110,6 +1110,59 @@ export type Database = {
         }
         Relationships: []
       }
+      emps: {
+        Row: {
+          created_at: string
+          department: string | null
+          display_name: string | null
+          employee_id: string | null
+          gdpr_consent_given: boolean | null
+          gdpr_consent_timestamp: string | null
+          id: string
+          job_level: Database["public"]["Enums"]["job_level"] | null
+          location: Database["public"]["Enums"]["employee_location"] | null
+          manager_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          department?: string | null
+          display_name?: string | null
+          employee_id?: string | null
+          gdpr_consent_given?: boolean | null
+          gdpr_consent_timestamp?: string | null
+          id?: string
+          job_level?: Database["public"]["Enums"]["job_level"] | null
+          location?: Database["public"]["Enums"]["employee_location"] | null
+          manager_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          department?: string | null
+          display_name?: string | null
+          employee_id?: string | null
+          gdpr_consent_given?: boolean | null
+          gdpr_consent_timestamp?: string | null
+          id?: string
+          job_level?: Database["public"]["Enums"]["job_level"] | null
+          location?: Database["public"]["Enums"]["employee_location"] | null
+          manager_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emps_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "emps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       entities: {
         Row: {
           created_at: string | null
@@ -4403,6 +4456,12 @@ export type Database = {
     Enums: {
       app_type: "application" | "calculator" | "sales_tool" | "report"
       document_type: "contact" | "company" | "sales" | "purchase_order"
+      employee_location:
+        | "Newton"
+        | "DuBois"
+        | "Redditch"
+        | "Berkhamsted"
+        | "Home-Office"
       function_type:
         | "magnetism_calculator"
         | "five_why"
@@ -4415,6 +4474,7 @@ export type Database = {
         | "md_flow_calculator"
         | "five_s"
         | "fmea"
+      job_level: "Executive" | "Manager" | "Supervisor" | "Lead" | "Employee"
       rvw_author_role: "manager" | "employee"
       rvw_cycle_status: "draft" | "active" | "closed"
       rvw_review_status: "draft" | "pending_approval" | "published" | "signed"
@@ -4557,6 +4617,13 @@ export const Constants = {
     Enums: {
       app_type: ["application", "calculator", "sales_tool", "report"],
       document_type: ["contact", "company", "sales", "purchase_order"],
+      employee_location: [
+        "Newton",
+        "DuBois",
+        "Redditch",
+        "Berkhamsted",
+        "Home-Office",
+      ],
       function_type: [
         "magnetism_calculator",
         "five_why",
@@ -4570,6 +4637,7 @@ export const Constants = {
         "five_s",
         "fmea",
       ],
+      job_level: ["Executive", "Manager", "Supervisor", "Lead", "Employee"],
       rvw_author_role: ["manager", "employee"],
       rvw_cycle_status: ["draft", "active", "closed"],
       rvw_review_status: ["draft", "pending_approval", "published", "signed"],

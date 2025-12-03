@@ -1,5 +1,5 @@
-
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { PageLayout } from "@/components/page-layout";
 import { useToast } from "@/hooks/use-toast";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -15,12 +15,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { ProfilePicture } from "@/components/settings/ProfilePicture";
 import { ConversationPreferences } from "@/components/settings/ConversationPreferences";
+import { EmployeeProfileForm } from "@/components/settings/EmployeeProfileForm";
 import { supabase } from "@/integrations/supabase/client";
 import { AppItemsSecretPanel } from "@/components/admin/AppItemsSecretPanel";
 import { ReportIssueForm } from "@/components/issues/ReportIssueForm";
 import { MyIssuesList } from "@/components/issues/MyIssuesList";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
- 
 // Modified schema to remove current password requirement since user is already authenticated
 const passwordSchema = z.object({
   newPassword: z.string().min(8, "Password must be at least 8 characters"),
@@ -37,6 +37,17 @@ export default function Settings() {
   const { toast } = useToast();
   const { user, updatePassword } = useAuth();
   const [appItemsOpen, setAppItemsOpen] = useState(false);
+  const navigate = useNavigate();
+
+  const handleProfileComplete = () => {
+    toast({
+      title: "Profile Complete",
+      description: "Your employee profile has been saved. Redirecting to dashboard...",
+    });
+    setTimeout(() => {
+      navigate("/");
+    }, 1500);
+  };
 
   // Fetch user profile data
   useEffect(() => {
@@ -110,6 +121,9 @@ export default function Settings() {
           <div className="mx-auto max-w-2xl space-y-6">
             {user ? (
                 <>
+                  {/* Employee Profile Form - First priority */}
+                  <EmployeeProfileForm onProfileComplete={handleProfileComplete} />
+
                   <ProfilePicture 
                     userId={user.id}
                     avatarUrl={profile?.avatar_url}
