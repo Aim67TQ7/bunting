@@ -1112,6 +1112,7 @@ export type Database = {
       }
       emps: {
         Row: {
+          badge_number: string | null
           created_at: string
           department: string | null
           display_name: string | null
@@ -1126,6 +1127,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          badge_number?: string | null
           created_at?: string
           department?: string | null
           display_name?: string | null
@@ -1140,6 +1142,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          badge_number?: string | null
           created_at?: string
           department?: string | null
           display_name?: string | null
