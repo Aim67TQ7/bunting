@@ -94,7 +94,7 @@ export function EmployeeProfileForm({ onProfileComplete }: EmployeeProfileFormPr
             location: profile.location as typeof LOCATIONS[number] || undefined,
             job_level: profile.job_level as typeof JOB_LEVELS[number] || undefined,
             department: profile.department || "",
-            manager_id: profile.manager_id || "",
+            manager_id: profile.manager_id || "__none__",
           });
         }
 
@@ -131,7 +131,7 @@ export function EmployeeProfileForm({ onProfileComplete }: EmployeeProfileFormPr
         location: data.location,
         job_level: data.job_level,
         department: data.department || null,
-        manager_id: data.manager_id || null,
+        manager_id: data.manager_id && data.manager_id !== "__none__" ? data.manager_id : null,
         updated_at: new Date().toISOString(),
       };
 
@@ -312,7 +312,7 @@ export function EmployeeProfileForm({ onProfileComplete }: EmployeeProfileFormPr
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">No manager / Top level</SelectItem>
+                      <SelectItem value="__none__">No manager / Top level</SelectItem>
                       {managers.map((manager) => (
                         <SelectItem key={manager.id} value={manager.id}>
                           {manager.display_name} {manager.job_level ? `(${manager.job_level})` : ""}
