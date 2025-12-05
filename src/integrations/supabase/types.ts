@@ -1190,12 +1190,17 @@ export type Database = {
           "Cup B": string | null
           "Daily Check": string | null
           Employee: number | null
+          Humidity_1: string | null
+          Humidity_2: string | null
           "Part A": string | null
           "Part B": string | null
           Ratio: string | null
           "Ratio Check": string | null
+          Sensor_Timestamp: string | null
           Shutdown: string | null
           Startup: string | null
+          Temperature_1: string | null
+          Temperature_2: string | null
           Timestamp: string | null
           UUID: string
         }
@@ -1204,12 +1209,17 @@ export type Database = {
           "Cup B"?: string | null
           "Daily Check"?: string | null
           Employee?: number | null
+          Humidity_1?: string | null
+          Humidity_2?: string | null
           "Part A"?: string | null
           "Part B"?: string | null
           Ratio?: string | null
           "Ratio Check"?: string | null
+          Sensor_Timestamp?: string | null
           Shutdown?: string | null
           Startup?: string | null
+          Temperature_1?: string | null
+          Temperature_2?: string | null
           Timestamp?: string | null
           UUID: string
         }
@@ -1218,12 +1228,17 @@ export type Database = {
           "Cup B"?: string | null
           "Daily Check"?: string | null
           Employee?: number | null
+          Humidity_1?: string | null
+          Humidity_2?: string | null
           "Part A"?: string | null
           "Part B"?: string | null
           Ratio?: string | null
           "Ratio Check"?: string | null
+          Sensor_Timestamp?: string | null
           Shutdown?: string | null
           Startup?: string | null
+          Temperature_1?: string | null
+          Temperature_2?: string | null
           Timestamp?: string | null
           UUID?: string
         }
@@ -2942,6 +2957,211 @@ export type Database = {
         }
         Relationships: []
       }
+      rvw_calibration_sessions: {
+        Row: {
+          attendees: string[] | null
+          created_at: string
+          cycle_id: string
+          facilitator_id: string | null
+          id: string
+          notes: string | null
+          session_date: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attendees?: string[] | null
+          created_at?: string
+          cycle_id: string
+          facilitator_id?: string | null
+          id?: string
+          notes?: string | null
+          session_date: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attendees?: string[] | null
+          created_at?: string
+          cycle_id?: string
+          facilitator_id?: string | null
+          id?: string
+          notes?: string | null
+          session_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rvw_calibration_sessions_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "rvw_review_cycles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rvw_calibration_sessions_facilitator_id_fkey"
+            columns: ["facilitator_id"]
+            isOneToOne: false
+            referencedRelation: "emps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rvw_competency_scores: {
+        Row: {
+          competency_type: string
+          created_at: string
+          id: string
+          manager_comments: string | null
+          manager_score: number | null
+          observable_behaviors: string | null
+          review_id: string
+          self_comments: string | null
+          self_score: number | null
+          updated_at: string
+        }
+        Insert: {
+          competency_type: string
+          created_at?: string
+          id?: string
+          manager_comments?: string | null
+          manager_score?: number | null
+          observable_behaviors?: string | null
+          review_id: string
+          self_comments?: string | null
+          self_score?: number | null
+          updated_at?: string
+        }
+        Update: {
+          competency_type?: string
+          created_at?: string
+          id?: string
+          manager_comments?: string | null
+          manager_score?: number | null
+          observable_behaviors?: string | null
+          review_id?: string
+          self_comments?: string | null
+          self_score?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rvw_competency_scores_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "rvw_reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rvw_goals: {
+        Row: {
+          actual_result: string | null
+          created_at: string
+          description: string | null
+          id: string
+          manager_comments: string | null
+          manager_score: number | null
+          review_id: string
+          self_comments: string | null
+          self_score: number | null
+          sort_order: number | null
+          target_kpi: string | null
+          title: string
+          updated_at: string
+          weight: number
+        }
+        Insert: {
+          actual_result?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          manager_comments?: string | null
+          manager_score?: number | null
+          review_id: string
+          self_comments?: string | null
+          self_score?: number | null
+          sort_order?: number | null
+          target_kpi?: string | null
+          title: string
+          updated_at?: string
+          weight?: number
+        }
+        Update: {
+          actual_result?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          manager_comments?: string | null
+          manager_score?: number | null
+          review_id?: string
+          self_comments?: string | null
+          self_score?: number | null
+          sort_order?: number | null
+          target_kpi?: string | null
+          title?: string
+          updated_at?: string
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rvw_goals_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "rvw_reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rvw_matrix_snapshots: {
+        Row: {
+          competency_score: number | null
+          created_at: string
+          cycle_id: string
+          employee_id: string
+          id: string
+          matrix_position: string | null
+          matrix_zone: string | null
+          performance_score: number | null
+        }
+        Insert: {
+          competency_score?: number | null
+          created_at?: string
+          cycle_id: string
+          employee_id: string
+          id?: string
+          matrix_position?: string | null
+          matrix_zone?: string | null
+          performance_score?: number | null
+        }
+        Update: {
+          competency_score?: number | null
+          created_at?: string
+          cycle_id?: string
+          employee_id?: string
+          id?: string
+          matrix_position?: string | null
+          matrix_zone?: string | null
+          performance_score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rvw_matrix_snapshots_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "rvw_review_cycles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rvw_matrix_snapshots_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "emps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rvw_organizations: {
         Row: {
           created_at: string
@@ -3098,42 +3318,63 @@ export type Database = {
       }
       rvw_reviews: {
         Row: {
+          achievements: string[] | null
+          calibration_notes: string | null
+          competency_score: number | null
           created_at: string
           cycle_id: string
           employee_id: string
           employee_submitted_at: string | null
+          final_rating: string | null
           id: string
+          improvements: string[] | null
           manager_id: string | null
           manager_submitted_at: string | null
+          performance_score: number | null
           published_at: string | null
           signed_at: string | null
           status: string
+          strengths: string[] | null
           updated_at: string
         }
         Insert: {
+          achievements?: string[] | null
+          calibration_notes?: string | null
+          competency_score?: number | null
           created_at?: string
           cycle_id: string
           employee_id: string
           employee_submitted_at?: string | null
+          final_rating?: string | null
           id?: string
+          improvements?: string[] | null
           manager_id?: string | null
           manager_submitted_at?: string | null
+          performance_score?: number | null
           published_at?: string | null
           signed_at?: string | null
           status?: string
+          strengths?: string[] | null
           updated_at?: string
         }
         Update: {
+          achievements?: string[] | null
+          calibration_notes?: string | null
+          competency_score?: number | null
           created_at?: string
           cycle_id?: string
           employee_id?: string
           employee_submitted_at?: string | null
+          final_rating?: string | null
           id?: string
+          improvements?: string[] | null
           manager_id?: string | null
           manager_submitted_at?: string | null
+          performance_score?: number | null
           published_at?: string | null
           signed_at?: string | null
           status?: string
+          strengths?: string[] | null
           updated_at?: string
         }
         Relationships: [
@@ -4419,6 +4660,22 @@ export type Database = {
           similarity: number
           user_id: string
         }[]
+      }
+      rvw_calculate_competency_score: {
+        Args: { p_review_id: string }
+        Returns: number
+      }
+      rvw_calculate_performance_score: {
+        Args: { p_review_id: string }
+        Returns: number
+      }
+      rvw_get_matrix_position: {
+        Args: { p_comp_score: number; p_perf_score: number }
+        Returns: string
+      }
+      rvw_get_matrix_zone: {
+        Args: { p_comp_score: number; p_perf_score: number }
+        Returns: string
       }
       search_product_knowledge: {
         Args: {
