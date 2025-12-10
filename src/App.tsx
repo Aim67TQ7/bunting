@@ -19,6 +19,7 @@ import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import BaqMto from "./pages/BaqMto";
 import NotFound from "./pages/NotFound";
+import AdminAppItems from "./pages/AdminAppItems";
 import AdminKnowledge from "./pages/AdminKnowledge";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
@@ -123,6 +124,14 @@ function App() {
                   element={
                     <PrivateRoute>
                       <AdminKnowledge />
+                    </PrivateRoute>
+                  } 
+                />
+                <Route 
+                  path="/admin/app-items" 
+                  element={
+                    <PrivateRoute>
+                      <AdminAppItems />
                     </PrivateRoute>
                   } 
                 />
