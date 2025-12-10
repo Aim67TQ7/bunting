@@ -411,13 +411,60 @@ export default function AdminAppItems() {
                     filteredItems.map(item => (
                       <TableRow key={item.id}>
                         <TableCell>
-                          {item.icon_path ? (
-                            <img src={item.icon_path} alt="" className="w-8 h-8 rounded object-cover" />
-                          ) : (
-                            <div className="w-8 h-8 rounded bg-muted flex items-center justify-center">
-                              <Image className="h-4 w-4 text-muted-foreground" />
-                            </div>
-                          )}
+                          <label className="cursor-pointer group relative">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                if (file.size > 2 * 1024 * 1024) {
+                                  toast({ title: "File too large", description: "Max 2MB", variant: "destructive" });
+                                  return;
+                                }
+                                setUpdatingIds(s => new Set(s).add(item.id));
+                                const ext = file.name.split('.').pop();
+                                const fileName = `${item.id}-${Date.now()}.${ext}`;
+                                const { error: uploadError } = await supabase.storage
+                                  .from('Application Icons')
+                                  .upload(fileName, file, { upsert: true });
+                                if (uploadError) {
+                                  toast({ title: "Upload failed", description: uploadError.message, variant: "destructive" });
+                                  setUpdatingIds(s => { const n = new Set(s); n.delete(item.id); return n; });
+                                  return;
+                                }
+                                const { data: urlData } = supabase.storage.from('Application Icons').getPublicUrl(fileName);
+                                const { error: updateError } = await supabase
+                                  .from('app_items')
+                                  .update({ icon_path: urlData.publicUrl })
+                                  .eq('id', item.id);
+                                if (updateError) {
+                                  toast({ title: "Update failed", description: updateError.message, variant: "destructive" });
+                                } else {
+                                  setItems(prev => prev.map(i => i.id === item.id ? { ...i, icon_path: urlData.publicUrl } : i));
+                                }
+                                setUpdatingIds(s => { const n = new Set(s); n.delete(item.id); return n; });
+                                e.target.value = '';
+                              }}
+                            />
+                            {item.icon_path ? (
+                              <img 
+                                src={item.icon_path} 
+                                alt="" 
+                                className="w-8 h-8 rounded object-cover group-hover:opacity-70 transition-opacity" 
+                              />
+                            ) : (
+                              <div className="w-8 h-8 rounded bg-muted flex items-center justify-center group-hover:bg-muted/70 transition-colors">
+                                <Image className="h-4 w-4 text-muted-foreground" />
+                              </div>
+                            )}
+                            {updatingIds.has(item.id) && (
+                              <div className="absolute inset-0 flex items-center justify-center bg-background/50 rounded">
+                                <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                              </div>
+                            )}
+                          </label>
                         </TableCell>
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-2">
