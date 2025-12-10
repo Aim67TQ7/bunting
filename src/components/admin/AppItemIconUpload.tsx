@@ -51,7 +51,7 @@ export function AppItemIconUpload({ currentIconUrl, onIconUploaded }: AppItemIco
 
       // Upload to Supabase Storage
       const { error: uploadError } = await supabase.storage
-        .from("Application Icons")
+        .from("application_icons")
         .upload(filePath, file, {
           cacheControl: "3600",
           upsert: false,
@@ -63,7 +63,7 @@ export function AppItemIconUpload({ currentIconUrl, onIconUploaded }: AppItemIco
 
       // Get public URL
       const { data: urlData } = supabase.storage
-        .from("Application Icons")
+        .from("application_icons")
         .getPublicUrl(filePath);
 
       const publicUrl = urlData.publicUrl;
