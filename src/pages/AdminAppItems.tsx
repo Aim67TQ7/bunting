@@ -427,14 +427,14 @@ export default function AdminAppItems() {
                                 const ext = file.name.split('.').pop();
                                 const fileName = `${item.id}-${Date.now()}.${ext}`;
                                 const { error: uploadError } = await supabase.storage
-                                  .from('Application Icons')
+                                  .from('application_icons')
                                   .upload(fileName, file, { upsert: true });
                                 if (uploadError) {
                                   toast({ title: "Upload failed", description: uploadError.message, variant: "destructive" });
                                   setUpdatingIds(s => { const n = new Set(s); n.delete(item.id); return n; });
                                   return;
                                 }
-                                const { data: urlData } = supabase.storage.from('Application Icons').getPublicUrl(fileName);
+                                const { data: urlData } = supabase.storage.from('application_icons').getPublicUrl(fileName);
                                 const { error: updateError } = await supabase
                                   .from('app_items')
                                   .update({ icon_path: urlData.publicUrl })
