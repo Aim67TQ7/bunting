@@ -2,17 +2,15 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useChatMessages } from "@/hooks/use-chat-messages";
-import { ContractUploadSection } from "@/components/chat/contract-upload-section";
 import { MessageList } from "@/components/chat/message-list";
 import { LoginPrompt } from "@/components/chat/login-prompt";
 import { ChatInputEnhanced } from "@/components/chat-input-enhanced";
 import { useNavigate } from "react-router-dom";
-import { Loader2, FileText } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { isDemoMode } from "@/utils/demoMode";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Button } from "@/components/ui/button";
 
 interface ChatInterfaceProps {
   conversationId: string | null;
@@ -28,11 +26,6 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
   const [hasAttemptedLoad, setHasAttemptedLoad] = useState(false);
   const [webEnabled, setWebEnabled] = useState(false);
   const [gpt4oEnabled, setGpt4oEnabled] = useState(false);
-  const [contractContext, setContractContext] = useState<{
-    content: string;
-    analysis: string;
-    fileName: string;
-  } | null>(null);
   
   const { 
     messages, 
@@ -99,37 +92,6 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
       shouldAutoSummarize = true;
     }
     
-    // If contract context exists, route to contract chat
-    if (contractContext) {
-      try {
-        const { supabase } = await import("@/integrations/supabase/client");
-        const { data, error } = await supabase.functions.invoke('chat-with-contract', {
-          body: {
-            messages: [
-              ...messages.map(m => ({ role: m.role, content: m.content })),
-              { role: 'user', content: finalContent }
-            ],
-            contractContent: contractContext.content,
-            contractAnalysis: contractContext.analysis,
-            fileName: contractContext.fileName
-          }
-        });
-
-        if (error) throw error;
-        
-        // Add user message and AI response
-        addAIMessage(data.response);
-      } catch (error) {
-        console.error('Error in contract chat:', error);
-        toast({
-          title: "Error",
-          description: "Failed to send message. Please try again.",
-          variant: "destructive",
-        });
-      }
-      return;
-    }
-    
     // Determine query type based on enabled modes and file uploads
     let actualQueryType = queryType;
     
@@ -146,26 +108,6 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
     // Otherwise, default to Groq (no queryType specified)
     
     sendMessage(finalContent, shouldAutoSummarize, actualQueryType, files);
-  };
-
-  const handleContractAnalysis = (analysis: string, fileName: string, contractContent: string) => {
-    // Store contract context for follow-up questions
-    setContractContext({
-      content: contractContent,
-      analysis: analysis,
-      fileName: fileName
-    });
-    
-    // Add the analysis result as an AI message
-    addAIMessage(analysis);
-  };
-
-  const handleClearContractContext = () => {
-    setContractContext(null);
-    toast({
-      title: "Contract context cleared",
-      description: "You can now start a new conversation or upload another contract.",
-    });
   };
 
   const handleRetryLoad = () => {
@@ -224,7 +166,6 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
   }
 
   // Determine what to display based on loading and conversation state
-  const showContractUpload = messages.length === 0 && !isAiResponding && !isHistoryLoading && !conversationId;
   const showLoadingError = messages.length === 0 && !isAiResponding && conversationId && loadError;
   const showHistoryLoadingIndicator = isHistoryLoading && messages.length === 0;
 
@@ -242,10 +183,6 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
       )}
       
       <div className="flex-1 overflow-y-auto p-4">
-        {showContractUpload && (
-          <ContractUploadSection onAnalysisComplete={handleContractAnalysis} />
-        )}
-        
         {showLoadingError && (
           <div className="flex h-full flex-col items-center justify-center text-center p-4">
             <div className="rounded-full bg-red-100 dark:bg-red-900/20 p-4">
@@ -276,7 +213,7 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
           </div>
         )}
         
-        {!showContractUpload && !showLoadingError && !showHistoryLoadingIndicator && (
+        {!showLoadingError && !showHistoryLoadingIndicator && (
           <MessageList 
             messages={messages} 
             isAiResponding={isAiResponding && !hasAttemptedLoad}
@@ -288,23 +225,6 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
       </div>
       
       <div className="border-t">
-        {contractContext && (
-          <div className="flex items-center justify-between px-4 py-2 bg-muted/50 border-b text-sm">
-            <div className="flex items-center gap-2">
-              <FileText className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium">Contract loaded:</span>
-              <span className="text-muted-foreground">{contractContext.fileName}</span>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleClearContractContext}
-              className="h-7"
-            >
-              Clear
-            </Button>
-          </div>
-        )}
         <ChatInputEnhanced 
           onSubmit={handleSendMessage} 
           isDisabled={isAiResponding || isHistoryLoading} 
