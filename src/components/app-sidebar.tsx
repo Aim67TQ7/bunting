@@ -165,10 +165,8 @@ useEffect(() => {
           <NavItem icon={History} title="History" href="/history" />
         </NavSection>
 
-        {/* Tools first */}
+        {/* Tools */}
         <NavSection title="Tools">
-          <NavItem icon={Calculator} title="Calculators" href="/calculators" />
-          <NavItem icon={LineChart} title="Sales" href="/sales" />
           <NavItem icon={Grid3X3} title="Apps" href="/apps" />
           <NavItem icon={BarChart3} title="Metrics" href="/reports" />
         </NavSection>
