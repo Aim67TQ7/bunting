@@ -28,19 +28,11 @@ interface AuthMessage {
   timestamp: number;
 }
 
-// List of buntinggpt subdomains that use Supabase session auth (not legacy tokens)
-const SUPABASE_AUTH_SUBDOMAINS = ['notes.buntinggpt.com', 'shipclerk.buntinggpt.com'];
-
-// Check if URL requires Supabase session auth (specific subdomains only)
-const requiresSupabaseAuth = (url: string, hasLegacyToken: boolean): boolean => {
+// Check if URL is a buntinggpt.com subdomain (needs Supabase session auth via postMessage)
+const isBuntingGptSubdomain = (url: string): boolean => {
   try {
     const parsedUrl = new URL(url);
-    // If there's a legacy token configured, always use that instead
-    if (hasLegacyToken) {
-      return false;
-    }
-    // Only specific subdomains use Supabase session auth
-    return SUPABASE_AUTH_SUBDOMAINS.includes(parsedUrl.hostname);
+    return parsedUrl.hostname.endsWith('.buntinggpt.com');
   } catch {
     return false;
   }
@@ -67,11 +59,9 @@ const Iframe = () => {
   const [licenseValue, setLicenseValue] = useState<string | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  // Check if there's a legacy token configured
-  const hasLegacyToken = !!(token && token !== "203");
-  
-  // Determine if this URL needs Supabase session auth
-  const needsSupabaseAuth = url ? requiresSupabaseAuth(url, hasLegacyToken) : false;
+  // Check if this is a buntinggpt subdomain - these need Supabase session auth via postMessage
+  // (third-party cookies in iframes are blocked by modern browsers)
+  const needsSupabaseAuth = url ? isBuntingGptSubdomain(url) : false;
   const targetOrigin = url ? getOriginFromUrl(url) : '*';
 
   useEffect(() => {
@@ -161,7 +151,8 @@ const Iframe = () => {
       if (!iframe?.contentWindow) return;
 
       try {
-        // For buntinggpt.com subdomains, send Supabase session authentication
+        // For buntinggpt.com subdomains, ALWAYS send Supabase session authentication
+        // (third-party cookies in iframes are blocked by modern browsers)
         if (needsSupabaseAuth && user && session) {
           console.log('Sending Supabase auth to buntinggpt subdomain:', targetOrigin);
 
@@ -178,7 +169,7 @@ const Iframe = () => {
           iframe.contentWindow.postMessage(userMessage, targetOrigin);
           console.log('User data sent to iframe');
 
-          // Send access token
+          // Send access token (Supabase session token)
           const tokenMessage: AuthMessage = {
             type: 'PROVIDE_TOKEN',
             token: session.access_token,
@@ -187,39 +178,40 @@ const Iframe = () => {
           };
           iframe.contentWindow.postMessage(tokenMessage, targetOrigin);
           console.log('Supabase token sent to iframe');
-        } else {
-          // For non-buntinggpt URLs, use the legacy token approach
-          if (token) {
-            const tokenMessage: TokenMessage = {
-              type: 'PROVIDE_TOKEN',
-              token: token,
-              origin: window.location.origin,
-              timestamp: Date.now()
-            };
-            iframe.contentWindow.postMessage(tokenMessage, '*');
-            console.log('Legacy token sent to iframe via postMessage');
+        }
 
-            // Also send as password for auto-fill
-            const passwordMessage: TokenMessage = {
-              type: 'PROVIDE_PASSWORD',
-              password: token,
-              origin: window.location.origin,
-              timestamp: Date.now()
-            };
-            iframe.contentWindow.postMessage(passwordMessage, '*');
-          }
+        // ALSO send legacy tokens/license for any apps that need them
+        // (this runs regardless of whether Supabase auth was sent)
+        if (token) {
+          const legacyTokenMessage: TokenMessage = {
+            type: 'PROVIDE_TOKEN',
+            token: token,
+            origin: window.location.origin,
+            timestamp: Date.now()
+          };
+          iframe.contentWindow.postMessage(legacyTokenMessage, needsSupabaseAuth ? targetOrigin : '*');
+          console.log('Legacy token sent to iframe via postMessage');
 
-          // Send license if available
-          if (licenseValue) {
-            const licenseMessage: TokenMessage = {
-              type: 'PROVIDE_LICENSE',
-              license: licenseValue,
-              origin: window.location.origin,
-              timestamp: Date.now()
-            };
-            iframe.contentWindow.postMessage(licenseMessage, '*');
-            console.log('License sent to iframe via postMessage');
-          }
+          // Also send as password for auto-fill
+          const passwordMessage: TokenMessage = {
+            type: 'PROVIDE_PASSWORD',
+            password: token,
+            origin: window.location.origin,
+            timestamp: Date.now()
+          };
+          iframe.contentWindow.postMessage(passwordMessage, needsSupabaseAuth ? targetOrigin : '*');
+        }
+
+        // Send license if available
+        if (licenseValue) {
+          const licenseMessage: TokenMessage = {
+            type: 'PROVIDE_LICENSE',
+            license: licenseValue,
+            origin: window.location.origin,
+            timestamp: Date.now()
+          };
+          iframe.contentWindow.postMessage(licenseMessage, needsSupabaseAuth ? targetOrigin : '*');
+          console.log('License sent to iframe via postMessage');
         }
       } catch (error) {
         console.warn('Failed to send data via postMessage:', error);
