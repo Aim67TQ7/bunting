@@ -34,6 +34,10 @@ const Apps = () => {
         setLoading(true);
         setError(null);
         
+        // Wait for session to be ready
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log("Apps fetch - session:", session ? "authenticated" : "anonymous");
+        
         const { data, error } = await (supabase as any)
           .from("app_items")
           .select("*")
@@ -44,6 +48,7 @@ const Apps = () => {
           throw error;
         }
         
+        console.log("Apps fetched:", data?.length || 0, "items");
         setApplications(data || []);
       } catch (error) {
         console.error("Error fetching applications:", error);
@@ -56,7 +61,7 @@ const Apps = () => {
     }
 
     fetchApplications();
-  }, []);
+  }, [user]); // Refetch when user changes
 
   const handleRedirectToLogin = () => {
     navigate("/auth", { state: { returnUrl: "/apps" } });

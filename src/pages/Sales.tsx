@@ -26,6 +26,10 @@ const Sales = () => {
   useEffect(() => {
     async function fetchSalesData() {
       try {
+        // Wait for session to be ready
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log("Sales fetch - session:", session ? "authenticated" : "anonymous");
+        
         const { data, error } = await (supabase as any)
           .from("app_items")
           .select("*")
@@ -36,6 +40,7 @@ const Sales = () => {
           throw error;
         }
         
+        console.log("Sales fetched:", data?.length || 0, "items");
         setSalesItems(data || []);
       } catch (error) {
         console.error("Error fetching sales data:", error);

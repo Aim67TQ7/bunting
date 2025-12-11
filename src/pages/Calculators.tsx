@@ -22,6 +22,10 @@ const Calculators = () => {
   useEffect(() => {
     async function fetchCalculators() {
       try {
+        // Wait for session to be ready
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log("Calculators fetch - session:", session ? "authenticated" : "anonymous");
+        
         const { data, error } = await (supabase as any)
           .from("app_items")
           .select("*")
@@ -30,6 +34,7 @@ const Calculators = () => {
 
         if (error) throw error;
         
+        console.log("Calculators fetched:", data?.length || 0, "items");
         setCalculators(data || []);
       } catch (error) {
         console.error("Error fetching calculators:", error);
