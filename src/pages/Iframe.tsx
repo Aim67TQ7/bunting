@@ -28,11 +28,19 @@ interface AuthMessage {
   timestamp: number;
 }
 
-// Check if URL is a buntinggpt.com subdomain
-const isBuntingGptSubdomain = (url: string): boolean => {
+// List of buntinggpt subdomains that use Supabase session auth (not legacy tokens)
+const SUPABASE_AUTH_SUBDOMAINS = ['notes.buntinggpt.com', 'shipclerk.buntinggpt.com'];
+
+// Check if URL requires Supabase session auth (specific subdomains only)
+const requiresSupabaseAuth = (url: string, hasLegacyToken: boolean): boolean => {
   try {
     const parsedUrl = new URL(url);
-    return parsedUrl.hostname.endsWith('.buntinggpt.com');
+    // If there's a legacy token configured, always use that instead
+    if (hasLegacyToken) {
+      return false;
+    }
+    // Only specific subdomains use Supabase session auth
+    return SUPABASE_AUTH_SUBDOMAINS.includes(parsedUrl.hostname);
   } catch {
     return false;
   }
@@ -59,8 +67,11 @@ const Iframe = () => {
   const [licenseValue, setLicenseValue] = useState<string | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  // Determine if this is a buntinggpt subdomain that needs Supabase auth
-  const needsSupabaseAuth = url ? isBuntingGptSubdomain(url) : false;
+  // Check if there's a legacy token configured
+  const hasLegacyToken = !!(token && token !== "203");
+  
+  // Determine if this URL needs Supabase session auth
+  const needsSupabaseAuth = url ? requiresSupabaseAuth(url, hasLegacyToken) : false;
   const targetOrigin = url ? getOriginFromUrl(url) : '*';
 
   useEffect(() => {
