@@ -11,29 +11,52 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // Check if we're on the production domain
 const isProductionDomain = typeof window !== 'undefined' && window.location.hostname.endsWith('.buntinggpt.com');
 
+// Log storage mode for debugging
+if (typeof window !== 'undefined') {
+  console.log('Supabase auth storage mode:', isProductionDomain ? 'cookie (production)' : 'localStorage (dev)');
+}
+
 // Custom cookie storage for cross-subdomain authentication (production only)
 const cookieStorage = {
   getItem: (key: string): string | null => {
-    const name = key + "=";
-    const decodedCookie = decodeURIComponent(document.cookie);
-    const cookieArray = decodedCookie.split(';');
-    
-    for (let cookie of cookieArray) {
-      cookie = cookie.trim();
-      if (cookie.indexOf(name) === 0) {
-        return cookie.substring(name.length);
+    try {
+      const name = key + "=";
+      const decodedCookie = decodeURIComponent(document.cookie);
+      const cookieArray = decodedCookie.split(';');
+      
+      for (let cookie of cookieArray) {
+        cookie = cookie.trim();
+        if (cookie.indexOf(name) === 0) {
+          const value = cookie.substring(name.length);
+          console.log(`Cookie read [${key}]:`, value ? 'found (' + value.length + ' chars)' : 'empty');
+          return value || null;
+        }
       }
+      console.log(`Cookie read [${key}]: not found`);
+      return null;
+    } catch (e) {
+      console.error('Cookie read error:', e);
+      return null;
     }
-    return null;
   },
   
   setItem: (key: string, value: string): void => {
-    const maxAge = 60 * 60 * 24 * 7; // 7 days
-    document.cookie = `${key}=${value}; path=/; domain=.buntinggpt.com; max-age=${maxAge}; SameSite=Lax; Secure`;
+    try {
+      const maxAge = 60 * 60 * 24 * 7; // 7 days
+      document.cookie = `${key}=${value}; path=/; domain=.buntinggpt.com; max-age=${maxAge}; SameSite=Lax; Secure`;
+      console.log(`Cookie set [${key}]:`, value.length, 'chars');
+    } catch (e) {
+      console.error('Cookie write error:', e);
+    }
   },
   
   removeItem: (key: string): void => {
-    document.cookie = `${key}=; path=/; domain=.buntinggpt.com; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax; Secure`;
+    try {
+      document.cookie = `${key}=; path=/; domain=.buntinggpt.com; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax; Secure`;
+      console.log(`Cookie removed [${key}]`);
+    } catch (e) {
+      console.error('Cookie remove error:', e);
+    }
   }
 };
 

@@ -8,6 +8,7 @@ interface AuthContextType {
   user: any;
   session: any;
   isLoading: boolean;
+  sessionChecked: boolean; // New flag to indicate initial session check completed
   signUp: (email: string, password: string) => Promise<{ error: any | null }>;
   signUpWithEmailOnly: (email: string) => Promise<{ error: any | null }>;
   signIn: (email: string, password: string) => Promise<{ error: any | null }>;
@@ -23,6 +24,7 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   session: null,
   isLoading: true,
+  sessionChecked: false,
   signUp: async () => ({ error: null }),
   signUpWithEmailOnly: async () => ({ error: null }),
   signIn: async () => ({ error: null }),
@@ -43,14 +45,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [session, setSession] = useState<any>(null);
+  const [sessionChecked, setSessionChecked] = useState(false);
 
   useEffect(() => {
     let mounted = true;
 
-    // Set up authentication state listener
+    // Set up authentication state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
         console.log('Auth state change:', event, currentSession?.user?.email);
+        
+        if (!mounted) return;
         
         if (event === 'SIGNED_OUT') {
           setSession(null);
@@ -64,30 +69,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(currentSession?.user ?? null);
         } else if (event === 'USER_UPDATED') {
           setUser(currentSession?.user ?? null);
+        } else if (event === 'INITIAL_SESSION') {
+          // Handle initial session event - this fires when auth state is first determined
+          if (currentSession) {
+            setSession(currentSession);
+            setUser(currentSession.user);
+          } else if (isDemoMode()) {
+            setUser({ id: 'demo', email: getDemoEmail() || 'demo@buntingmagnetics.com' });
+          }
+          setSessionChecked(true);
+          setIsLoading(false);
         } else if (!currentSession && isDemoMode()) {
           // No session but demo mode enabled
           setUser({ id: 'demo', email: getDemoEmail() || 'demo@buntingmagnetics.com' });
         }
         
-        setIsLoading(false);
+        // Only set loading false if we got a definitive auth event
+        if (event !== 'INITIAL_SESSION') {
+          setIsLoading(false);
+        }
       }
     );
 
     // Check for existing session with better error handling
     const initializeAuth = async () => {
       try {
+        console.log('Initializing auth session...');
         const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+        
+        if (!mounted) return;
         
         if (error) {
           console.warn('Session recovery error:', error.message);
           await supabase.auth.signOut();
         } else if (currentSession) {
+          console.log('Found existing session for:', currentSession.user?.email);
           setSession(currentSession);
           setUser(currentSession.user);
         } else if (isDemoMode()) {
           // No Supabase session but demo mode enabled
+          console.log('No session, but demo mode enabled');
           setSession(null);
           setUser({ id: 'demo', email: getDemoEmail() || 'demo@buntingmagnetics.com' });
+        } else {
+          console.log('No session found');
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
@@ -96,13 +121,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser({ id: 'demo', email: getDemoEmail() || 'demo@buntingmagnetics.com' });
         }
       } finally {
-        setIsLoading(false);
+        if (mounted) {
+          setSessionChecked(true);
+          setIsLoading(false);
+        }
       }
     };
 
     initializeAuth();
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
@@ -310,6 +339,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user,
     session,
     isLoading,
+    sessionChecked,
     signUp,
     signUpWithEmailOnly,
     signIn,
