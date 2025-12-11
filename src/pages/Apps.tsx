@@ -42,18 +42,15 @@ const Apps = () => {
           .from("app_items")
           .select("*")
           .eq("is_active", true)
-          .eq("category", "application");
+          .eq("category", "application")
+          .order("name", { ascending: true });
         
         if (error) {
           throw error;
         }
         
         console.log("Apps fetched:", data?.length || 0, "items");
-        // Sort alphabetically by name
-        const sortedData = (data || []).sort((a: ApplicationItem, b: ApplicationItem) => 
-          a.name.localeCompare(b.name)
-        );
-        setApplications(sortedData);
+        setApplications(data || []);
       } catch (error) {
         console.error("Error fetching applications:", error);
         const errorMessage = error instanceof Error ? error.message : "Failed to load applications";
