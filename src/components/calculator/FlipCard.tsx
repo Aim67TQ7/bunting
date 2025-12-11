@@ -77,7 +77,7 @@ export const FlipCard = ({
 
   return (
     <div 
-      className="flip-card-container w-full h-80 perspective-1000 group" 
+      className="flip-card-container w-full h-56 perspective-1000 group" 
       onMouseEnter={() => setIsFlipped(true)}
       onMouseLeave={() => setIsFlipped(false)}
     >
@@ -86,27 +86,27 @@ export const FlipCard = ({
         isFlipped ? "rotate-y-180" : ""
       )}>
         {/* Front of card */}
-        <Card className="flip-card-front absolute w-full h-full backface-hidden flex flex-col items-center justify-center p-6 border-2 hover:border-primary/20 transition-colors">
+        <Card className="flip-card-front absolute w-full h-full backface-hidden flex flex-col items-center justify-center p-4 border-2 hover:border-primary/20 transition-colors">
           {id && (
             <Button
               variant="ghost"
               size="icon"
               aria-label="Toggle favorite"
-              className="absolute right-3 top-3 rounded-full text-primary hover:bg-accent/70"
+              className="absolute right-2 top-2 rounded-full text-primary hover:bg-accent/70"
               onClick={onToggleFavorite}
             >
               <Star className="h-4 w-4" fill={isFavorite(id) ? "currentColor" : "none"} />
             </Button>
           )}
-          <div className="rounded-full bg-muted p-6 mb-6">
+          <div className="rounded-full bg-muted p-4 mb-4">
             {iconPath ? (
-              <img src={iconPath} alt={title} className="h-16 w-16" />
+              <img src={iconPath} alt={title} className="h-12 w-12" />
             ) : icon ? (
-              <div className="h-16 w-16 flex items-center justify-center">
+              <div className="h-12 w-12 flex items-center justify-center">
                 {icon}
               </div>
             ) : (
-              <svg className="h-16 w-16 text-muted-foreground" fill="none" height="24" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <svg className="h-12 w-12 text-muted-foreground" fill="none" height="24" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
                 <rect height="14" rx="2" ry="2" width="14" x="5" y="5"/>
                 <path d="M17 3v2"/>
                 <path d="M7 3v2"/>
@@ -115,49 +115,52 @@ export const FlipCard = ({
               </svg>
             )}
           </div>
-          <h3 className="text-xl font-bold mb-4 text-center">{title}</h3>
+          <h3 className="text-lg font-bold mb-3 text-center">{title}</h3>
           <Button 
+            size="sm"
             className="mt-auto" 
             onClick={handleOpenItem}
           >
-            Open App <ExternalLink className="ml-2 h-4 w-4" />
+            Open App <ExternalLink className="ml-2 h-3 w-3" />
           </Button>
         </Card>
 
         {/* Back of card */}
-        <Card className="flip-card-back absolute w-full h-full backface-hidden rotate-y-180 flex flex-col p-6 border-2 border-primary/20">
+        <Card className="flip-card-back absolute w-full h-full backface-hidden rotate-y-180 flex flex-col p-4 border-2 border-primary/20">
           {id && (
             <Button
               variant="ghost"
               size="icon"
               aria-label="Toggle favorite"
-              className="absolute right-3 top-3 rounded-full text-primary hover:bg-accent/70"
+              className="absolute right-2 top-2 rounded-full text-primary hover:bg-accent/70"
               onClick={onToggleFavorite}
             >
               <Star className="h-4 w-4" fill={isFavorite(id) ? "currentColor" : "none"} />
             </Button>
           )}
           <div className="flex-1 flex flex-col text-center">
-            <h3 className="text-lg font-bold mb-4">{title}</h3>
-            <p className="text-sm text-muted-foreground overflow-y-auto flex-1 mb-6">
+            <h3 className="text-base font-bold mb-2">{title}</h3>
+            <p className="text-xs text-muted-foreground overflow-y-auto flex-1 mb-3">
               {description}
             </p>
           </div>
           
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2">
             <Button 
+              size="sm"
               onClick={handleOpenItem}
               className="w-full"
             >
-              Open App <ExternalLink className="ml-2 h-4 w-4" />
+              Open App <ExternalLink className="ml-2 h-3 w-3" />
             </Button>
             {videoUrl && (
               <Button 
+                size="sm"
                 variant="outline" 
                 onClick={handleWatchVideo}
                 className="w-full"
               >
-                Watch Tutorial <Video className="ml-2 h-4 w-4" />
+                Watch Tutorial <Video className="ml-2 h-3 w-3" />
               </Button>
             )}
           </div>
