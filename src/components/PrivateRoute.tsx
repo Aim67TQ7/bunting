@@ -10,9 +10,10 @@ interface PrivateRouteProps {
 }
 
 export default function PrivateRoute({ children }: PrivateRouteProps) {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, session } = useAuth();
   const location = useLocation();
   const isMobile = useIsMobile();
+  
   // Bypass auth when Demo Mode is enabled
   const demoMode = isDemoMode();
   if (demoMode) {
@@ -20,9 +21,11 @@ export default function PrivateRoute({ children }: PrivateRouteProps) {
   }
 
   // Add console log to debug auth state
-  console.log("PrivateRoute render - loading:", isLoading, "user:", user);
+  console.log("PrivateRoute render - loading:", isLoading, "user:", user?.email || null);
+  
   // Show loading state while checking authentication
-  if (isLoading && !demoMode) {
+  // Also wait if we don't have user/session yet but are still in initial load
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className={`animate-spin rounded-full border-b-2 border-primary ${isMobile ? 'h-8 w-8' : 'h-12 w-12'}`}></div>
@@ -31,7 +34,8 @@ export default function PrivateRoute({ children }: PrivateRouteProps) {
   }
 
   // Redirect to auth page if not logged in (unless demo mode)
-  if (!user && !demoMode) {
+  if (!user) {
+    console.log("PrivateRoute - No user, redirecting to auth");
     // Pass the current location in state so we can redirect back after login
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
