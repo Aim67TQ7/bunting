@@ -49,7 +49,11 @@ const Apps = () => {
         }
         
         console.log("Apps fetched:", data?.length || 0, "items");
-        setApplications(data || []);
+        // Sort alphabetically by name
+        const sortedData = (data || []).sort((a: ApplicationItem, b: ApplicationItem) => 
+          a.name.localeCompare(b.name)
+        );
+        setApplications(sortedData);
       } catch (error) {
         console.error("Error fetching applications:", error);
         const errorMessage = error instanceof Error ? error.message : "Failed to load applications";
