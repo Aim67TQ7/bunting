@@ -5,6 +5,7 @@ import { useChatMessages } from "@/hooks/use-chat-messages";
 import { MessageList } from "@/components/chat/message-list";
 import { LoginPrompt } from "@/components/chat/login-prompt";
 import { ChatInputEnhanced } from "@/components/chat-input-enhanced";
+import { ModelInfoPanel } from "@/components/chat/model-info-panel";
 import { useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
@@ -26,6 +27,9 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
   const [hasAttemptedLoad, setHasAttemptedLoad] = useState(false);
   const [webEnabled, setWebEnabled] = useState(false);
   const [gpt4oEnabled, setGpt4oEnabled] = useState(false);
+  const [visionEnabled, setVisionEnabled] = useState(false);
+  const [imageGenEnabled, setImageGenEnabled] = useState(false);
+  const [hasInput, setHasInput] = useState(false);
   
   const { 
     messages, 
@@ -95,13 +99,21 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
     // Determine query type based on enabled modes and file uploads
     let actualQueryType = queryType;
     
+    // Image generation takes priority
+    if (imageGenEnabled && !queryType) {
+      actualQueryType = "image-gen";
+    }
+    // Vision mode for file uploads
+    else if (visionEnabled && files && files.length > 0) {
+      actualQueryType = "vision";
+    }
     // If GPT-4o is enabled, use GPT-4o (can combine with web)
-    if (gpt4oEnabled) {
+    else if (gpt4oEnabled && !queryType) {
       actualQueryType = "gpt4o";
     } else if ((files && files.length > 0) || queryType === 'smart') {
       // If files are attached, use smart analysis
       actualQueryType = 'smart';
-    } else if (webEnabled) {
+    } else if (webEnabled && !queryType) {
       // Web search with Groq (default when GPT-5 not selected)
       actualQueryType = "web";
     }
@@ -117,6 +129,7 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
   
   const handleStartNewChat = () => {
     clearCurrentConversation();
+    setHasInput(false);
     navigate('/'); // Navigate to root without conversation parameter
   };
 
@@ -143,6 +156,32 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
     });
   };
 
+  const toggleVisionMode = () => {
+    setVisionEnabled(!visionEnabled);
+    toast({
+      title: visionEnabled ? "Vision mode disabled" : "Vision mode enabled",
+      description: visionEnabled 
+        ? "File uploads will use Smart Analysis."
+        : "File uploads will use Claude for vision analysis.",
+      duration: 3000
+    });
+  };
+
+  const toggleImageGenMode = () => {
+    setImageGenEnabled(!imageGenEnabled);
+    toast({
+      title: imageGenEnabled ? "Image generation disabled" : "Image generation enabled",
+      description: imageGenEnabled 
+        ? "Back to normal chat mode."
+        : "Describe an image to generate it with AI.",
+      duration: 3000
+    });
+  };
+
+  const handleInputChange = useCallback((hasText: boolean) => {
+    setHasInput(hasText);
+  }, []);
+
   // Corrections disabled - conversations are open
 
   // If auth is still loading, show loading indicator
@@ -168,6 +207,7 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
   // Determine what to display based on loading and conversation state
   const showLoadingError = messages.length === 0 && !isAiResponding && conversationId && loadError;
   const showHistoryLoadingIndicator = isHistoryLoading && messages.length === 0;
+  const showModelInfoPanel = messages.length === 0 && !hasInput && !conversationId && !isHistoryLoading;
 
   return (
     <div className="flex h-full flex-col">
@@ -212,8 +252,12 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
             </p>
           </div>
         )}
+
+        {showModelInfoPanel && (
+          <ModelInfoPanel className="h-full" />
+        )}
         
-        {!showLoadingError && !showHistoryLoadingIndicator && (
+        {!showLoadingError && !showHistoryLoadingIndicator && !showModelInfoPanel && (
           <MessageList 
             messages={messages} 
             isAiResponding={isAiResponding && !hasAttemptedLoad}
@@ -234,6 +278,11 @@ export function ChatInterface({ conversationId }: ChatInterfaceProps) {
           onNewChat={handleStartNewChat}
           gpt4oEnabled={gpt4oEnabled}
           onGpt4oToggle={toggleGpt4oMode}
+          visionEnabled={visionEnabled}
+          onVisionToggle={toggleVisionMode}
+          imageGenEnabled={imageGenEnabled}
+          onImageGenToggle={toggleImageGenMode}
+          onInputChange={handleInputChange}
         />
       </div>
     </div>

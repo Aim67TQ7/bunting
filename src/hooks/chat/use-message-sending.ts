@@ -41,13 +41,30 @@ export function useMessageSending() {
         let aiResponse: any;
         let modelUsed: string = "llama-3.3-70b-versatile"; // Default model name
         
-        // Route to Claude only when vision is explicitly requested and GPT-5 is not selected
         const filesArray: File[] = Array.isArray(fileOrFiles)
           ? fileOrFiles
           : fileOrFiles
           ? [fileOrFiles]
           : [];
-        if ((filesArray.length > 0 && queryType === 'vision') || queryType === 'vision') {
+
+        // Handle image generation
+        if (queryType === 'image-gen') {
+          console.log('Using OpenAI for image generation');
+          const lastMessage = messages[messages.length - 1];
+          
+          const { data, error } = await supabase.functions.invoke('generate-image', {
+            body: { 
+              prompt: lastMessage?.content || '',
+              userId: user.id
+            }
+          });
+            
+          if (error) throw error;
+          aiResponse = data.content;
+          modelUsed = data.model || "gpt-image-1";
+        }
+        // Route to Claude only when vision is explicitly requested
+        else if ((filesArray.length > 0 && queryType === 'vision') || queryType === 'vision') {
           console.log('Using Claude for vision/file analysis');
           
           let fileData = null;
@@ -97,7 +114,7 @@ export function useMessageSending() {
             
           if (error) throw error;
           aiResponse = data.content;
-          modelUsed = data.model || "claude-3-5-sonnet";
+          modelUsed = data.model || "claude-sonnet-4";
         }
         // Use GPT-o3 endpoint if queryType is 'gpt-o3'
         else if (queryType === 'gpt-o3') {
@@ -120,12 +137,6 @@ export function useMessageSending() {
           console.log(`Using GPT-4o-mini for ${isSmart ? 'Smart Analysis' : 'response'}`, Array.isArray(fileOrFiles) ? `(with ${fileOrFiles.length} attachment(s) preview)` : (fileOrFiles ? '(with attachment preview)' : ''));
 
           // Build previews for up to 10 files (safe limits per file and total)
-          const filesArray: File[] = Array.isArray(fileOrFiles)
-            ? fileOrFiles
-            : fileOrFiles
-            ? [fileOrFiles]
-            : [];
-
           let totalBytes = 0;
           const MAX_FILES = 10;
           const MAX_TOTAL_BYTES = 50 * 1024 * 1024; // 50MB total
