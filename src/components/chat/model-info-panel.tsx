@@ -1,4 +1,4 @@
-import { Zap, Eye, Brain, Image } from "lucide-react";
+import { Zap, Eye, Globe, Image, Plus, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ModelInfoPanelProps {
@@ -27,6 +27,36 @@ export function ModelInfoPanel({ className }: ModelInfoPanelProps) {
           </div>
         </div>
 
+        {/* Web Search */}
+        <div className="flex items-start gap-3 p-4 rounded-lg bg-card border border-border">
+          <div className="flex-shrink-0 p-2 rounded-md bg-blue-500/10">
+            <Globe className="h-5 w-5 text-blue-500" />
+          </div>
+          <div>
+            <h3 className="font-medium text-foreground">
+              Web <span className="text-xs font-normal text-muted-foreground">(Toggle 🌐)</span>
+            </h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              Enable web search to find current information and external sources.
+            </p>
+          </div>
+        </div>
+
+        {/* GPT-4o-mini */}
+        <div className="flex items-start gap-3 p-4 rounded-lg bg-card border border-border">
+          <div className="flex-shrink-0 p-2 rounded-md bg-orange-500/10">
+            <span className="text-sm font-bold text-orange-500">4o</span>
+          </div>
+          <div>
+            <h3 className="font-medium text-foreground">
+              GPT-4o-mini <span className="text-xs font-normal text-muted-foreground">(Toggle 4o)</span>
+            </h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              OpenAI model with database grounding. Enhanced reasoning capabilities.
+            </p>
+          </div>
+        </div>
+
         {/* Claude Vision */}
         <div className="flex items-start gap-3 p-4 rounded-lg bg-card border border-border">
           <div className="flex-shrink-0 p-2 rounded-md bg-purple-500/10">
@@ -42,21 +72,6 @@ export function ModelInfoPanel({ className }: ModelInfoPanelProps) {
           </div>
         </div>
 
-        {/* GPT-4o-mini */}
-        <div className="flex items-start gap-3 p-4 rounded-lg bg-card border border-border">
-          <div className="flex-shrink-0 p-2 rounded-md bg-orange-500/10">
-            <Brain className="h-5 w-5 text-orange-500" />
-          </div>
-          <div>
-            <h3 className="font-medium text-foreground">
-              GPT-4o-mini <span className="text-xs font-normal text-muted-foreground">(Toggle 4o)</span>
-            </h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              OpenAI model with database grounding. Enhanced reasoning capabilities.
-            </p>
-          </div>
-        </div>
-
         {/* Image Generation */}
         <div className="flex items-start gap-3 p-4 rounded-lg bg-card border border-border">
           <div className="flex-shrink-0 p-2 rounded-md bg-green-500/10">
@@ -67,7 +82,22 @@ export function ModelInfoPanel({ className }: ModelInfoPanelProps) {
               Generate <span className="text-xs font-normal text-muted-foreground">(Toggle 🎨)</span>
             </h3>
             <p className="text-sm text-muted-foreground mt-1">
-              Create images from text descriptions using OpenAI's gpt-image-1.
+              Create images from text descriptions using Google Imagen 3.
+            </p>
+          </div>
+        </div>
+
+        {/* Upload */}
+        <div className="flex items-start gap-3 p-4 rounded-lg bg-card border border-border">
+          <div className="flex-shrink-0 p-2 rounded-md bg-amber-500/10">
+            <Upload className="h-5 w-5 text-amber-500" />
+          </div>
+          <div>
+            <h3 className="font-medium text-foreground">
+              Upload <span className="text-xs font-normal text-muted-foreground">(Smart Analysis)</span>
+            </h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              Upload up to 10 documents for AI-powered triage and deep evaluation.
             </p>
           </div>
         </div>
