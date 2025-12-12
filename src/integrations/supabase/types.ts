@@ -4571,6 +4571,33 @@ export type Database = {
           },
         ]
       }
+      temp_password_logs: {
+        Row: {
+          admin_id: string
+          created_at: string | null
+          id: string
+          reason: string | null
+          target_email: string
+          target_user_id: string
+        }
+        Insert: {
+          admin_id: string
+          created_at?: string | null
+          id?: string
+          reason?: string | null
+          target_email: string
+          target_user_id: string
+        }
+        Update: {
+          admin_id?: string
+          created_at?: string | null
+          id?: string
+          reason?: string | null
+          target_email?: string
+          target_user_id?: string
+        }
+        Relationships: []
+      }
       test_results: {
         Row: {
           attachment: string | null
