@@ -334,17 +334,20 @@ export function ChatInputEnhanced({
               <span className="sr-only">Vision Mode</span>
             </Button>
 
-            <Button 
-              type="button" 
-              variant="ghost" 
-              size="icon"
-              onClick={handleImageGenToggle}
-              className={cn("h-8 w-8", imageGenEnabled ? "bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-400" : "")}
-              title={imageGenEnabled ? "Image generation enabled" : "Enable Image generation"}
-            >
-              <Image className="h-4 w-4" />
-              <span className="sr-only">Generate Image</span>
-            </Button>
+            <div className="relative">
+              <Button 
+                type="button" 
+                variant="ghost" 
+                size="icon"
+                disabled
+                className="h-8 w-8 opacity-50 cursor-not-allowed"
+                title="Image generation - Coming Soon"
+              >
+                <Image className="h-4 w-4" />
+                <span className="sr-only">Generate Image</span>
+              </Button>
+              <span className="absolute -top-1 -right-1 bg-amber-500 text-[6px] text-white px-1 rounded font-bold">SOON</span>
+            </div>
           </div>
         </div>
         
