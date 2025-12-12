@@ -6,6 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Message } from '@/types/chat';
 import { useAuth } from '@/contexts/AuthContext';
 import { encryptConversationContent, decryptConversationContent } from '@/utils/encryption';
+import { useNavigate } from 'react-router-dom';
 
 // Helper function to prepare message for JSON storage
 const prepareMessagesForStorage = (messages: Message[]) => {
@@ -20,13 +21,47 @@ const prepareMessagesForStorage = (messages: Message[]) => {
   }));
 };
 
+// Helper to check if error is an auth error
+const isAuthError = (error: any): boolean => {
+  if (!error) return false;
+  const message = error.message?.toLowerCase() || '';
+  const status = error.status || error.code;
+  return (
+    status === 401 ||
+    status === 403 ||
+    message.includes('auth') ||
+    message.includes('session') ||
+    message.includes('token') ||
+    message.includes('unauthorized')
+  );
+};
+
 export function useConversationPersistence() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  // Handle auth errors by refreshing session or redirecting
+  const handleAuthError = useCallback(async () => {
+    // Try to refresh the session first
+    const { data: { session }, error } = await supabase.auth.refreshSession();
+    
+    if (error || !session) {
+      toast({
+        title: "Session expired",
+        description: "Please sign in again to continue.",
+        variant: "destructive"
+      });
+      await signOut();
+      navigate('/auth');
+      return false;
+    }
+    return true; // Session was refreshed successfully
+  }, [toast, signOut, navigate]);
 
   const saveConversation = useCallback(
     async (messages: Message[], topic: string, conversationId: string | null, isNew = false) => {
-      if (!user) return null;
+      if (!user || user.id === 'demo') return null;
       
       try {
         // Create conversation entry or update
@@ -48,7 +83,15 @@ export function useConversationPersistence() {
             }
           });
           
-          if (error) throw error;
+          if (error) {
+            if (isAuthError(error)) {
+              const refreshed = await handleAuthError();
+              if (!refreshed) return null;
+              // Retry after refresh
+              return saveConversation(messages, topic, conversationId, isNew);
+            }
+            throw error;
+          }
           convoId = data.id;
         } else {
           // Update existing conversation
@@ -63,12 +106,24 @@ export function useConversationPersistence() {
             }
           });
             
-          if (error) throw error;
+          if (error) {
+            if (isAuthError(error)) {
+              const refreshed = await handleAuthError();
+              if (!refreshed) return null;
+              // Retry after refresh
+              return saveConversation(messages, topic, conversationId, isNew);
+            }
+            throw error;
+          }
         }
         
         return convoId;
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error saving conversation:", error);
+        if (isAuthError(error)) {
+          await handleAuthError();
+          return null;
+        }
         toast({
           title: "Error saving conversation",
           description: "There was a problem saving your conversation.",
@@ -77,12 +132,12 @@ export function useConversationPersistence() {
         return null;
       }
     },
-    [user, toast]
+    [user, toast, handleAuthError]
   );
 
   const loadConversation = useCallback(
     async (id: string) => {
-      if (!user) return null;
+      if (!user || user.id === 'demo') return null;
       
       try {
         const { data, error } = await supabase.functions.invoke('manage-conversations', {
@@ -92,7 +147,15 @@ export function useConversationPersistence() {
           }
         });
           
-        if (error) throw error;
+        if (error) {
+          if (isAuthError(error)) {
+            const refreshed = await handleAuthError();
+            if (!refreshed) return null;
+            // Retry after refresh
+            return loadConversation(id);
+          }
+          throw error;
+        }
         
         if (data) {
           try {
@@ -109,11 +172,11 @@ export function useConversationPersistence() {
               messages: loadedMessages,
               id: data.id
             };
-          } catch (decryptError) {
+          } catch (decryptError: any) {
             console.error("Decryption failed for conversation:", id, decryptError);
             
             // Show more specific error message to user
-            if (decryptError.message.includes('encryption key has changed')) {
+            if (decryptError.message?.includes('encryption key has changed')) {
               toast({
                 title: "Cannot load conversation",
                 description: "This conversation cannot be decrypted. It may have been created with an old encryption method.",
@@ -131,8 +194,12 @@ export function useConversationPersistence() {
           }
         }
         return null;
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error loading conversation:", error);
+        if (isAuthError(error)) {
+          await handleAuthError();
+          return null;
+        }
         toast({
           title: "Error loading conversation",
           description: "There was a problem loading your conversation.",
@@ -141,7 +208,7 @@ export function useConversationPersistence() {
         throw error;
       }
     },
-    [user, toast]
+    [user, toast, handleAuthError]
   );
 
   return {
