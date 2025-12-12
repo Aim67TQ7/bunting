@@ -27,7 +27,7 @@ serve(async (req) => {
     console.log(`Processing image generation request for user ${userId}`);
     console.log(`Prompt: ${prompt.substring(0, 100)}...`);
 
-    // Call OpenAI's image generation API (gpt-image-1 always returns base64)
+    // Call OpenAI's image generation API using dall-e-3
     const response = await fetch("https://api.openai.com/v1/images/generations", {
       method: "POST",
       headers: {
@@ -35,10 +35,11 @@ serve(async (req) => {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: "gpt-image-1",
+        model: "dall-e-3",
         prompt: prompt,
         n: 1,
-        size: "1024x1024"
+        size: "1024x1024",
+        response_format: "b64_json"
       })
     });
 
@@ -69,7 +70,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       content: `![Generated Image](data:image/png;base64,${imageBase64})`,
       imageBase64: imageBase64,
-      model: "gpt-image-1"
+      model: "dall-e-3"
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
