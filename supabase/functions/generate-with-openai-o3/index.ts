@@ -75,7 +75,14 @@ Your expertise areas:
 - Technical specifications and performance criteria
 - Installation and maintenance considerations
 
-Provide direct, technical responses focused on solving customer problems. Do not ask follow-up questions to continue conversation unless clarification is specifically needed for technical accuracy.${contextualInfo}`
+Ground your responses in verifiable sources:
+1. Check the provided Bunting knowledge base first for relevant information
+2. When citing company-specific information, indicate source as "Bunting KB"
+3. For external claims, prefer information from official websites (.gov, .edu, manufacturer sites)
+4. Clearly distinguish between factual information and recommendations
+5. If information isn't available in the knowledge base, say so clearly
+
+Provide direct, technical responses focused on solving customer problems. Do NOT ask follow-up questions or suggest related topics at the end of your responses.${contextualInfo}`
     };
     
     const messagesWithSystem = [enhancedSystemMessage];

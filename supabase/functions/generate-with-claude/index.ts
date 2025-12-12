@@ -1,7 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+const supabaseUrl = Deno.env.get('SUPABASE_URL');
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -23,6 +26,33 @@ serve(async (req) => {
     console.log(`Processing Claude request for user ${userId}, conversation ${conversationId || 'new'}`);
     console.log(`API Key present: ${!!ANTHROPIC_API_KEY}, starts with sk-ant-: ${ANTHROPIC_API_KEY?.startsWith('sk-ant-')}`);
 
+    // Initialize Supabase client for database grounding
+    const supabase = createClient(supabaseUrl!, supabaseServiceKey!);
+    
+    // Search the 'don' table for relevant narrative context
+    console.log('Searching don table for relevant context...');
+    
+    let contextualInfo = '';
+    try {
+      const { data: donResults, error: donError } = await supabase
+        .from('don')
+        .select('narrative')
+        .not('narrative', 'is', null)
+        .limit(5);
+
+      if (donError) {
+        console.error('Error searching don table:', donError);
+      } else if (donResults && donResults.length > 0) {
+        console.log(`Found ${donResults.length} relevant narratives in don table`);
+        contextualInfo = '\n\nBunting Knowledge Base:\n' + 
+          donResults.map((doc: any) => `- ${doc.narrative}`).join('\n');
+      } else {
+        console.log('No narratives found in don table');
+      }
+    } catch (error) {
+      console.error('Error accessing don table:', error);
+    }
+
     // Product information context
     const productContext = `
 Bunting's product portfolio includes:
@@ -36,7 +66,7 @@ Bunting's product portfolio includes:
 8. Electromagnets with various coil voltages (12V, 24V, 48V, 120V, 240V), magnetic strengths up to 12,000 Gauss (1.2 Tesla), sizes ranging from 1 inch (25mm) to 12 inches (305mm) in diameter and 2 inches (50mm) to 24 inches (610mm) in length, with materials including copper, aluminum, and iron cores.
 `;
 
-    // Enhanced system message for document/vision analysis
+    // Enhanced system message for document/vision analysis with grounding
     let systemMessage = `You are BuntingGPT, a helpful AI assistant with advanced vision and document analysis capabilities. You can discuss any topic and provide information on a wide range of subjects. Be helpful, informative, and conversational.
 
 When analyzing documents, images, or files:
@@ -47,14 +77,16 @@ When analyzing documents, images, or files:
 5. For documents: Summarize content, identify main points, extract data
 6. Offer actionable insights and recommendations
 
-After providing your answer, do one of the following:
-1. Ask a relevant follow-up question to deepen the conversation if the topic has more depth to explore.
-2. Ask if your answer addressed their question completely or if they need additional information.
-3. Suggest related topics they might be interested in based on your query.
+Ground your responses in verifiable sources:
+1. Check the provided Bunting knowledge base first for relevant information
+2. When citing company-specific information, indicate source as "Bunting KB"
+3. For external claims, prefer information from official websites (.gov, .edu, manufacturer sites)
+4. Clearly distinguish between factual information and recommendations
+5. If information isn't available in the knowledge base, say so clearly
 
-Keep follow-ups concise and natural - they should feel like a helpful colleague checking in, not an interrogation.
+Do NOT ask follow-up questions or suggest related topics at the end of your responses. Provide direct, complete answers.
 
-${productContext}`;
+${productContext}${contextualInfo}`;
 
     // Prepare messages for Claude API format with file support
     const claudeMessages = messages.filter(msg => msg.role !== "system").map(msg => {
@@ -151,7 +183,7 @@ ${productContext}`;
     
     return new Response(JSON.stringify({
       content: responseContent,
-      model: fileData ? "claude-3-5-sonnet (vision)" : "claude-3-5-sonnet"
+      model: fileData ? "claude-sonnet-4 (vision)" : "claude-sonnet-4"
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });

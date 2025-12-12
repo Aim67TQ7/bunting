@@ -1,7 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
 const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
+const supabaseUrl = Deno.env.get('SUPABASE_URL');
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -22,6 +25,33 @@ serve(async (req) => {
 
     console.log(`Processing request for user ${userId}, conversation ${conversationId || 'new'}, web: ${enableWeb}`);
 
+    // Initialize Supabase client for database grounding
+    const supabase = createClient(supabaseUrl!, supabaseServiceKey!);
+    
+    // Search the 'don' table for relevant narrative context
+    console.log('Searching don table for relevant context...');
+    
+    let contextualInfo = '';
+    try {
+      const { data: donResults, error: donError } = await supabase
+        .from('don')
+        .select('narrative')
+        .not('narrative', 'is', null)
+        .limit(5);
+
+      if (donError) {
+        console.error('Error searching don table:', donError);
+      } else if (donResults && donResults.length > 0) {
+        console.log(`Found ${donResults.length} relevant narratives in don table`);
+        contextualInfo = '\n\nBunting Knowledge Base:\n' + 
+          donResults.map((doc: any) => `- ${doc.narrative}`).join('\n');
+      } else {
+        console.log('No narratives found in don table');
+      }
+    } catch (error) {
+      console.error('Error accessing don table:', error);
+    }
+
     // Product information context
     const productContext = `
 Bunting's product portfolio includes:
@@ -35,7 +65,7 @@ Bunting's product portfolio includes:
 8. Electromagnets with various coil voltages (12V, 24V, 48V, 120V, 240V), magnetic strengths up to 12,000 Gauss (1.2 Tesla), sizes ranging from 1 inch (25mm) to 12 inches (305mm) in diameter and 2 inches (50mm) to 24 inches (610mm) in length, with materials including copper, aluminum, and iron cores.
 `;
 
-    // Enhanced system message with writing guidelines
+    // Enhanced system message with grounding instructions
     const enhancedSystemMessage = { 
       role: "system", 
       content: `You are BuntingGPT, a versatile AI assistant that can discuss any topic and provide information across a wide range of subjects. Be helpful, informative, and conversational.
@@ -48,14 +78,16 @@ Unless told otherwise or the context demands it, you follow these rules:
 – You stick to substance, not filler.
 – You keep the flow logical and the rhythm sharp.
 
-After providing your answer, do one of the following:
-1. Ask a relevant follow-up question to deepen the conversation if the topic has more depth to explore.
-2. Ask if your answer addressed their question completely or if they need additional information.
-3. Suggest related topics they might be interested in based on their query.
+Ground your responses in verifiable sources:
+1. Check the provided Bunting knowledge base first for relevant information
+2. When citing company-specific information, indicate source as "Bunting KB"
+3. For external claims, prefer information from official websites (.gov, .edu, manufacturer sites)
+4. Clearly distinguish between factual information and recommendations
+5. If information isn't available in the knowledge base, say so clearly
 
-Keep follow-ups concise and natural - they should feel like a helpful colleague checking in, not an interrogation.
+Do NOT ask follow-up questions or suggest related topics at the end of your responses. Provide direct, complete answers.
 
-Background context (use when relevant): ${productContext}`
+Background context: ${productContext}${contextualInfo}`
     };
     
     const messagesWithSystem = [enhancedSystemMessage];
@@ -64,7 +96,7 @@ Background context (use when relevant): ${productContext}`
     if (enableWeb) {
       messagesWithSystem.push({
         role: "system",
-        content: "IMPORTANT: You now have access to web search capabilities. If the user asks about current information like prices, market data, news, or events, you should use this capability to provide up-to-date information. Acknowledge when you're using web search and cite your sources clearly."
+        content: "IMPORTANT: You now have access to web search capabilities. If the user asks about current information like prices, market data, news, or events, you should use this capability to provide up-to-date information. Acknowledge when you're using web search and cite your sources clearly with URLs when possible."
       });
       
       console.log("Web search capability enabled for this query");
