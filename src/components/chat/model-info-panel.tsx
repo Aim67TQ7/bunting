@@ -72,8 +72,11 @@ export function ModelInfoPanel({ className }: ModelInfoPanelProps) {
           </div>
         </div>
 
-        {/* Image Generation */}
-        <div className="flex items-start gap-3 p-4 rounded-lg bg-card border border-border">
+        {/* Image Generation - Coming Soon */}
+        <div className="flex items-start gap-3 p-4 rounded-lg bg-card border border-border relative opacity-60">
+          <div className="absolute top-2 right-2 bg-amber-500 text-[10px] text-white px-2 py-0.5 rounded font-bold">
+            COMING SOON
+          </div>
           <div className="flex-shrink-0 p-2 rounded-md bg-green-500/10">
             <Image className="h-5 w-5 text-green-500" />
           </div>
@@ -82,7 +85,7 @@ export function ModelInfoPanel({ className }: ModelInfoPanelProps) {
               Generate <span className="text-xs font-normal text-muted-foreground">(Toggle 🎨)</span>
             </h3>
             <p className="text-sm text-muted-foreground mt-1">
-              Create images from text descriptions using Google Imagen 3.
+              Create images from text using Google Imagen 3. Currently in development.
             </p>
           </div>
         </div>
