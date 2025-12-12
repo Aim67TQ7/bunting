@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -6,9 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Search, Key, Copy, RefreshCw, CheckCircle2, AlertCircle } from "lucide-react";
+import { Search, Key, Copy, RefreshCw, CheckCircle2, AlertCircle, X } from "lucide-react";
 import { format } from "date-fns";
 
 interface User {
@@ -24,12 +22,24 @@ export function UserPasswordManager() {
   const [searchQuery, setSearchQuery] = useState("");
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [newPassword, setNewPassword] = useState("");
   const [reason, setReason] = useState("");
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successPassword, setSuccessPassword] = useState<string | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const generatePassword = () => {
     const chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%";
@@ -67,6 +77,7 @@ export function UserPasswordManager() {
       }
 
       setUsers(response.data.users || []);
+      setShowDropdown(true);
       if (response.data.users?.length === 0) {
         toast({ title: "No users found", description: "Try a different search term" });
       }
@@ -82,12 +93,12 @@ export function UserPasswordManager() {
     }
   };
 
-  const openPasswordDialog = (user: User) => {
+  const selectUser = (user: User) => {
     setSelectedUser(user);
+    setShowDropdown(false);
     setNewPassword("");
     setReason("");
     setSuccessPassword(null);
-    setIsDialogOpen(true);
   };
 
   const handleSetPassword = async () => {
@@ -136,8 +147,7 @@ export function UserPasswordManager() {
     toast({ title: "Copied to clipboard" });
   };
 
-  const closeDialog = () => {
-    setIsDialogOpen(false);
+  const clearSelection = () => {
     setSelectedUser(null);
     setNewPassword("");
     setReason("");
@@ -145,7 +155,7 @@ export function UserPasswordManager() {
   };
 
   return (
-    <Card>
+    <Card className="bg-card">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Key className="h-5 w-5" />
@@ -156,106 +166,100 @@ export function UserPasswordManager() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex gap-2">
-          <div className="flex-1">
-            <Input
-              placeholder="Search by email..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && searchUsers()}
-            />
+        {/* Search with Dropdown */}
+        <div className="relative" ref={dropdownRef}>
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <Input
+                placeholder="Search by email..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && searchUsers()}
+                className="bg-background"
+              />
+            </div>
+            <Button onClick={searchUsers} disabled={loading}>
+              <Search className="h-4 w-4 mr-2" />
+              {loading ? "..." : "Search"}
+            </Button>
           </div>
-          <Button onClick={searchUsers} disabled={loading}>
-            <Search className="h-4 w-4 mr-2" />
-            {loading ? "Searching..." : "Search"}
-          </Button>
-        </div>
 
-        {users.length > 0 && (
-          <div className="rounded-lg border overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Last Sign In</TableHead>
-                  <TableHead>Confirmed</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell className="font-medium">{user.email}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {format(new Date(user.created_at), "MMM d, yyyy")}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {user.last_sign_in_at 
+          {/* Dropdown Results */}
+          {showDropdown && users.length > 0 && (
+            <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-lg shadow-lg max-h-64 overflow-y-auto">
+              {users.map((user) => (
+                <button
+                  key={user.id}
+                  onClick={() => selectUser(user)}
+                  className="w-full px-4 py-3 text-left hover:bg-accent flex items-center justify-between border-b border-border last:border-b-0"
+                >
+                  <div>
+                    <p className="font-medium text-foreground">{user.email}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Last login: {user.last_sign_in_at 
                         ? format(new Date(user.last_sign_in_at), "MMM d, yyyy h:mm a")
                         : "Never"}
-                    </TableCell>
-                    <TableCell>
-                      {user.email_confirmed_at ? (
-                        <CheckCircle2 className="h-4 w-4 text-green-500" />
-                      ) : (
-                        <AlertCircle className="h-4 w-4 text-yellow-500" />
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button size="sm" variant="outline" onClick={() => openPasswordDialog(user)}>
-                        <Key className="h-3 w-3 mr-1" />
-                        Set Password
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {user.email_confirmed_at ? (
+                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <AlertCircle className="h-4 w-4 text-yellow-500" />
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Set Temporary Password</DialogTitle>
-              <DialogDescription>
-                Set a temporary password for <strong>{selectedUser?.email}</strong>
-              </DialogDescription>
-            </DialogHeader>
+        {/* Selected User Panel */}
+        {selectedUser && (
+          <div className="border border-border rounded-lg p-4 bg-muted/50 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-foreground">{selectedUser.email}</p>
+                <p className="text-xs text-muted-foreground">
+                  Created: {format(new Date(selectedUser.created_at), "MMM d, yyyy")} • 
+                  Last login: {selectedUser.last_sign_in_at 
+                    ? format(new Date(selectedUser.last_sign_in_at), "MMM d, yyyy")
+                    : "Never"}
+                </p>
+              </div>
+              <Button variant="ghost" size="sm" onClick={clearSelection}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
 
             {successPassword ? (
-              <div className="space-y-4">
-                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-                  <p className="text-sm text-green-800 dark:text-green-200 mb-2">
-                    Password set successfully! Share this with the user:
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <code className="flex-1 bg-background border rounded px-3 py-2 text-sm font-mono">
-                      {successPassword}
-                    </code>
-                    <Button size="sm" variant="outline" onClick={() => copyToClipboard(successPassword)}>
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Remind the user to change their password after logging in.
-                  </p>
+              <div className="bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded-lg p-4">
+                <p className="text-sm text-green-800 dark:text-green-200 font-medium mb-2">
+                  Password set successfully! Share this with the user:
+                </p>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 bg-background border border-border rounded px-3 py-2 text-sm font-mono text-foreground">
+                    {successPassword}
+                  </code>
+                  <Button size="sm" variant="outline" onClick={() => copyToClipboard(successPassword)}>
+                    <Copy className="h-4 w-4" />
+                  </Button>
                 </div>
-                <DialogFooter>
-                  <Button onClick={closeDialog}>Close</Button>
-                </DialogFooter>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Remind the user to change their password after logging in.
+                </p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <>
                 <div className="space-y-2">
-                  <Label>New Password</Label>
+                  <Label className="text-foreground">New Password</Label>
                   <div className="flex gap-2">
                     <Input
                       type="text"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       placeholder="Enter or generate password"
+                      className="bg-background"
                     />
                     <Button variant="outline" onClick={generatePassword} title="Generate random password">
                       <RefreshCw className="h-4 w-4" />
@@ -265,28 +269,29 @@ export function UserPasswordManager() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Reason (optional)</Label>
+                  <Label className="text-foreground">Reason (optional)</Label>
                   <Textarea
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
                     placeholder="Why is this password being reset?"
                     rows={2}
+                    className="bg-background"
                   />
                 </div>
 
-                <DialogFooter>
-                  <Button variant="outline" onClick={closeDialog}>Cancel</Button>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={clearSelection}>Cancel</Button>
                   <Button 
                     onClick={handleSetPassword} 
                     disabled={!newPassword || newPassword.length < 8 || isSubmitting}
                   >
                     {isSubmitting ? "Setting..." : "Set Password"}
                   </Button>
-                </DialogFooter>
-              </div>
+                </div>
+              </>
             )}
-          </DialogContent>
-        </Dialog>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
