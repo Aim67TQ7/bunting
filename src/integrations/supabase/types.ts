@@ -3273,6 +3273,41 @@ export type Database = {
         }
         Relationships: []
       }
+      rvw_admin_audit_log: {
+        Row: {
+          action: string
+          admin_user_id: string
+          created_at: string
+          details: Json | null
+          id: string
+          target_employee_id: string | null
+        }
+        Insert: {
+          action: string
+          admin_user_id: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          target_employee_id?: string | null
+        }
+        Update: {
+          action?: string
+          admin_user_id?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          target_employee_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rvw_admin_audit_log_target_employee_id_fkey"
+            columns: ["target_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rvw_calibration_sessions: {
         Row: {
           attendees: string[] | null
