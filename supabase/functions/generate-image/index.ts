@@ -27,7 +27,7 @@ serve(async (req) => {
     console.log(`Processing image generation request for user ${userId}`);
     console.log(`Prompt: ${prompt.substring(0, 100)}...`);
 
-    // Call OpenAI's image generation API
+    // Call OpenAI's image generation API (gpt-image-1 always returns base64)
     const response = await fetch("https://api.openai.com/v1/images/generations", {
       method: "POST",
       headers: {
@@ -38,8 +38,7 @@ serve(async (req) => {
         model: "gpt-image-1",
         prompt: prompt,
         n: 1,
-        size: "1024x1024",
-        response_format: "b64_json"
+        size: "1024x1024"
       })
     });
 
