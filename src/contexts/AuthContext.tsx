@@ -42,6 +42,17 @@ const isValidBuntingEmail = (email: string): boolean => {
   return email.endsWith('@buntingmagnetics.com') || email.endsWith('@buntinggpt.com');
 };
 
+// Helper to detect if we're returning from OAuth callback
+const hasOAuthCallbackParams = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  const hash = window.location.hash;
+  const search = window.location.search;
+  return hash.includes('access_token') || 
+         hash.includes('error') ||
+         search.includes('code=') ||
+         search.includes('error=');
+};
+
 // Provider component that wraps app
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<any>(null);
@@ -51,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
+    let oauthTimeout: NodeJS.Timeout | null = null;
 
     // Set up authentication state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -58,6 +70,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log('Auth state change:', event, currentSession?.user?.email);
         
         if (!mounted) return;
+
+        // Clear OAuth timeout if we got an auth event
+        if (oauthTimeout) {
+          clearTimeout(oauthTimeout);
+          oauthTimeout = null;
+        }
         
         if (event === 'SIGNED_OUT') {
           setSession(null);
@@ -69,6 +87,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           setSession(currentSession);
           setUser(currentSession?.user ?? null);
+          
+          // Clean URL after OAuth callback
+          if (hasOAuthCallbackParams()) {
+            window.history.replaceState({}, '', window.location.pathname);
+          }
+          
+          // Mark session as checked for OAuth flow
+          setSessionChecked(true);
+          setIsLoading(false);
         } else if (event === 'USER_UPDATED') {
           setUser(currentSession?.user ?? null);
         } else if (event === 'INITIAL_SESSION') {
@@ -79,15 +106,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           } else if (isDemoMode()) {
             setUser({ id: 'demo', email: getDemoEmail() || 'demo@buntingmagnetics.com' });
           }
-          setSessionChecked(true);
-          setIsLoading(false);
+          
+          // Only mark as checked if NOT waiting for OAuth callback
+          if (!hasOAuthCallbackParams()) {
+            setSessionChecked(true);
+            setIsLoading(false);
+          }
         } else if (!currentSession && isDemoMode()) {
           // No session but demo mode enabled
           setUser({ id: 'demo', email: getDemoEmail() || 'demo@buntingmagnetics.com' });
         }
         
-        // Only set loading false if we got a definitive auth event
-        if (event !== 'INITIAL_SESSION') {
+        // Only set loading false if we got a definitive auth event (and not OAuth waiting)
+        if (event !== 'INITIAL_SESSION' && !hasOAuthCallbackParams()) {
           setIsLoading(false);
         }
       }
@@ -95,6 +126,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Check for existing session with better error handling
     const initializeAuth = async () => {
+      // If we're returning from OAuth, wait for the auth event instead of calling getSession immediately
+      if (hasOAuthCallbackParams()) {
+        console.log('OAuth callback detected, waiting for auth event...');
+        
+        // Set a timeout to prevent infinite waiting if OAuth fails
+        oauthTimeout = setTimeout(() => {
+          if (mounted && isLoading) {
+            console.log('OAuth callback timeout - no auth event received');
+            setSessionChecked(true);
+            setIsLoading(false);
+            // Clean URL even on timeout
+            window.history.replaceState({}, '', window.location.pathname);
+          }
+        }, 5000);
+        
+        return;
+      }
+
       try {
         console.log('Initializing auth session...');
         const { data: { session: currentSession }, error } = await supabase.auth.getSession();
@@ -134,6 +183,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       mounted = false;
+      if (oauthTimeout) clearTimeout(oauthTimeout);
       subscription.unsubscribe();
     };
   }, []);
