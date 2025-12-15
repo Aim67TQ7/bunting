@@ -92,7 +92,8 @@ const otpResetSchema = z.object({
 });
 
 export default function Auth() {
-  const { user, isLoading, signIn, signUp, signUpWithEmailOnly, resetPassword, verifyOtpAndUpdatePassword, verifyOtpAndCreateAccount } = useAuth();
+  const { user, isLoading, signIn, signInWithMicrosoft, signUp, signUpWithEmailOnly, resetPassword, verifyOtpAndUpdatePassword, verifyOtpAndCreateAccount } = useAuth();
+  const [isMicrosoftLoading, setIsMicrosoftLoading] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "signup" | "email-signup" | "otp-signup" | "reset" | "otp-reset">("login");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -342,6 +343,22 @@ export default function Auth() {
     }
   };
 
+  // Handle Microsoft login
+  const onMicrosoftLogin = async () => {
+    setIsMicrosoftLoading(true);
+    const { error } = await signInWithMicrosoft();
+    
+    if (error) {
+      toast({
+        title: "Microsoft login failed",
+        description: error.message,
+        variant: "destructive",
+      });
+      setIsMicrosoftLoading(false);
+    }
+    // Note: On success, user will be redirected to Microsoft, so no need to handle success state
+  };
+
   return (
     <div className={`flex flex-col items-center justify-center min-h-screen ${isMobile ? 'p-2' : 'p-4'} bg-muted/30`}>
       <div className={`${isMobile ? 'mb-4' : 'mb-8'}`}>
@@ -402,63 +419,95 @@ export default function Auth() {
         
         <CardContent className={isMobile ? 'px-4' : ''}>
           {authMode === "login" && (
-            <Form {...loginForm}>
-              <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className={`space-y-${isMobile ? '3' : '4'}`}>
-                <FormField
-                  control={loginForm.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className={isMobile ? 'text-sm' : ''}>Email</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="you@buntingmagnetics.com" 
-                          type="email" 
-                          className={isMobile ? 'h-12 text-base' : ''} 
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={loginForm.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className={isMobile ? 'text-sm' : ''}>Password</FormLabel>
-                      <FormControl>
-                        <div className="relative">
+            <div className="space-y-4">
+              {/* Microsoft Login Button */}
+              <Button
+                type="button"
+                variant="outline"
+                className={`w-full ${isMobile ? 'h-12 text-base' : ''} flex items-center justify-center gap-2`}
+                onClick={onMicrosoftLogin}
+                disabled={isMicrosoftLoading || isLoading}
+              >
+                <svg className="h-5 w-5" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="1" y="1" width="9" height="9" fill="#F25022"/>
+                  <rect x="11" y="1" width="9" height="9" fill="#7FBA00"/>
+                  <rect x="1" y="11" width="9" height="9" fill="#00A4EF"/>
+                  <rect x="11" y="11" width="9" height="9" fill="#FFB900"/>
+                </svg>
+                {isMicrosoftLoading ? "Connecting..." : "Sign in with Microsoft"}
+              </Button>
+
+              {/* Divider */}
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-border" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">
+                    or continue with email
+                  </span>
+                </div>
+              </div>
+
+              {/* Email/Password Form */}
+              <Form {...loginForm}>
+                <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className={`space-y-${isMobile ? '3' : '4'}`}>
+                  <FormField
+                    control={loginForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className={isMobile ? 'text-sm' : ''}>Email</FormLabel>
+                        <FormControl>
                           <Input 
-                            placeholder="••••••••" 
-                            type={showPassword ? "text" : "password"} 
-                            className={isMobile ? 'h-12 text-base pr-12' : ''} 
+                            placeholder="you@buntingmagnetics.com" 
+                            type="email" 
+                            className={isMobile ? 'h-12 text-base' : ''} 
                             {...field} 
                           />
-                          <button 
-                            type="button"
-                            className={`absolute inset-y-0 right-0 flex items-center ${isMobile ? 'pr-4' : 'pr-3'} text-gray-400 hover:text-gray-600`}
-                            onClick={() => setShowPassword(!showPassword)}
-                            tabIndex={-1}
-                          >
-                            {showPassword ? (
-                              <EyeOff className="h-5 w-5" aria-hidden="true" />
-                            ) : (
-                              <Eye className="h-5 w-5" aria-hidden="true" />
-                            )}
-                          </button>
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <Button type="submit" className={`w-full ${isMobile ? 'h-12 text-base' : ''}`} disabled={isLoading}>
-                  {isLoading ? "Signing in..." : "Sign in"}
-                </Button>
-              </form>
-            </Form>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={loginForm.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className={isMobile ? 'text-sm' : ''}>Password</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Input 
+                              placeholder="••••••••" 
+                              type={showPassword ? "text" : "password"} 
+                              className={isMobile ? 'h-12 text-base pr-12' : ''} 
+                              {...field} 
+                            />
+                            <button 
+                              type="button"
+                              className={`absolute inset-y-0 right-0 flex items-center ${isMobile ? 'pr-4' : 'pr-3'} text-gray-400 hover:text-gray-600`}
+                              onClick={() => setShowPassword(!showPassword)}
+                              tabIndex={-1}
+                            >
+                              {showPassword ? (
+                                <EyeOff className="h-5 w-5" aria-hidden="true" />
+                              ) : (
+                                <Eye className="h-5 w-5" aria-hidden="true" />
+                              )}
+                            </button>
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button type="submit" className={`w-full ${isMobile ? 'h-12 text-base' : ''}`} disabled={isLoading}>
+                    {isLoading ? "Signing in..." : "Sign in"}
+                  </Button>
+                </form>
+              </Form>
+            </div>
           )}
 
           {authMode === "signup" && (
