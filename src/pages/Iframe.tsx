@@ -24,6 +24,7 @@ interface AuthMessage {
     email: string;
   };
   token?: string;
+  refreshToken?: string;
   origin: string;
   timestamp: number;
 }
@@ -169,15 +170,16 @@ const Iframe = () => {
           iframe.contentWindow.postMessage(userMessage, targetOrigin);
           console.log('User data sent to iframe');
 
-          // Send access token (Supabase session token)
+          // Send access token and refresh token (Supabase session tokens)
           const tokenMessage: AuthMessage = {
             type: 'PROVIDE_TOKEN',
             token: session.access_token,
+            refreshToken: session.refresh_token,
             origin: window.location.origin,
             timestamp: Date.now()
           };
           iframe.contentWindow.postMessage(tokenMessage, targetOrigin);
-          console.log('Supabase token sent to iframe');
+          console.log('Supabase token and refresh token sent to iframe');
         }
 
         // ALSO send legacy tokens/license for any apps that need them
@@ -251,11 +253,12 @@ const Iframe = () => {
         const message: AuthMessage = {
           type: 'PROVIDE_TOKEN',
           token: session.access_token,
+          refreshToken: session.refresh_token,
           origin: window.location.origin,
           timestamp: Date.now()
         };
         (event.source as Window)?.postMessage(message, event.origin);
-        console.log('Supabase token provided in response to request');
+        console.log('Supabase token and refresh token provided in response to request');
       } else if (data?.type === 'REQUEST_TOKEN' && token && !needsSupabaseAuth) {
         // Legacy token request for non-buntinggpt apps
         const message: TokenMessage = {

@@ -9,6 +9,7 @@ interface AuthMessage {
     email: string;
   };
   token?: string;
+  refreshToken?: string;
   origin: string;
   timestamp: number;
 }
@@ -37,15 +38,16 @@ const Dashboard = () => {
           iframe.contentWindow.postMessage(userMessage, 'https://notes.buntinggpt.com');
           console.log('User data sent to iframe via postMessage');
 
-          // Send access token
+          // Send access token and refresh token
           const tokenMessage: AuthMessage = {
             type: 'PROVIDE_TOKEN',
             token: session.access_token,
+            refreshToken: session.refresh_token,
             origin: window.location.origin,
             timestamp: Date.now()
           };
           iframe.contentWindow.postMessage(tokenMessage, 'https://notes.buntinggpt.com');
-          console.log('Access token sent to iframe via postMessage');
+          console.log('Access token and refresh token sent to iframe via postMessage');
         } catch (error) {
           console.warn('Failed to send auth data to iframe:', error);
         }
@@ -83,11 +85,12 @@ const Dashboard = () => {
         const message: AuthMessage = {
           type: 'PROVIDE_TOKEN',
           token: session.access_token,
+          refreshToken: session.refresh_token,
           origin: window.location.origin,
           timestamp: Date.now()
         };
         iframe.contentWindow.postMessage(message, 'https://notes.buntinggpt.com');
-        console.log('Token provided in response to request');
+        console.log('Token and refresh token provided in response to request');
       }
     };
 
