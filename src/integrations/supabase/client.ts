@@ -20,16 +20,17 @@ if (typeof window !== 'undefined') {
 const cookieStorage = {
   getItem: (key: string): string | null => {
     try {
-      const name = key + "=";
-      const decodedCookie = decodeURIComponent(document.cookie);
-      const cookieArray = decodedCookie.split(';');
+      const encodedKey = encodeURIComponent(key) + "=";
+      const cookieArray = document.cookie.split(';');
       
       for (let cookie of cookieArray) {
         cookie = cookie.trim();
-        if (cookie.indexOf(name) === 0) {
-          const value = cookie.substring(name.length);
-          console.log(`Cookie read [${key}]:`, value ? 'found (' + value.length + ' chars)' : 'empty');
-          return value || null;
+        if (cookie.indexOf(encodedKey) === 0) {
+          const value = cookie.substring(encodedKey.length);
+          // Decode the value that was URL-encoded when stored
+          const decodedValue = decodeURIComponent(value);
+          console.log(`Cookie read [${key}]:`, decodedValue ? 'found (' + decodedValue.length + ' chars)' : 'empty');
+          return decodedValue || null;
         }
       }
       console.log(`Cookie read [${key}]: not found`);
@@ -43,7 +44,10 @@ const cookieStorage = {
   setItem: (key: string, value: string): void => {
     try {
       const maxAge = 60 * 60 * 24 * 7; // 7 days
-      document.cookie = `${key}=${value}; path=/; domain=.buntinggpt.com; max-age=${maxAge}; SameSite=Lax; Secure`;
+      // URL-encode both key and value to handle special characters in JWT
+      const encodedKey = encodeURIComponent(key);
+      const encodedValue = encodeURIComponent(value);
+      document.cookie = `${encodedKey}=${encodedValue}; path=/; domain=.buntinggpt.com; max-age=${maxAge}; SameSite=Lax; Secure`;
       console.log(`Cookie set [${key}]:`, value.length, 'chars');
     } catch (e) {
       console.error('Cookie write error:', e);
@@ -52,7 +56,8 @@ const cookieStorage = {
   
   removeItem: (key: string): void => {
     try {
-      document.cookie = `${key}=; path=/; domain=.buntinggpt.com; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax; Secure`;
+      const encodedKey = encodeURIComponent(key);
+      document.cookie = `${encodedKey}=; path=/; domain=.buntinggpt.com; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax; Secure`;
       console.log(`Cookie removed [${key}]`);
     } catch (e) {
       console.error('Cookie remove error:', e);
