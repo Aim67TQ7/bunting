@@ -3231,6 +3231,87 @@ export type Database = {
         }
         Relationships: []
       }
+      rep_territories: {
+        Row: {
+          assigned_at: string | null
+          id: string
+          is_active: boolean | null
+          territory_code: string
+          territory_name: string | null
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          territory_code: string
+          territory_name?: string | null
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          territory_code?: string
+          territory_name?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      rep_visits: {
+        Row: {
+          checkin_lat: number | null
+          checkin_lng: number | null
+          checkin_time: string
+          checkout_time: string | null
+          created_at: string | null
+          customer_address: string | null
+          customer_id: string | null
+          customer_name: string
+          follow_up_date: string | null
+          id: string
+          notes: string | null
+          outcome: string | null
+          updated_at: string | null
+          user_id: string
+          visit_type: string
+        }
+        Insert: {
+          checkin_lat?: number | null
+          checkin_lng?: number | null
+          checkin_time?: string
+          checkout_time?: string | null
+          created_at?: string | null
+          customer_address?: string | null
+          customer_id?: string | null
+          customer_name: string
+          follow_up_date?: string | null
+          id?: string
+          notes?: string | null
+          outcome?: string | null
+          updated_at?: string | null
+          user_id: string
+          visit_type: string
+        }
+        Update: {
+          checkin_lat?: number | null
+          checkin_lng?: number | null
+          checkin_time?: string
+          checkout_time?: string | null
+          created_at?: string | null
+          customer_address?: string | null
+          customer_id?: string | null
+          customer_name?: string
+          follow_up_date?: string | null
+          id?: string
+          notes?: string | null
+          outcome?: string | null
+          updated_at?: string | null
+          user_id?: string
+          visit_type?: string
+        }
+        Relationships: []
+      }
       reports: {
         Row: {
           access_token: string | null
@@ -3599,16 +3680,81 @@ export type Database = {
         }
         Relationships: []
       }
+      rvw_review_benchmarks: {
+        Row: {
+          avg_score: number | null
+          competency_type: string | null
+          created_at: string | null
+          cycle_id: string | null
+          department: string | null
+          id: string
+          location: string | null
+          max_score: number | null
+          median_score: number | null
+          metric_name: string
+          min_score: number | null
+          percentile_25: number | null
+          percentile_75: number | null
+          response_count: number | null
+          template_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          avg_score?: number | null
+          competency_type?: string | null
+          created_at?: string | null
+          cycle_id?: string | null
+          department?: string | null
+          id?: string
+          location?: string | null
+          max_score?: number | null
+          median_score?: number | null
+          metric_name: string
+          min_score?: number | null
+          percentile_25?: number | null
+          percentile_75?: number | null
+          response_count?: number | null
+          template_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          avg_score?: number | null
+          competency_type?: string | null
+          created_at?: string | null
+          cycle_id?: string | null
+          department?: string | null
+          id?: string
+          location?: string | null
+          max_score?: number | null
+          median_score?: number | null
+          metric_name?: string
+          min_score?: number | null
+          percentile_25?: number | null
+          percentile_75?: number | null
+          response_count?: number | null
+          template_type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rvw_review_benchmarks_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "rvw_review_cycles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rvw_review_cycles: {
         Row: {
           created_at: string
           description: string | null
           end_date: string
           id: string
-          org_id: string
+          org_id: string | null
           start_date: string
           status: string
-          template_id: string
+          template_id: string | null
           title: string
           updated_at: string
         }
@@ -3617,10 +3763,10 @@ export type Database = {
           description?: string | null
           end_date: string
           id?: string
-          org_id: string
+          org_id?: string | null
           start_date: string
           status?: string
-          template_id: string
+          template_id?: string | null
           title: string
           updated_at?: string
         }
@@ -3629,10 +3775,10 @@ export type Database = {
           description?: string | null
           end_date?: string
           id?: string
-          org_id?: string
+          org_id?: string | null
           start_date?: string
           status?: string
-          template_id?: string
+          template_id?: string | null
           title?: string
           updated_at?: string
         }
@@ -3695,7 +3841,7 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
-          org_id: string
+          org_id: string | null
           questions_json: Json
           template_type: string
           updated_at: string
@@ -3706,7 +3852,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
-          org_id: string
+          org_id?: string | null
           questions_json?: Json
           template_type: string
           updated_at?: string
@@ -3717,7 +3863,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
-          org_id?: string
+          org_id?: string | null
           questions_json?: Json
           template_type?: string
           updated_at?: string
@@ -3802,17 +3948,17 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "rvw_reviews_employee_id_fkey1"
+            foreignKeyName: "rvw_reviews_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
-            referencedRelation: "rvw_user_roles"
+            referencedRelation: "employees"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "rvw_reviews_manager_id_fkey"
             columns: ["manager_id"]
             isOneToOne: false
-            referencedRelation: "rvw_user_roles"
+            referencedRelation: "employees"
             referencedColumns: ["id"]
           },
         ]
@@ -4966,6 +5112,115 @@ export type Database = {
         }
         Relationships: []
       }
+      visit_attachments: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          file_path: string
+          file_type: string | null
+          id: string
+          visit_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          file_path: string
+          file_type?: string | null
+          id?: string
+          visit_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          file_path?: string
+          file_type?: string | null
+          id?: string
+          visit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visit_attachments_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "rep_visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      voice_notes: {
+        Row: {
+          ai_summary: string | null
+          audio_blob: string | null
+          audio_duration_seconds: number | null
+          check_in_lat: number | null
+          check_in_lng: number | null
+          check_in_timestamp: string | null
+          created_at: string
+          customer_id: string | null
+          customer_name: string
+          final_notes: string | null
+          id: string
+          last_error: string | null
+          raw_transcript: string | null
+          retry_count: number | null
+          status: string
+          transcription_provider: string | null
+          updated_at: string
+          user_id: string
+          visit_id: string | null
+        }
+        Insert: {
+          ai_summary?: string | null
+          audio_blob?: string | null
+          audio_duration_seconds?: number | null
+          check_in_lat?: number | null
+          check_in_lng?: number | null
+          check_in_timestamp?: string | null
+          created_at?: string
+          customer_id?: string | null
+          customer_name: string
+          final_notes?: string | null
+          id?: string
+          last_error?: string | null
+          raw_transcript?: string | null
+          retry_count?: number | null
+          status?: string
+          transcription_provider?: string | null
+          updated_at?: string
+          user_id: string
+          visit_id?: string | null
+        }
+        Update: {
+          ai_summary?: string | null
+          audio_blob?: string | null
+          audio_duration_seconds?: number | null
+          check_in_lat?: number | null
+          check_in_lng?: number | null
+          check_in_timestamp?: string | null
+          created_at?: string
+          customer_id?: string | null
+          customer_name?: string
+          final_notes?: string | null
+          id?: string
+          last_error?: string | null
+          raw_transcript?: string | null
+          retry_count?: number | null
+          status?: string
+          transcription_provider?: string | null
+          updated_at?: string
+          user_id?: string
+          visit_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_notes_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "rep_visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       user_unread_messages: {
@@ -5052,6 +5307,10 @@ export type Database = {
         Args: { user1_id: string; user2_id: string }
         Returns: string
       }
+      get_subordinate_user_ids: {
+        Args: { manager_user_id: string }
+        Returns: string[]
+      }
       get_user_rvw_org_id: { Args: { _user_id: string }; Returns: string }
       has_review_permission: {
         Args: { _permission: string; _user_id: string }
@@ -5133,7 +5392,15 @@ export type Database = {
           updated_managers: number
         }[]
       }
+      rvw_calculate_competency_avg: {
+        Args: { p_review_id: string }
+        Returns: number
+      }
       rvw_calculate_competency_score: {
+        Args: { p_review_id: string }
+        Returns: number
+      }
+      rvw_calculate_goal_score: {
         Args: { p_review_id: string }
         Returns: number
       }
