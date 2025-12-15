@@ -12,6 +12,7 @@ interface AuthContextType {
   signUp: (email: string, password: string) => Promise<{ error: any | null }>;
   signUpWithEmailOnly: (email: string) => Promise<{ error: any | null }>;
   signIn: (email: string, password: string) => Promise<{ error: any | null }>;
+  signInWithMicrosoft: () => Promise<{ error: any | null }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: any | null }>;
   verifyOtpAndUpdatePassword: (email: string, token: string, password: string) => Promise<{ error: any | null }>;
@@ -28,6 +29,7 @@ const AuthContext = createContext<AuthContextType>({
   signUp: async () => ({ error: null }),
   signUpWithEmailOnly: async () => ({ error: null }),
   signIn: async () => ({ error: null }),
+  signInWithMicrosoft: async () => ({ error: null }),
   signOut: async () => {},
   resetPassword: async () => ({ error: null }),
   verifyOtpAndUpdatePassword: async () => ({ error: null }),
@@ -189,6 +191,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Sign in with Microsoft (Azure AD)
+  const signInWithMicrosoft = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'azure',
+        options: {
+          redirectTo: `${window.location.origin}/auth`,
+          scopes: 'email profile openid',
+        }
+      });
+
+      if (error) {
+        return { error };
+      }
+
+      return { error: null };
+    } catch (error) {
+      console.error('Microsoft sign in error:', error);
+      return { error: { message: "An unexpected error occurred. Please try again." } };
+    }
+  };
+
   const signOut = async () => {
     setIsLoading(true);
     try {
@@ -343,6 +367,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signUp,
     signUpWithEmailOnly,
     signIn,
+    signInWithMicrosoft,
     signOut,
     resetPassword,
     verifyOtpAndUpdatePassword,
