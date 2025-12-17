@@ -492,6 +492,164 @@ export type Database = {
         }
         Relationships: []
       }
+      calibration_attachments: {
+        Row: {
+          calibration_record_id: string | null
+          created_at: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          file_type: string
+          id: string
+          tool_id: string | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          calibration_record_id?: string | null
+          created_at?: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          file_type?: string
+          id?: string
+          tool_id?: string | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          calibration_record_id?: string | null
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          file_type?: string
+          id?: string
+          tool_id?: string | null
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calibration_attachments_calibration_record_id_fkey"
+            columns: ["calibration_record_id"]
+            isOneToOne: false
+            referencedRelation: "calibration_records"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calibration_attachments_tool_id_fkey"
+            columns: ["tool_id"]
+            isOneToOne: false
+            referencedRelation: "calibration_tools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      calibration_records: {
+        Row: {
+          calibration_date: string
+          calibration_provider: string | null
+          certificate_number: string | null
+          created_at: string
+          id: string
+          next_due_date: string | null
+          notes: string | null
+          performed_by: string
+          result: string
+          tool_id: string
+        }
+        Insert: {
+          calibration_date: string
+          calibration_provider?: string | null
+          certificate_number?: string | null
+          created_at?: string
+          id?: string
+          next_due_date?: string | null
+          notes?: string | null
+          performed_by: string
+          result: string
+          tool_id: string
+        }
+        Update: {
+          calibration_date?: string
+          calibration_provider?: string | null
+          certificate_number?: string | null
+          created_at?: string
+          id?: string
+          next_due_date?: string | null
+          notes?: string | null
+          performed_by?: string
+          result?: string
+          tool_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calibration_records_tool_id_fkey"
+            columns: ["tool_id"]
+            isOneToOne: false
+            referencedRelation: "calibration_tools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      calibration_tools: {
+        Row: {
+          calibration_frequency_days: number
+          created_at: string
+          department: string | null
+          description: string | null
+          id: string
+          last_calibration_date: string | null
+          location: string | null
+          manufacturer: string | null
+          model: string | null
+          next_due_date: string | null
+          notes: string | null
+          responsible_user_id: string | null
+          serial_number: string | null
+          status: string
+          tool_name: string
+          tool_number: string
+          updated_at: string
+        }
+        Insert: {
+          calibration_frequency_days?: number
+          created_at?: string
+          department?: string | null
+          description?: string | null
+          id?: string
+          last_calibration_date?: string | null
+          location?: string | null
+          manufacturer?: string | null
+          model?: string | null
+          next_due_date?: string | null
+          notes?: string | null
+          responsible_user_id?: string | null
+          serial_number?: string | null
+          status?: string
+          tool_name: string
+          tool_number: string
+          updated_at?: string
+        }
+        Update: {
+          calibration_frequency_days?: number
+          created_at?: string
+          department?: string | null
+          description?: string | null
+          id?: string
+          last_calibration_date?: string | null
+          location?: string | null
+          manufacturer?: string | null
+          model?: string | null
+          next_due_date?: string | null
+          notes?: string | null
+          responsible_user_id?: string | null
+          serial_number?: string | null
+          status?: string
+          tool_name?: string
+          tool_number?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       character_directives: {
         Row: {
           character_id: string
@@ -1123,6 +1281,7 @@ export type Database = {
           hire_date: string | null
           id: string
           is_active: boolean
+          job_level: Database["public"]["Enums"]["job_level"] | null
           job_title: string | null
           location: string | null
           name_first: string
@@ -1142,6 +1301,7 @@ export type Database = {
           hire_date?: string | null
           id?: string
           is_active?: boolean
+          job_level?: Database["public"]["Enums"]["job_level"] | null
           job_title?: string | null
           location?: string | null
           name_first: string
@@ -1161,6 +1321,7 @@ export type Database = {
           hire_date?: string | null
           id?: string
           is_active?: boolean
+          job_level?: Database["public"]["Enums"]["job_level"] | null
           job_title?: string | null
           location?: string | null
           name_first?: string
@@ -5307,6 +5468,7 @@ export type Database = {
         Args: { user1_id: string; user2_id: string }
         Returns: string
       }
+      get_role_level: { Args: { role_name: string }; Returns: number }
       get_subordinate_user_ids: {
         Args: { manager_user_id: string }
         Returns: string[]
@@ -5314,6 +5476,10 @@ export type Database = {
       get_user_rvw_org_id: { Args: { _user_id: string }; Returns: string }
       has_review_permission: {
         Args: { _permission: string; _user_id: string }
+        Returns: boolean
+      }
+      has_role_level: {
+        Args: { _min_role: string; _user_id: string }
         Returns: boolean
       }
       has_rvw_role: {
