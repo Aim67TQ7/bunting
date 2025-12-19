@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, MessageSquare, AppWindow, Clock } from "lucide-react";
+import { Users, MessageSquare, AppWindow, TrendingUp } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
@@ -12,9 +12,10 @@ import {
 } from "@/components/ui/select";
 
 interface AnalyticsData {
-  uniqueUsersPerMonth: { month: string; count: number }[];
+  uniqueUsers: number;
   totalConversations: number;
-  appsByCountry: { country: string; app_name: string; count: number; total_duration: number }[];
+  totalAppOpens: number;
+  topApps: { name: string; count: number }[];
 }
 
 export function AdminAnalytics() {
@@ -33,7 +34,7 @@ export function AdminAnalytics() {
       const startDate = new Date();
       startDate.setMonth(startDate.getMonth() - monthsAgo);
 
-      // Fetch unique users per month from conversations
+      // Fetch unique users from conversations
       const { data: conversationsData, error: convError } = await supabase
         .from('conversations')
         .select('user_id, created_at')
@@ -41,72 +42,36 @@ export function AdminAnalytics() {
 
       if (convError) throw convError;
 
-      // Group by month
-      const usersByMonth: Record<string, Set<string>> = {};
-      conversationsData?.forEach((conv) => {
-        const month = new Date(conv.created_at).toLocaleDateString('en-US', { 
-          year: 'numeric', 
-          month: 'short' 
-        });
-        if (!usersByMonth[month]) usersByMonth[month] = new Set();
-        usersByMonth[month].add(conv.user_id);
-      });
-
-      const uniqueUsersPerMonth = Object.entries(usersByMonth)
-        .map(([month, users]) => ({ month, count: users.size }))
-        .sort((a, b) => new Date(a.month).getTime() - new Date(b.month).getTime());
+      // Count unique users
+      const uniqueUserIds = new Set(conversationsData?.map(c => c.user_id) || []);
+      const uniqueUsers = uniqueUserIds.size;
 
       // Total conversations
       const totalConversations = conversationsData?.length || 0;
 
-      // Fetch app usage from analytics table (if any data exists)
-      const { data: analyticsData, error: analyticsError } = await supabase
-        .from('admin_analytics')
-        .select('app_name, country, duration_seconds')
-        .eq('event_type', 'app_open')
-        .gte('created_at', startDate.toISOString());
-
-      // Also get app usage from app_items view/use counts
+      // Fetch app usage from app_items
       const { data: appItems, error: appError } = await supabase
         .from('app_items')
-        .select('name, view_count, use_count')
-        .order('use_count', { ascending: false })
-        .limit(10);
+        .select('name, use_count')
+        .order('use_count', { ascending: false, nullsFirst: false })
+        .limit(5);
 
-      // Aggregate app usage by country
-      const appCountryMap: Record<string, { count: number; duration: number }> = {};
-      analyticsData?.forEach((item) => {
-        const key = `${item.country || 'Unknown'}:${item.app_name || 'Unknown'}`;
-        if (!appCountryMap[key]) {
-          appCountryMap[key] = { count: 0, duration: 0 };
-        }
-        appCountryMap[key].count++;
-        appCountryMap[key].duration += item.duration_seconds || 0;
-      });
+      if (appError) throw appError;
 
-      const appsByCountry = Object.entries(appCountryMap)
-        .map(([key, value]) => {
-          const [country, app_name] = key.split(':');
-          return {
-            country,
-            app_name,
-            count: value.count,
-            total_duration: value.duration,
-          };
-        })
-        .sort((a, b) => b.count - a.count);
+      // Calculate total app opens
+      const totalAppOpens = appItems?.reduce((sum, app) => sum + (app.use_count || 0), 0) || 0;
+
+      // Top apps
+      const topApps = appItems?.map(app => ({
+        name: app.name,
+        count: app.use_count || 0,
+      })) || [];
 
       setData({
-        uniqueUsersPerMonth,
+        uniqueUsers,
         totalConversations,
-        appsByCountry: appsByCountry.length > 0 ? appsByCountry : 
-          // Fallback to app_items data if no analytics yet
-          (appItems?.map(app => ({
-            country: 'All',
-            app_name: app.name,
-            count: app.use_count || 0,
-            total_duration: 0,
-          })) || []),
+        totalAppOpens,
+        topApps,
       });
     } catch (error) {
       console.error('Error fetching analytics:', error);
@@ -117,26 +82,28 @@ export function AdminAnalytics() {
 
   if (loading) {
     return (
-      <div className="space-y-4">
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-48 w-full" />
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Skeleton className="h-28" />
+          <Skeleton className="h-28" />
+          <Skeleton className="h-28" />
+        </div>
+        <Skeleton className="h-64" />
       </div>
     );
   }
 
-  const formatDuration = (seconds: number) => {
-    if (seconds < 60) return `${seconds}s`;
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
-    return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
-  };
+  const maxAppCount = Math.max(...(data?.topApps.map(a => a.count) || [1]));
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Admin Analytics</h3>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Analytics Dashboard</h2>
+          <p className="text-muted-foreground">Website usage metrics and insights</p>
+        </div>
         <Select value={selectedMonths} onValueChange={setSelectedMonths}>
-          <SelectTrigger className="w-32">
+          <SelectTrigger className="w-40">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -148,105 +115,84 @@ export function AdminAnalytics() {
         </Select>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 gap-4">
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <Users className="h-5 w-5 text-primary" />
-              </div>
+      {/* Metric Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Total Unique Users</p>
-                <p className="text-2xl font-bold">
-                  {data?.uniqueUsersPerMonth.reduce((sum, m) => sum + m.count, 0) || 0}
-                </p>
+                <p className="text-sm font-medium text-muted-foreground">Unique Users</p>
+                <p className="text-3xl font-bold mt-1">{data?.uniqueUsers || 0}</p>
+              </div>
+              <div className="p-3 bg-primary/10 rounded-full">
+                <Users className="h-6 w-6 text-primary" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <MessageSquare className="h-5 w-5 text-primary" />
-              </div>
+        <Card className="bg-gradient-to-br from-blue-500/5 to-blue-500/10 border-blue-500/20">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Conversations</p>
-                <p className="text-2xl font-bold">{data?.totalConversations || 0}</p>
+                <p className="text-sm font-medium text-muted-foreground">Conversations</p>
+                <p className="text-3xl font-bold mt-1">{data?.totalConversations || 0}</p>
+              </div>
+              <div className="p-3 bg-blue-500/10 rounded-full">
+                <MessageSquare className="h-6 w-6 text-blue-500" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-green-500/5 to-green-500/10 border-green-500/20">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">App Opens</p>
+                <p className="text-3xl font-bold mt-1">{data?.totalAppOpens || 0}</p>
+              </div>
+              <div className="p-3 bg-green-500/10 rounded-full">
+                <AppWindow className="h-6 w-6 text-green-500" />
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Users per Month */}
+      {/* Most Frequently Used Apps */}
       <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            Unique Users per Month
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-primary" />
+            Most Frequently Used Apps
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {data?.uniqueUsersPerMonth.length ? (
-            <div className="space-y-2">
-              {data.uniqueUsersPerMonth.map((item) => (
-                <div key={item.month} className="flex items-center justify-between">
-                  <span className="text-sm">{item.month}</span>
-                  <div className="flex items-center gap-2">
-                    <div 
-                      className="h-2 bg-primary rounded-full"
-                      style={{ 
-                        width: `${Math.max(20, (item.count / Math.max(...data.uniqueUsersPerMonth.map(m => m.count))) * 100)}px` 
-                      }}
-                    />
-                    <span className="text-sm font-medium w-8 text-right">{item.count}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">No data available</p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* App Usage by Country */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2">
-            <AppWindow className="h-4 w-4" />
-            Most Used Apps
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {data?.appsByCountry.length ? (
-            <div className="space-y-3">
-              {data.appsByCountry.slice(0, 10).map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between border-b border-border/50 pb-2 last:border-0">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">{item.app_name}</p>
-                    <p className="text-xs text-muted-foreground">{item.country}</p>
-                  </div>
-                  <div className="flex items-center gap-4 text-sm">
-                    <div className="flex items-center gap-1">
-                      <Users className="h-3 w-3 text-muted-foreground" />
-                      <span>{item.count}</span>
+          {data?.topApps.length ? (
+            <div className="space-y-4">
+              {data.topApps.map((app, idx) => (
+                <div key={app.name} className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-sm font-semibold">
+                        {idx + 1}
+                      </span>
+                      <span className="font-medium">{app.name}</span>
                     </div>
-                    {item.total_duration > 0 && (
-                      <div className="flex items-center gap-1">
-                        <Clock className="h-3 w-3 text-muted-foreground" />
-                        <span>{formatDuration(item.total_duration)}</span>
-                      </div>
-                    )}
+                    <span className="text-sm text-muted-foreground">{app.count} opens</span>
+                  </div>
+                  <div className="h-2 bg-muted rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-primary rounded-full transition-all duration-500"
+                      style={{ width: `${(app.count / maxAppCount) * 100}%` }}
+                    />
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">No app usage data yet</p>
+            <p className="text-muted-foreground text-center py-8">No app usage data available yet</p>
           )}
         </CardContent>
       </Card>
