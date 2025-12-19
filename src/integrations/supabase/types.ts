@@ -14,6 +14,56 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_analytics: {
+        Row: {
+          app_id: string | null
+          app_name: string | null
+          country: string | null
+          created_at: string
+          duration_seconds: number | null
+          event_data: Json | null
+          event_type: string
+          id: string
+          session_id: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          app_id?: string | null
+          app_name?: string | null
+          country?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          event_data?: Json | null
+          event_type: string
+          id?: string
+          session_id?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          app_id?: string | null
+          app_name?: string | null
+          country?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          event_data?: Json | null
+          event_type?: string
+          id?: string
+          session_id?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_analytics_app_id_fkey"
+            columns: ["app_id"]
+            isOneToOne: false
+            referencedRelation: "app_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_audit_log: {
         Row: {
           action: string
