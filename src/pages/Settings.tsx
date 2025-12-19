@@ -21,6 +21,10 @@ import { AppItemsSecretPanel } from "@/components/admin/AppItemsSecretPanel";
 import { ReportIssueForm } from "@/components/issues/ReportIssueForm";
 import { MyIssuesList } from "@/components/issues/MyIssuesList";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
+import { AdminAnalytics } from "@/components/settings/AdminAnalytics";
+
+const ADMIN_EMAIL = "rclausing@buntingmagnetics.com";
+
 // Modified schema to remove current password requirement since user is already authenticated
 const passwordSchema = z.object({
   newPassword: z.string().min(8, "Password must be at least 8 characters"),
@@ -213,6 +217,22 @@ export default function Settings() {
 
                   {/* Collapsible sections */}
                   <Accordion type="single" collapsible className="w-full">
+                    {/* Admin Analytics - only visible to admin */}
+                    {user.email === ADMIN_EMAIL && (
+                      <AccordionItem value="admin-analytics">
+                        <Card className="border-0">
+                          <CardHeader className="p-0">
+                            <AccordionTrigger className="px-4">
+                              <CardTitle>Admin Analytics</CardTitle>
+                            </AccordionTrigger>
+                          </CardHeader>
+                          <AccordionContent className="px-4">
+                            <AdminAnalytics />
+                          </AccordionContent>
+                        </Card>
+                      </AccordionItem>
+                    )}
+
                     <AccordionItem value="conversation-preferences">
                       <Card className="border-0">
                         <CardHeader className="p-0">
