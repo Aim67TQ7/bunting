@@ -201,16 +201,16 @@ const Iframe = () => {
           console.log('Supabase tokens sent to iframe (both standard and legacy formats)');
         }
 
-        // ALSO send legacy tokens/license for any apps that need them
-        // (this runs regardless of whether Supabase auth was sent)
-        if (token) {
+        // Send legacy tokens ONLY for non-buntinggpt apps
+        // (buntinggpt subdomains use Supabase session auth above, not legacy tokens)
+        if (token && !needsSupabaseAuth) {
           const legacyTokenMessage: TokenMessage = {
             type: 'PROVIDE_TOKEN',
             token: token,
             origin: window.location.origin,
             timestamp: Date.now()
           };
-          iframe.contentWindow.postMessage(legacyTokenMessage, needsSupabaseAuth ? targetOrigin : '*');
+          iframe.contentWindow.postMessage(legacyTokenMessage, '*');
           console.log('Legacy token sent to iframe via postMessage');
 
           // Also send as password for auto-fill
@@ -220,7 +220,7 @@ const Iframe = () => {
             origin: window.location.origin,
             timestamp: Date.now()
           };
-          iframe.contentWindow.postMessage(passwordMessage, needsSupabaseAuth ? targetOrigin : '*');
+          iframe.contentWindow.postMessage(passwordMessage, '*');
         }
 
         // Send license if available
