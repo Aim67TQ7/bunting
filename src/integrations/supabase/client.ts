@@ -16,8 +16,9 @@ if (typeof window !== 'undefined') {
   console.log('Supabase auth storage mode:', isProductionDomain ? 'cookie (production)' : 'localStorage (dev)');
 }
 
-// Cookie chunk size (keep under 4KB to be safe, accounting for cookie overhead)
-const COOKIE_CHUNK_SIZE = 3500;
+// Cookie chunk size (keep well under 4KB; attributes + key name add overhead)
+// NOTE: values are URL-encoded, so size can inflate vs raw string.
+const COOKIE_CHUNK_SIZE = 2500;
 
 // Custom cookie storage that splits large values across multiple cookies
 const cookieStorage = {
@@ -25,31 +26,32 @@ const cookieStorage = {
     try {
       const encodedKey = encodeURIComponent(key);
       const cookieArray = document.cookie.split(';');
-      
+
       // First check if this is a chunked cookie
       const chunkCountCookie = cookieArray.find(c => c.trim().startsWith(`${encodedKey}_chunks=`));
-      
+
       if (chunkCountCookie) {
-        // Reassemble chunked cookie
+        // Reassemble chunked cookie (IMPORTANT: concatenate encoded chunks, then decode once)
         const chunkCount = parseInt(chunkCountCookie.split('=')[1], 10);
-        let value = '';
-        
+        let encodedValue = '';
+
         for (let i = 0; i < chunkCount; i++) {
           const chunkKey = `${encodedKey}_${i}=`;
           const chunkCookie = cookieArray.find(c => c.trim().startsWith(chunkKey));
           if (chunkCookie) {
-            const chunkValue = chunkCookie.trim().substring(chunkKey.length);
-            value += decodeURIComponent(chunkValue);
+            const chunkPart = chunkCookie.trim().substring(chunkKey.length);
+            encodedValue += chunkPart;
           } else {
             console.warn(`Cookie chunk ${i} not found for ${key}`);
             return null;
           }
         }
-        
-        console.log(`Cookie read [${key}]: found (${value.length} chars from ${chunkCount} chunks)`);
-        return value || null;
+
+        const decodedValue = decodeURIComponent(encodedValue);
+        console.log(`Cookie read [${key}]: found (${decodedValue.length} chars from ${chunkCount} chunks)`);
+        return decodedValue || null;
       }
-      
+
       // Try single cookie (for backward compatibility or small values)
       const singleKey = `${encodedKey}=`;
       for (let cookie of cookieArray) {
@@ -61,7 +63,7 @@ const cookieStorage = {
           return decodedValue || null;
         }
       }
-      
+
       console.log(`Cookie read [${key}]: not found`);
       return null;
     } catch (e) {
@@ -75,33 +77,34 @@ const cookieStorage = {
       const maxAge = 60 * 60 * 24 * 7; // 7 days
       const encodedKey = encodeURIComponent(key);
       const cookieOptions = `path=/; domain=.buntinggpt.com; max-age=${maxAge}; SameSite=Lax; Secure`;
-      
+
       // First, clear any existing chunks
       cookieStorage.removeItem(key);
-      
+
+      // Store URL-encoded value in cookie(s)
       const encodedValue = encodeURIComponent(value);
-      
+
       // If the encoded value is small enough, use a single cookie
       if (encodedValue.length <= COOKIE_CHUNK_SIZE) {
         document.cookie = `${encodedKey}=${encodedValue}; ${cookieOptions}`;
         console.log(`Cookie set [${key}]: ${value.length} chars (single cookie)`);
         return;
       }
-      
-      // Split into chunks
+
+      // Split into chunks (chunks are already URL-encoded; do NOT decode per-chunk on read)
       const chunks: string[] = [];
       for (let i = 0; i < encodedValue.length; i += COOKIE_CHUNK_SIZE) {
         chunks.push(encodedValue.substring(i, i + COOKIE_CHUNK_SIZE));
       }
-      
+
       // Store chunk count
       document.cookie = `${encodedKey}_chunks=${chunks.length}; ${cookieOptions}`;
-      
+
       // Store each chunk
       chunks.forEach((chunk, index) => {
         document.cookie = `${encodedKey}_${index}=${chunk}; ${cookieOptions}`;
       });
-      
+
       console.log(`Cookie set [${key}]: ${value.length} chars (${chunks.length} chunks)`);
     } catch (e) {
       console.error('Cookie write error:', e);
