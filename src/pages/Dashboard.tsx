@@ -3,17 +3,19 @@ import { PageLayout } from "@/components/page-layout";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface AuthMessage {
-  type: 'PROVIDE_USER' | 'PROVIDE_TOKEN';
+  type: 'PROVIDE_USER' | 'PROVIDE_TOKEN' | 'BUNTINGGPT_AUTH_TOKEN' | 'BUNTINGGPT_AUTH_REQUEST';
   user?: {
     id: string;
     email: string;
   };
-  // Standard naming (preferred)
+  // New format (camelCase)
+  accessToken?: string;
+  refreshToken?: string;
+  // Standard naming (snake_case)
   access_token?: string;
   refresh_token?: string;
-  // Legacy naming (backward compatibility)
+  // Legacy naming
   token?: string;
-  refreshToken?: string;
   origin: string;
   timestamp: number;
 }
@@ -38,38 +40,46 @@ const Dashboard = () => {
         }
 
         try {
-          console.log('Sending auth to notes.buntinggpt.com:', {
-            access_token_preview: session.access_token.substring(0, 30) + '...',
-            refresh_token_preview: session.refresh_token.substring(0, 30) + '...'
-          });
+          console.log('[Dashboard] Sending auth to notes.buntinggpt.com');
 
-          // Send user info
+          // Send NEW format (BUNTINGGPT_AUTH_TOKEN) with user embedded
+          const newFormatMessage: AuthMessage = {
+            type: 'BUNTINGGPT_AUTH_TOKEN',
+            accessToken: session.access_token,
+            refreshToken: session.refresh_token,
+            access_token: session.access_token,
+            refresh_token: session.refresh_token,
+            user: { id: user.id, email: user.email || '' },
+            origin: window.location.origin,
+            timestamp: Date.now()
+          };
+          iframe.contentWindow.postMessage(newFormatMessage, 'https://notes.buntinggpt.com');
+          console.log('[Dashboard] Sent BUNTINGGPT_AUTH_TOKEN');
+
+          // Send legacy PROVIDE_USER for backward compatibility
           const userMessage: AuthMessage = {
             type: 'PROVIDE_USER',
-            user: {
-              id: user.id,
-              email: user.email || ''
-            },
+            user: { id: user.id, email: user.email || '' },
             origin: window.location.origin,
             timestamp: Date.now()
           };
           iframe.contentWindow.postMessage(userMessage, 'https://notes.buntinggpt.com');
-          console.log('User data sent to iframe via postMessage');
 
-          // Send access token and refresh token (both standard and legacy formats)
+          // Send legacy PROVIDE_TOKEN for backward compatibility
           const tokenMessage: AuthMessage = {
             type: 'PROVIDE_TOKEN',
             access_token: session.access_token,
             refresh_token: session.refresh_token,
-            token: session.access_token,        // Legacy compatibility
-            refreshToken: session.refresh_token, // Legacy compatibility
+            accessToken: session.access_token,
+            refreshToken: session.refresh_token,
+            token: session.access_token,
             origin: window.location.origin,
             timestamp: Date.now()
           };
           iframe.contentWindow.postMessage(tokenMessage, 'https://notes.buntinggpt.com');
-          console.log('Tokens sent to iframe (both standard and legacy formats)');
+          console.log('[Dashboard] Auth sent (new + legacy formats)');
         } catch (error) {
-          console.warn('Failed to send auth data to iframe:', error);
+          console.warn('[Dashboard] Failed to send auth data to iframe:', error);
         }
       }
     };
@@ -89,39 +99,55 @@ const Dashboard = () => {
       const iframe = iframeRef.current;
       if (!iframe?.contentWindow || !user || !session) return;
 
-      if (event.data?.type === 'REQUEST_USER') {
+      const { type } = event.data || {};
+
+      if (type === 'REQUEST_USER') {
         const message: AuthMessage = {
           type: 'PROVIDE_USER',
-          user: {
-            id: user.id,
-            email: user.email || ''
-          },
+          user: { id: user.id, email: user.email || '' },
           origin: window.location.origin,
           timestamp: Date.now()
         };
         iframe.contentWindow.postMessage(message, 'https://notes.buntinggpt.com');
-        console.log('User data provided in response to request');
-      } else if (event.data?.type === 'REQUEST_TOKEN' && session?.access_token && session?.refresh_token) {
+        console.log('[Dashboard] User data provided in response to request');
+      } else if ((type === 'REQUEST_TOKEN' || type === 'BUNTINGGPT_AUTH_REQUEST') && session?.access_token && session?.refresh_token) {
         // Validate JWT format before sending
         const accessTokenParts = session.access_token.split('.');
         const refreshTokenParts = session.refresh_token.split('.');
         
         if (accessTokenParts.length !== 3 || refreshTokenParts.length !== 3) {
-          console.error('Invalid JWT format in response to REQUEST_TOKEN');
+          console.error('[Dashboard] Invalid JWT format in response to auth request');
           return;
         }
 
-        const message: AuthMessage = {
-          type: 'PROVIDE_TOKEN',
+        console.log('[Dashboard] Auth request received:', type);
+
+        // Send new format
+        const newMessage: AuthMessage = {
+          type: 'BUNTINGGPT_AUTH_TOKEN',
+          accessToken: session.access_token,
+          refreshToken: session.refresh_token,
           access_token: session.access_token,
           refresh_token: session.refresh_token,
-          token: session.access_token,        // Legacy compatibility
-          refreshToken: session.refresh_token, // Legacy compatibility
+          user: { id: user.id, email: user.email || '' },
           origin: window.location.origin,
           timestamp: Date.now()
         };
-        iframe.contentWindow.postMessage(message, 'https://notes.buntinggpt.com');
-        console.log('Tokens provided in response to request (both formats)');
+        iframe.contentWindow.postMessage(newMessage, 'https://notes.buntinggpt.com');
+
+        // Send legacy format
+        const legacyMessage: AuthMessage = {
+          type: 'PROVIDE_TOKEN',
+          access_token: session.access_token,
+          refresh_token: session.refresh_token,
+          accessToken: session.access_token,
+          refreshToken: session.refresh_token,
+          token: session.access_token,
+          origin: window.location.origin,
+          timestamp: Date.now()
+        };
+        iframe.contentWindow.postMessage(legacyMessage, 'https://notes.buntinggpt.com');
+        console.log('[Dashboard] Auth provided (new + legacy formats)');
       }
     };
 
