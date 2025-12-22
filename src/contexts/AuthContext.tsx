@@ -69,6 +69,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       (event, currentSession) => {
         console.log('Auth state change:', event, currentSession?.user?.email);
         
+        // Debug: Log token lengths (never log actual values for security)
+        if (currentSession) {
+          console.log('[AuthContext] Token diagnostics:', {
+            event,
+            hasAccessToken: !!currentSession.access_token,
+            accessTokenLength: currentSession.access_token?.length || 0,
+            hasRefreshToken: !!currentSession.refresh_token,
+            refreshTokenLength: currentSession.refresh_token?.length || 0,
+            // Refresh tokens should be substantial (100+ chars typically)
+            refreshTokenValid: (currentSession.refresh_token?.length || 0) > 20
+          });
+        }
+        
         if (!mounted) return;
 
         // Clear OAuth timeout if we got an auth event
@@ -155,6 +168,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await supabase.auth.signOut();
         } else if (currentSession) {
           console.log('Found existing session for:', currentSession.user?.email);
+          // Debug: Log token lengths from getSession
+          console.log('[AuthContext] getSession token diagnostics:', {
+            accessTokenLength: currentSession.access_token?.length || 0,
+            refreshTokenLength: currentSession.refresh_token?.length || 0,
+            refreshTokenValid: (currentSession.refresh_token?.length || 0) > 20
+          });
           setSession(currentSession);
           setUser(currentSession.user);
         } else if (isDemoMode()) {
