@@ -20,12 +20,14 @@ interface LegacyMessage {
 
 // Message types for Supabase session auth (buntinggpt subdomains)
 interface SupabaseAuthMessage {
-  type: 'PROVIDE_USER' | 'REQUEST_USER' | 'PROVIDE_TOKEN' | 'REQUEST_TOKEN';
+  type: 'PROVIDE_USER' | 'REQUEST_USER' | 'PROVIDE_TOKEN' | 'REQUEST_TOKEN' | 
+        'BUNTINGGPT_AUTH_TOKEN' | 'BUNTINGGPT_AUTH_REQUEST';
   user?: { id: string; email: string };
   access_token?: string;
   refresh_token?: string;
+  accessToken?: string;  // camelCase for new format
+  refreshToken?: string; // camelCase for new format
   token?: string;        // Legacy compatibility
-  refreshToken?: string; // Legacy compatibility
   origin: string;
   timestamp: number;
 }
@@ -79,7 +81,21 @@ const Iframe = () => {
 
     console.log('[Iframe] Sending Supabase auth to:', targetOrigin);
 
-    // Send user data
+    // Send NEW format (BUNTINGGPT_AUTH_TOKEN) with user embedded
+    const newFormatMessage: SupabaseAuthMessage = {
+      type: 'BUNTINGGPT_AUTH_TOKEN',
+      accessToken: session.access_token,
+      refreshToken: session.refresh_token,
+      access_token: session.access_token,
+      refresh_token: session.refresh_token,
+      user: { id: user.id, email: user.email || '' },
+      origin: window.location.origin,
+      timestamp: Date.now()
+    };
+    iframe.contentWindow.postMessage(newFormatMessage, targetOrigin);
+    console.log('[Iframe] Sent BUNTINGGPT_AUTH_TOKEN');
+
+    // Send legacy PROVIDE_USER for backward compatibility
     const userMessage: SupabaseAuthMessage = {
       type: 'PROVIDE_USER',
       user: { id: user.id, email: user.email || '' },
@@ -88,19 +104,20 @@ const Iframe = () => {
     };
     iframe.contentWindow.postMessage(userMessage, targetOrigin);
 
-    // Send tokens (both standard and legacy property names)
+    // Send legacy PROVIDE_TOKEN for backward compatibility
     const tokenMessage: SupabaseAuthMessage = {
       type: 'PROVIDE_TOKEN',
       access_token: session.access_token,
       refresh_token: session.refresh_token,
-      token: session.access_token,
+      accessToken: session.access_token,
       refreshToken: session.refresh_token,
+      token: session.access_token,
       origin: window.location.origin,
       timestamp: Date.now()
     };
     iframe.contentWindow.postMessage(tokenMessage, targetOrigin);
     
-    console.log('[Iframe] Supabase auth sent successfully');
+    console.log('[Iframe] Supabase auth sent successfully (new + legacy formats)');
     return true;
   }, [user, session, targetOrigin]);
 
@@ -279,18 +296,34 @@ const Iframe = () => {
           timestamp: Date.now()
         };
         (event.source as Window)?.postMessage(message, event.origin);
-      } else if (data.type === 'REQUEST_TOKEN') {
+      } else if (data.type === 'REQUEST_TOKEN' || data.type === 'BUNTINGGPT_AUTH_REQUEST') {
+        console.log('[Iframe] Auth request received:', data.type);
         if (needsSupabaseAuth && session?.access_token && session?.refresh_token) {
-          const message: SupabaseAuthMessage = {
-            type: 'PROVIDE_TOKEN',
+          // Send new format
+          const newMessage: SupabaseAuthMessage = {
+            type: 'BUNTINGGPT_AUTH_TOKEN',
+            accessToken: session.access_token,
+            refreshToken: session.refresh_token,
             access_token: session.access_token,
             refresh_token: session.refresh_token,
-            token: session.access_token,
-            refreshToken: session.refresh_token,
+            user: { id: user?.id || '', email: user?.email || '' },
             origin: window.location.origin,
             timestamp: Date.now()
           };
-          (event.source as Window)?.postMessage(message, event.origin);
+          (event.source as Window)?.postMessage(newMessage, event.origin);
+          
+          // Send legacy format
+          const legacyMessage: SupabaseAuthMessage = {
+            type: 'PROVIDE_TOKEN',
+            access_token: session.access_token,
+            refresh_token: session.refresh_token,
+            accessToken: session.access_token,
+            refreshToken: session.refresh_token,
+            token: session.access_token,
+            origin: window.location.origin,
+            timestamp: Date.now()
+          };
+          (event.source as Window)?.postMessage(legacyMessage, event.origin);
         } else if (!needsSupabaseAuth && legacyToken) {
           const message: LegacyMessage = {
             type: 'PROVIDE_TOKEN',
