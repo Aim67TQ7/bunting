@@ -23,6 +23,10 @@ interface AuthMessage {
     id: string;
     email: string;
   };
+  // Standard naming (preferred)
+  access_token?: string;
+  refresh_token?: string;
+  // Legacy naming (backward compatibility)
   token?: string;
   refreshToken?: string;
   origin: string;
@@ -154,8 +158,20 @@ const Iframe = () => {
       try {
         // For buntinggpt.com subdomains, ALWAYS send Supabase session authentication
         // (third-party cookies in iframes are blocked by modern browsers)
-        if (needsSupabaseAuth && user && session) {
-          console.log('Sending Supabase auth to buntinggpt subdomain:', targetOrigin);
+        if (needsSupabaseAuth && user && session?.access_token && session?.refresh_token) {
+          // Validate JWT format before sending
+          const accessTokenParts = session.access_token.split('.');
+          const refreshTokenParts = session.refresh_token.split('.');
+          
+          if (accessTokenParts.length !== 3 || refreshTokenParts.length !== 3) {
+            console.error('Invalid JWT format - tokens may not be established yet');
+            return;
+          }
+
+          console.log('Sending Supabase auth to buntinggpt subdomain:', targetOrigin, {
+            access_token_preview: session.access_token.substring(0, 30) + '...',
+            refresh_token_preview: session.refresh_token.substring(0, 30) + '...'
+          });
 
           // Send user data
           const userMessage: AuthMessage = {
@@ -171,15 +187,18 @@ const Iframe = () => {
           console.log('User data sent to iframe');
 
           // Send access token and refresh token (Supabase session tokens)
+          // Include BOTH standard and legacy property names for compatibility
           const tokenMessage: AuthMessage = {
             type: 'PROVIDE_TOKEN',
-            token: session.access_token,
-            refreshToken: session.refresh_token,
+            access_token: session.access_token,
+            refresh_token: session.refresh_token,
+            token: session.access_token,        // Legacy compatibility
+            refreshToken: session.refresh_token, // Legacy compatibility
             origin: window.location.origin,
             timestamp: Date.now()
           };
           iframe.contentWindow.postMessage(tokenMessage, targetOrigin);
-          console.log('Supabase token and refresh token sent to iframe');
+          console.log('Supabase tokens sent to iframe (both standard and legacy formats)');
         }
 
         // ALSO send legacy tokens/license for any apps that need them
@@ -249,16 +268,27 @@ const Iframe = () => {
         };
         (event.source as Window)?.postMessage(message, event.origin);
         console.log('User data provided in response to request');
-      } else if (data?.type === 'REQUEST_TOKEN' && session) {
+      } else if (data?.type === 'REQUEST_TOKEN' && session?.access_token && session?.refresh_token) {
+        // Validate JWT format before sending
+        const accessTokenParts = session.access_token.split('.');
+        const refreshTokenParts = session.refresh_token.split('.');
+        
+        if (accessTokenParts.length !== 3 || refreshTokenParts.length !== 3) {
+          console.error('Invalid JWT format in response to REQUEST_TOKEN');
+          return;
+        }
+
         const message: AuthMessage = {
           type: 'PROVIDE_TOKEN',
-          token: session.access_token,
-          refreshToken: session.refresh_token,
+          access_token: session.access_token,
+          refresh_token: session.refresh_token,
+          token: session.access_token,        // Legacy compatibility
+          refreshToken: session.refresh_token, // Legacy compatibility
           origin: window.location.origin,
           timestamp: Date.now()
         };
         (event.source as Window)?.postMessage(message, event.origin);
-        console.log('Supabase token and refresh token provided in response to request');
+        console.log('Supabase tokens provided in response to request (both formats)');
       } else if (data?.type === 'REQUEST_TOKEN' && token && !needsSupabaseAuth) {
         // Legacy token request for non-buntinggpt apps
         const message: TokenMessage = {

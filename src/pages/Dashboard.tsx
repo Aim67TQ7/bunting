@@ -8,6 +8,10 @@ interface AuthMessage {
     id: string;
     email: string;
   };
+  // Standard naming (preferred)
+  access_token?: string;
+  refresh_token?: string;
+  // Legacy naming (backward compatibility)
   token?: string;
   refreshToken?: string;
   origin: string;
@@ -23,8 +27,22 @@ const Dashboard = () => {
     const iframe = iframeRef.current;
     
     const handleIframeLoad = () => {
-      if (iframe?.contentWindow && user && session) {
+      if (iframe?.contentWindow && user && session?.access_token && session?.refresh_token) {
+        // Validate JWT format before sending
+        const accessTokenParts = session.access_token.split('.');
+        const refreshTokenParts = session.refresh_token.split('.');
+        
+        if (accessTokenParts.length !== 3 || refreshTokenParts.length !== 3) {
+          console.error('Invalid JWT format - tokens may not be established yet');
+          return;
+        }
+
         try {
+          console.log('Sending auth to notes.buntinggpt.com:', {
+            access_token_preview: session.access_token.substring(0, 30) + '...',
+            refresh_token_preview: session.refresh_token.substring(0, 30) + '...'
+          });
+
           // Send user info
           const userMessage: AuthMessage = {
             type: 'PROVIDE_USER',
@@ -38,16 +56,18 @@ const Dashboard = () => {
           iframe.contentWindow.postMessage(userMessage, 'https://notes.buntinggpt.com');
           console.log('User data sent to iframe via postMessage');
 
-          // Send access token and refresh token
+          // Send access token and refresh token (both standard and legacy formats)
           const tokenMessage: AuthMessage = {
             type: 'PROVIDE_TOKEN',
-            token: session.access_token,
-            refreshToken: session.refresh_token,
+            access_token: session.access_token,
+            refresh_token: session.refresh_token,
+            token: session.access_token,        // Legacy compatibility
+            refreshToken: session.refresh_token, // Legacy compatibility
             origin: window.location.origin,
             timestamp: Date.now()
           };
           iframe.contentWindow.postMessage(tokenMessage, 'https://notes.buntinggpt.com');
-          console.log('Access token and refresh token sent to iframe via postMessage');
+          console.log('Tokens sent to iframe (both standard and legacy formats)');
         } catch (error) {
           console.warn('Failed to send auth data to iframe:', error);
         }
@@ -81,16 +101,27 @@ const Dashboard = () => {
         };
         iframe.contentWindow.postMessage(message, 'https://notes.buntinggpt.com');
         console.log('User data provided in response to request');
-      } else if (event.data?.type === 'REQUEST_TOKEN') {
+      } else if (event.data?.type === 'REQUEST_TOKEN' && session?.access_token && session?.refresh_token) {
+        // Validate JWT format before sending
+        const accessTokenParts = session.access_token.split('.');
+        const refreshTokenParts = session.refresh_token.split('.');
+        
+        if (accessTokenParts.length !== 3 || refreshTokenParts.length !== 3) {
+          console.error('Invalid JWT format in response to REQUEST_TOKEN');
+          return;
+        }
+
         const message: AuthMessage = {
           type: 'PROVIDE_TOKEN',
-          token: session.access_token,
-          refreshToken: session.refresh_token,
+          access_token: session.access_token,
+          refresh_token: session.refresh_token,
+          token: session.access_token,        // Legacy compatibility
+          refreshToken: session.refresh_token, // Legacy compatibility
           origin: window.location.origin,
           timestamp: Date.now()
         };
         iframe.contentWindow.postMessage(message, 'https://notes.buntinggpt.com');
-        console.log('Token and refresh token provided in response to request');
+        console.log('Tokens provided in response to request (both formats)');
       }
     };
 
