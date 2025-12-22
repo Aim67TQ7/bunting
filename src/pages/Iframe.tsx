@@ -33,9 +33,18 @@ interface SupabaseAuthMessage {
 }
 
 // Check if URL is a buntinggpt.com subdomain
+const normalizeUrl = (raw: string): string => {
+  const trimmed = raw.trim();
+  if (!trimmed) return trimmed;
+
+  // If protocol is missing (common when stored in DB), default to https
+  if (!/^https?:\/\//i.test(trimmed)) return `https://${trimmed}`;
+  return trimmed;
+};
+
 const isBuntingGptSubdomain = (url: string): boolean => {
   try {
-    return new URL(url).hostname.endsWith('.buntinggpt.com');
+    return new URL(normalizeUrl(url)).hostname.endsWith('.buntinggpt.com');
   } catch {
     return false;
   }
@@ -43,7 +52,7 @@ const isBuntingGptSubdomain = (url: string): boolean => {
 
 const getOriginFromUrl = (url: string): string => {
   try {
-    return new URL(url).origin;
+    return new URL(normalizeUrl(url)).origin;
   } catch {
     return '*';
   }
@@ -175,10 +184,11 @@ const Iframe = () => {
       if (titleParam) setTitle(titleParam);
       if (!urlParam) return;
 
-      setUrl(urlParam);
+      const normalizedUrl = normalizeUrl(urlParam);
+      setUrl(normalizedUrl);
 
       // Only fetch legacy tokens for non-buntinggpt apps
-      if (id && sourceTable && !isBuntingGptSubdomain(urlParam)) {
+      if (id && sourceTable && !isBuntingGptSubdomain(normalizedUrl)) {
         try {
           let fetchedToken = null;
           let fetchedLicense = null;
