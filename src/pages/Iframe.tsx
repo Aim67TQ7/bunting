@@ -79,12 +79,37 @@ const Iframe = () => {
   const sendSupabaseAuth = useCallback(() => {
     const iframe = iframeRef.current;
     if (!iframe?.contentWindow || !user || !session?.access_token || !session?.refresh_token) {
+      console.log('[Iframe] Cannot send auth - missing:', {
+        iframe: !!iframe?.contentWindow,
+        user: !!user,
+        accessToken: !!session?.access_token,
+        refreshToken: !!session?.refresh_token
+      });
       return false;
     }
 
-    // Validate JWT format
-    if (session.access_token.split('.').length !== 3 || session.refresh_token.split('.').length !== 3) {
-      console.warn('[Iframe] Invalid JWT format, skipping auth send');
+    // Only validate access_token as JWT (3 parts) - refresh_token is OPAQUE, not a JWT!
+    if (session.access_token.split('.').length !== 3) {
+      console.warn('[Iframe] Invalid access_token JWT format');
+      return false;
+    }
+
+    // Log token lengths for debugging (never log actual values)
+    console.log('[Iframe] Auth token diagnostics:', {
+      accessTokenLength: session.access_token.length,
+      accessTokenParts: session.access_token.split('.').length,
+      refreshTokenLength: session.refresh_token.length,
+      // Refresh tokens are opaque strings, not JWTs - don't validate as JWT
+      refreshTokenIsString: typeof session.refresh_token === 'string',
+      targetOrigin
+    });
+
+    // Verify refresh token looks valid (should be substantial, not truncated)
+    if (session.refresh_token.length < 20) {
+      console.error('[Iframe] CRITICAL: Refresh token appears truncated!', {
+        length: session.refresh_token.length,
+        expected: '100+ characters'
+      });
       return false;
     }
 
