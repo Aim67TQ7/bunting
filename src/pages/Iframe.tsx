@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
@@ -8,8 +8,9 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
-interface TokenMessage {
-  type: 'PROVIDE_TOKEN' | 'REQUEST_TOKEN' | 'TOKEN_RECEIVED' | 'REQUEST_PASSWORD' | 'PROVIDE_PASSWORD' | 'PROVIDE_LICENSE' | 'REQUEST_LICENSE';
+// Message types for legacy token/license apps
+interface LegacyMessage {
+  type: 'PROVIDE_TOKEN' | 'PROVIDE_PASSWORD' | 'PROVIDE_LICENSE' | 'REQUEST_TOKEN' | 'REQUEST_PASSWORD' | 'REQUEST_LICENSE' | 'TOKEN_RECEIVED';
   token?: string;
   password?: string;
   license?: string;
@@ -17,37 +18,30 @@ interface TokenMessage {
   timestamp: number;
 }
 
-interface AuthMessage {
+// Message types for Supabase session auth (buntinggpt subdomains)
+interface SupabaseAuthMessage {
   type: 'PROVIDE_USER' | 'REQUEST_USER' | 'PROVIDE_TOKEN' | 'REQUEST_TOKEN';
-  user?: {
-    id: string;
-    email: string;
-  };
-  // Standard naming (preferred)
+  user?: { id: string; email: string };
   access_token?: string;
   refresh_token?: string;
-  // Legacy naming (backward compatibility)
-  token?: string;
-  refreshToken?: string;
+  token?: string;        // Legacy compatibility
+  refreshToken?: string; // Legacy compatibility
   origin: string;
   timestamp: number;
 }
 
-// Check if URL is a buntinggpt.com subdomain (needs Supabase session auth via postMessage)
+// Check if URL is a buntinggpt.com subdomain
 const isBuntingGptSubdomain = (url: string): boolean => {
   try {
-    const parsedUrl = new URL(url);
-    return parsedUrl.hostname.endsWith('.buntinggpt.com');
+    return new URL(url).hostname.endsWith('.buntinggpt.com');
   } catch {
     return false;
   }
 };
 
-// Get the origin from a URL for postMessage targeting
 const getOriginFromUrl = (url: string): string => {
   try {
-    const parsedUrl = new URL(url);
-    return parsedUrl.origin;
+    return new URL(url).origin;
   } catch {
     return '*';
   }
@@ -57,272 +51,273 @@ const Iframe = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, session } = useAuth();
+  
   const [url, setUrl] = useState<string>("");
   const [title, setTitle] = useState<string>("");
-  const [loading, setLoading] = useState<boolean>(true);
-  const [token, setToken] = useState<string | null>(null);
+  const [legacyToken, setLegacyToken] = useState<string | null>(null);
   const [licenseValue, setLicenseValue] = useState<string | null>(null);
+  const [iframeLoaded, setIframeLoaded] = useState(false);
+  const [authSent, setAuthSent] = useState(false);
+  
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  // Check if this is a buntinggpt subdomain - these need Supabase session auth via postMessage
-  // (third-party cookies in iframes are blocked by modern browsers)
   const needsSupabaseAuth = url ? isBuntingGptSubdomain(url) : false;
   const targetOrigin = url ? getOriginFromUrl(url) : '*';
 
+  // Send Supabase auth to iframe
+  const sendSupabaseAuth = useCallback(() => {
+    const iframe = iframeRef.current;
+    if (!iframe?.contentWindow || !user || !session?.access_token || !session?.refresh_token) {
+      return false;
+    }
+
+    // Validate JWT format
+    if (session.access_token.split('.').length !== 3 || session.refresh_token.split('.').length !== 3) {
+      console.warn('[Iframe] Invalid JWT format, skipping auth send');
+      return false;
+    }
+
+    console.log('[Iframe] Sending Supabase auth to:', targetOrigin);
+
+    // Send user data
+    const userMessage: SupabaseAuthMessage = {
+      type: 'PROVIDE_USER',
+      user: { id: user.id, email: user.email || '' },
+      origin: window.location.origin,
+      timestamp: Date.now()
+    };
+    iframe.contentWindow.postMessage(userMessage, targetOrigin);
+
+    // Send tokens (both standard and legacy property names)
+    const tokenMessage: SupabaseAuthMessage = {
+      type: 'PROVIDE_TOKEN',
+      access_token: session.access_token,
+      refresh_token: session.refresh_token,
+      token: session.access_token,
+      refreshToken: session.refresh_token,
+      origin: window.location.origin,
+      timestamp: Date.now()
+    };
+    iframe.contentWindow.postMessage(tokenMessage, targetOrigin);
+    
+    console.log('[Iframe] Supabase auth sent successfully');
+    return true;
+  }, [user, session, targetOrigin]);
+
+  // Send legacy token/password to iframe
+  const sendLegacyAuth = useCallback(() => {
+    const iframe = iframeRef.current;
+    if (!iframe?.contentWindow || !legacyToken) return false;
+
+    console.log('[Iframe] Sending legacy token');
+
+    const tokenMessage: LegacyMessage = {
+      type: 'PROVIDE_TOKEN',
+      token: legacyToken,
+      origin: window.location.origin,
+      timestamp: Date.now()
+    };
+    iframe.contentWindow.postMessage(tokenMessage, '*');
+
+    const passwordMessage: LegacyMessage = {
+      type: 'PROVIDE_PASSWORD',
+      password: legacyToken,
+      origin: window.location.origin,
+      timestamp: Date.now()
+    };
+    iframe.contentWindow.postMessage(passwordMessage, '*');
+
+    return true;
+  }, [legacyToken]);
+
+  // Send license to iframe
+  const sendLicense = useCallback(() => {
+    const iframe = iframeRef.current;
+    if (!iframe?.contentWindow || !licenseValue) return false;
+
+    console.log('[Iframe] Sending license');
+    const licenseMessage: LegacyMessage = {
+      type: 'PROVIDE_LICENSE',
+      license: licenseValue,
+      origin: window.location.origin,
+      timestamp: Date.now()
+    };
+    iframe.contentWindow.postMessage(licenseMessage, needsSupabaseAuth ? targetOrigin : '*');
+    return true;
+  }, [licenseValue, needsSupabaseAuth, targetOrigin]);
+
+  // Load URL and fetch legacy tokens from database
   useEffect(() => {
-    const loadUrlWithToken = async () => {
+    const loadUrlData = async () => {
       const params = new URLSearchParams(location.search);
       const urlParam = params.get("url");
       const titleParam = params.get("title");
       const id = params.get("id");
       const sourceTable = params.get("sourceTable");
 
-      if (titleParam) {
-        setTitle(titleParam);
-      }
+      if (titleParam) setTitle(titleParam);
+      if (!urlParam) return;
 
-      if (urlParam) {
-        // If we have source table and ID, try to get token and license from database
-        if (id && sourceTable) {
-          try {
-            let fetchedToken = null;
-            let fetchedLicense = null;
+      setUrl(urlParam);
 
-            if (sourceTable === 'reports') {
-              const { data, error } = await supabase
-                .from('reports')
-                .select('access_token')
-                .eq('id', id)
-                .single();
-              if (!error && data && 'access_token' in data) {
-                fetchedToken = (data as any).access_token;
-              }
-            } else if (sourceTable === 'sales_tools') {
-              const { data, error } = await supabase
-                .from('sales_tools')
-                .select('token')
-                .eq('id', id)
-                .single();
-              if (!error && data && 'token' in data) {
-                fetchedToken = (data as any).token;
-              }
-            } else if (sourceTable === 'app_items') {
-              const { data, error } = await supabase
-                .from('app_items')
-                .select('access_token, license, auth_passcode, token')
-                .eq('id', id)
-                .single();
-              if (!error && data) {
-                // Priority: access_token > token > auth_passcode > default
-                if ('access_token' in data && (data as any).access_token) {
-                  fetchedToken = (data as any).access_token;
-                } else if ('token' in data && (data as any).token) {
-                  fetchedToken = (data as any).token;
-                } else if ('auth_passcode' in data && (data as any).auth_passcode) {
-                  fetchedToken = (data as any).auth_passcode;
-                } else {
-                  fetchedToken = "203"; // Default passcode
-                }
-                if ('license' in data) {
-                  fetchedLicense = (data as any).license;
-                }
-              }
-            }
+      // Only fetch legacy tokens for non-buntinggpt apps
+      if (id && sourceTable && !isBuntingGptSubdomain(urlParam)) {
+        try {
+          let fetchedToken = null;
+          let fetchedLicense = null;
 
-            if (fetchedToken) {
-              setToken(fetchedToken);
+          if (sourceTable === 'reports') {
+            const { data } = await supabase
+              .from('reports')
+              .select('access_token')
+              .eq('id', id)
+              .single();
+            fetchedToken = data?.access_token;
+          } else if (sourceTable === 'sales_tools') {
+            const { data } = await supabase
+              .from('sales_tools')
+              .select('token')
+              .eq('id', id)
+              .single();
+            fetchedToken = data?.token;
+          } else if (sourceTable === 'app_items') {
+            const { data } = await supabase
+              .from('app_items')
+              .select('access_token, license, auth_passcode, token')
+              .eq('id', id)
+              .single();
+            if (data) {
+              fetchedToken = data.access_token || data.token || data.auth_passcode || "203";
+              fetchedLicense = data.license;
             }
-            if (fetchedLicense) {
-              setLicenseValue(fetchedLicense);
-            }
-          } catch (error) {
-            console.warn('Error fetching authentication data:', error);
           }
-        }
 
-        setUrl(urlParam);
+          if (fetchedToken) setLegacyToken(fetchedToken);
+          if (fetchedLicense) setLicenseValue(fetchedLicense);
+        } catch (error) {
+          console.warn('[Iframe] Error fetching auth data:', error);
+        }
       }
-      setLoading(false);
     };
 
-    loadUrlWithToken();
+    loadUrlData();
   }, [location]);
 
-  // Handle iframe load - send authentication data via postMessage
+  // Handle iframe load event
   useEffect(() => {
     const iframe = iframeRef.current;
+    if (!iframe) return;
 
-    const handleIframeLoad = () => {
-      if (!iframe?.contentWindow) return;
-
-      try {
-        // For buntinggpt.com subdomains, ALWAYS send Supabase session authentication
-        // (third-party cookies in iframes are blocked by modern browsers)
-        if (needsSupabaseAuth && user && session?.access_token && session?.refresh_token) {
-          // Validate JWT format before sending
-          const accessTokenParts = session.access_token.split('.');
-          const refreshTokenParts = session.refresh_token.split('.');
-          
-          if (accessTokenParts.length !== 3 || refreshTokenParts.length !== 3) {
-            console.error('Invalid JWT format - tokens may not be established yet');
-            return;
-          }
-
-          console.log('Sending Supabase auth to buntinggpt subdomain:', targetOrigin, {
-            access_token_preview: session.access_token.substring(0, 30) + '...',
-            refresh_token_preview: session.refresh_token.substring(0, 30) + '...'
-          });
-
-          // Send user data
-          const userMessage: AuthMessage = {
-            type: 'PROVIDE_USER',
-            user: {
-              id: user.id,
-              email: user.email || ''
-            },
-            origin: window.location.origin,
-            timestamp: Date.now()
-          };
-          iframe.contentWindow.postMessage(userMessage, targetOrigin);
-          console.log('User data sent to iframe');
-
-          // Send access token and refresh token (Supabase session tokens)
-          // Include BOTH standard and legacy property names for compatibility
-          const tokenMessage: AuthMessage = {
-            type: 'PROVIDE_TOKEN',
-            access_token: session.access_token,
-            refresh_token: session.refresh_token,
-            token: session.access_token,        // Legacy compatibility
-            refreshToken: session.refresh_token, // Legacy compatibility
-            origin: window.location.origin,
-            timestamp: Date.now()
-          };
-          iframe.contentWindow.postMessage(tokenMessage, targetOrigin);
-          console.log('Supabase tokens sent to iframe (both standard and legacy formats)');
-        }
-
-        // Send legacy tokens ONLY for non-buntinggpt apps
-        // (buntinggpt subdomains use Supabase session auth above, not legacy tokens)
-        if (token && !needsSupabaseAuth) {
-          const legacyTokenMessage: TokenMessage = {
-            type: 'PROVIDE_TOKEN',
-            token: token,
-            origin: window.location.origin,
-            timestamp: Date.now()
-          };
-          iframe.contentWindow.postMessage(legacyTokenMessage, '*');
-          console.log('Legacy token sent to iframe via postMessage');
-
-          // Also send as password for auto-fill
-          const passwordMessage: TokenMessage = {
-            type: 'PROVIDE_PASSWORD',
-            password: token,
-            origin: window.location.origin,
-            timestamp: Date.now()
-          };
-          iframe.contentWindow.postMessage(passwordMessage, '*');
-        }
-
-        // Send license if available
-        if (licenseValue) {
-          const licenseMessage: TokenMessage = {
-            type: 'PROVIDE_LICENSE',
-            license: licenseValue,
-            origin: window.location.origin,
-            timestamp: Date.now()
-          };
-          iframe.contentWindow.postMessage(licenseMessage, needsSupabaseAuth ? targetOrigin : '*');
-          console.log('License sent to iframe via postMessage');
-        }
-      } catch (error) {
-        console.warn('Failed to send data via postMessage:', error);
-      }
+    const handleLoad = () => {
+      console.log('[Iframe] Iframe loaded:', url);
+      setIframeLoaded(true);
     };
 
-    if (iframe) {
-      iframe.addEventListener('load', handleIframeLoad);
-      return () => iframe.removeEventListener('load', handleIframeLoad);
+    iframe.addEventListener('load', handleLoad);
+    return () => iframe.removeEventListener('load', handleLoad);
+  }, [url]);
+
+  // Send auth when iframe is loaded AND session/tokens are ready
+  useEffect(() => {
+    if (!iframeLoaded || authSent) return;
+
+    let sent = false;
+
+    if (needsSupabaseAuth) {
+      // For buntinggpt subdomains, send Supabase session
+      if (session?.access_token && session?.refresh_token) {
+        sent = sendSupabaseAuth();
+      } else {
+        console.log('[Iframe] Waiting for Supabase session...');
+      }
+    } else {
+      // For other apps, send legacy token if available
+      if (legacyToken) {
+        sent = sendLegacyAuth();
+      }
     }
-  }, [token, licenseValue, needsSupabaseAuth, user, session, targetOrigin]);
+
+    // Always try to send license
+    if (licenseValue) {
+      sendLicense();
+    }
+
+    if (sent) {
+      setAuthSent(true);
+    }
+  }, [iframeLoaded, authSent, needsSupabaseAuth, session, legacyToken, licenseValue, sendSupabaseAuth, sendLegacyAuth, sendLicense]);
+
+  // Retry sending Supabase auth when session becomes available after iframe load
+  useEffect(() => {
+    if (!iframeLoaded || authSent || !needsSupabaseAuth) return;
+    if (!session?.access_token || !session?.refresh_token) return;
+
+    console.log('[Iframe] Session now available, sending auth');
+    if (sendSupabaseAuth()) {
+      setAuthSent(true);
+    }
+  }, [session, iframeLoaded, authSent, needsSupabaseAuth, sendSupabaseAuth]);
 
   // Listen for messages from iframe
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      // For buntinggpt subdomains, validate origin
+      // Validate origin for buntinggpt subdomains
       if (needsSupabaseAuth && !event.origin.endsWith('.buntinggpt.com')) {
         return;
       }
 
       const data = event.data;
+      if (!data?.type) return;
 
-      // Handle Supabase auth requests (for buntinggpt subdomains)
-      if (data?.type === 'REQUEST_USER' && user) {
-        const message: AuthMessage = {
+      console.log('[Iframe] Received message:', data.type);
+
+      if (data.type === 'REQUEST_USER' && user) {
+        const message: SupabaseAuthMessage = {
           type: 'PROVIDE_USER',
-          user: {
-            id: user.id,
-            email: user.email || ''
-          },
+          user: { id: user.id, email: user.email || '' },
           origin: window.location.origin,
           timestamp: Date.now()
         };
         (event.source as Window)?.postMessage(message, event.origin);
-        console.log('User data provided in response to request');
-      } else if (data?.type === 'REQUEST_TOKEN' && session?.access_token && session?.refresh_token) {
-        // Validate JWT format before sending
-        const accessTokenParts = session.access_token.split('.');
-        const refreshTokenParts = session.refresh_token.split('.');
-        
-        if (accessTokenParts.length !== 3 || refreshTokenParts.length !== 3) {
-          console.error('Invalid JWT format in response to REQUEST_TOKEN');
-          return;
+      } else if (data.type === 'REQUEST_TOKEN') {
+        if (needsSupabaseAuth && session?.access_token && session?.refresh_token) {
+          const message: SupabaseAuthMessage = {
+            type: 'PROVIDE_TOKEN',
+            access_token: session.access_token,
+            refresh_token: session.refresh_token,
+            token: session.access_token,
+            refreshToken: session.refresh_token,
+            origin: window.location.origin,
+            timestamp: Date.now()
+          };
+          (event.source as Window)?.postMessage(message, event.origin);
+        } else if (!needsSupabaseAuth && legacyToken) {
+          const message: LegacyMessage = {
+            type: 'PROVIDE_TOKEN',
+            token: legacyToken,
+            origin: window.location.origin,
+            timestamp: Date.now()
+          };
+          (event.source as Window)?.postMessage(message, event.origin);
         }
-
-        const message: AuthMessage = {
-          type: 'PROVIDE_TOKEN',
-          access_token: session.access_token,
-          refresh_token: session.refresh_token,
-          token: session.access_token,        // Legacy compatibility
-          refreshToken: session.refresh_token, // Legacy compatibility
-          origin: window.location.origin,
-          timestamp: Date.now()
-        };
-        (event.source as Window)?.postMessage(message, event.origin);
-        console.log('Supabase tokens provided in response to request (both formats)');
-      } else if (data?.type === 'REQUEST_TOKEN' && token && !needsSupabaseAuth) {
-        // Legacy token request for non-buntinggpt apps
-        const message: TokenMessage = {
-          type: 'PROVIDE_TOKEN',
-          token: token,
-          origin: window.location.origin,
-          timestamp: Date.now()
-        };
-        (event.source as Window)?.postMessage(message, event.origin);
-        console.log('Legacy token provided in response to request');
-      } else if (data?.type === 'REQUEST_PASSWORD' && token) {
-        const message: TokenMessage = {
+      } else if (data.type === 'REQUEST_PASSWORD' && legacyToken) {
+        const message: LegacyMessage = {
           type: 'PROVIDE_PASSWORD',
-          password: token,
+          password: legacyToken,
           origin: window.location.origin,
           timestamp: Date.now()
         };
         (event.source as Window)?.postMessage(message, event.origin);
-        console.log('Password auto-populated with access token');
-        toast({
-          title: "Password auto-filled",
-          description: "Access token has been provided as password"
-        });
-      } else if (data?.type === 'REQUEST_LICENSE' && licenseValue) {
-        const message: TokenMessage = {
+      } else if (data.type === 'REQUEST_LICENSE' && licenseValue) {
+        const message: LegacyMessage = {
           type: 'PROVIDE_LICENSE',
           license: licenseValue,
           origin: window.location.origin,
           timestamp: Date.now()
         };
         (event.source as Window)?.postMessage(message, event.origin);
-        console.log('License provided in response to request');
-      } else if (data?.type === 'TOKEN_RECEIVED') {
-        console.log('Token received confirmation from iframe');
+      } else if (data.type === 'TOKEN_RECEIVED') {
+        console.log('[Iframe] Token received by iframe');
         toast({
           title: "Authentication successful",
           description: "Token has been provided to the application"
@@ -332,11 +327,7 @@ const Iframe = () => {
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [token, licenseValue, user, session, needsSupabaseAuth]);
-
-  const handleBack = () => {
-    navigate(-1);
-  };
+  }, [needsSupabaseAuth, user, session, legacyToken, licenseValue]);
 
   return (
     <div className="flex h-screen w-full overflow-hidden">
@@ -346,7 +337,7 @@ const Iframe = () => {
         <div className="flex items-center justify-between border-b px-4 py-3">
           <div className="flex items-center">
             <SidebarTrigger className="md:hidden mr-2" />
-            <Button variant="ghost" size="sm" onClick={handleBack} className="flex items-center">
+            <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="flex items-center">
               <ArrowLeft className="h-4 w-4 mr-1" />
               <span>Back</span>
             </Button>
@@ -355,11 +346,7 @@ const Iframe = () => {
         </div>
         
         <div className="flex-1 overflow-hidden">
-          {loading ? (
-            <div className="flex items-center justify-center h-full">
-              <p>Loading...</p>
-            </div>
-          ) : url ? (
+          {url ? (
             <iframe
               ref={iframeRef}
               src={url}
@@ -367,7 +354,6 @@ const Iframe = () => {
               title={title || "Embedded content"}
               sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-downloads allow-presentation allow-top-navigation-by-user-activation allow-popups-to-escape-sandbox"
               allow="camera; microphone; geolocation; payment; usb; accelerometer; gyroscope; magnetometer; clipboard-read; clipboard-write; web-share; downloads"
-              loading="lazy"
             />
           ) : (
             <div className="flex items-center justify-center h-full">
