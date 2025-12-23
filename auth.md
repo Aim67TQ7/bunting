@@ -1,90 +1,161 @@
-# Cross-Subdomain Authentication Guide
-
-This document explains how authentication is shared between the primary BuntingGPT application (hosted on `buntinggpt.com`) and embedded iframe applications on subdomains (e.g., `notes.buntinggpt.com`, `prospector-uk.buntinggpt.com`).
-
-## Why postMessage?
-
-Modern browsers block third-party cookies in iframes for privacy reasons. This means embedded apps cannot directly read session cookies set by the parent domain. Instead, we use the `postMessage` API to securely pass authentication tokens from the parent app to embedded iframes.
+# Cross-Subdomain Authentication System
+## Strategic Reference Guide for *.buntinggpt.com Applications
 
 ---
 
-## Architecture Diagram
+## Executive Summary
+
+**Purpose:** Enable seamless authentication across parent domain (buntinggpt.com) and subdomain applications (*.buntinggpt.com) loaded in iframes, maintaining Row Level Security (RLS) credentials throughout.
+
+**Architecture:** Shared Supabase authentication context using postMessage API for iframe communication, cookie-based persistence with chunking for large JWTs, and automatic token refresh propagation.
+
+**Critical Success Factors:**
+- Explicit cookie domain (`.buntinggpt.com`) for cross-subdomain sharing
+- Cookie chunking pattern: `{key}_chunk_0`, `{key}_chunk_1`, etc.
+- Token refresh events propagated to all active iframes
+- RLS credentials validated end-to-end in embedded contexts
+
+**Failure Modes Without This System:**
+- Third-party cookie blocking breaks iframe auth
+- Token expiry after ~1 hour causes silent RLS failures
+- Large JWTs (>4KB) exceed cookie limits and corrupt sessions
+- Mismatched chunking patterns cause truncated tokens
+
+---
+
+## System Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    buntinggpt.com (Parent App)                  │
+│                buntinggpt.com (PARENT DOMAIN)                   │
 │                                                                 │
+│  [AuthContext] ──► Manages Supabase session + token refresh    │
+│       │                                                          │
+│       ├──► On iframe load: Send PROVIDE_USER + PROVIDE_TOKEN    │
+│       ├──► On token refresh: Re-send tokens to all iframes      │
+│       └──► On REQUEST_*: Respond with current credentials       │
+│                                                                 │
+│  [Dashboard/Iframe] ──► postMessage() to subdomain              │
+│       │                                                          │
+│       ▼                                                          │
 │  ┌──────────────────────────────────────────────────────────┐  │
-│  │                     AuthContext.tsx                       │  │
-│  │  • Manages Supabase session (access_token + refresh_token)│  │
-│  │  • Uses chunked cookie storage for large JWT tokens       │  │
-│  │  • Handles email/password & Microsoft OAuth               │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                              │                                  │
-│                              ▼                                  │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │              Dashboard.tsx / Iframe.tsx                   │  │
-│  │  • Detects when iframe loads                              │  │
-│  │  • Sends PROVIDE_USER and PROVIDE_TOKEN via postMessage   │  │
-│  │  • Listens for REQUEST_* messages from iframe             │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                              │                                  │
-│                    postMessage()                                │
-│                              │                                  │
-│  ┌───────────────────────────▼──────────────────────────────┐  │
-│  │                      <iframe>                             │  │
-│  │              src="https://notes.buntinggpt.com"          │  │
+│  │ <iframe src="https://notes.buntinggpt.com" />            │  │
 │  └──────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────┘
-
                               │
-                    postMessage()
-                              │
+                    postMessage (validated origin)
                               ▼
-
 ┌─────────────────────────────────────────────────────────────────┐
-│                notes.buntinggpt.com (Embedded App)              │
+│              notes.buntinggpt.com (SUBDOMAIN APP)               │
 │                                                                 │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │                  AuthContext.tsx                          │  │
-│  │  • Detects if running in iframe                           │  │
-│  │  • Listens for PROVIDE_USER and PROVIDE_TOKEN             │  │
-│  │  • Calls supabase.auth.setSession() with tokens           │  │
-│  │  • NEVER redirects to /auth when embedded                 │  │
-│  └──────────────────────────────────────────────────────────┘  │
+│  [AuthContext] ──► Listens for postMessage from parent         │
+│       │                                                          │
+│       ├──► Receives tokens ──► supabase.auth.setSession()      │
+│       ├──► Validates RLS context ──► auth.uid() populated      │
+│       └──► Never redirects to /auth when isEmbedded=true       │
 │                                                                 │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │                    PrivateRoute.tsx                       │  │
-│  │  • Detects iframe context                                 │  │
-│  │  • Shows "waiting for auth" instead of redirecting        │  │
-│  └──────────────────────────────────────────────────────────┘  │
+│  [PrivateRoute] ──► Shows "waiting for auth" in iframe         │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Supabase Configuration (Shared by ALL Apps)
+## Part 1: Shared Supabase Client Configuration
 
-All apps on `*.buntinggpt.com` must use **identical** Supabase configuration:
+**File:** `src/integrations/supabase/client.ts`  
+**Used By:** ALL apps (parent + all subdomains must use **identical** config)
 
 ```typescript
-// src/integrations/supabase/client.ts
+import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = "https://qzwxisdfwswsrbzvpzlo.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "eyJhbGci..."; // Same anon key for all apps
+const SUPABASE_PUBLISHABLE_KEY = "eyJhbGci..."; // Your anon key
 
 // Detect production domain
-const isProductionDomain = window.location.hostname.endsWith('.buntinggpt.com');
+const isProductionDomain = 
+  typeof window !== 'undefined' && 
+  window.location.hostname.endsWith('.buntinggpt.com');
 
-// Cookie storage for production (with chunking for large JWTs)
+// Cookie chunk size (3KB is safe margin below 4KB browser limit)
+const COOKIE_CHUNK_SIZE = 3000;
+
+// Custom cookie storage that splits large values across multiple cookies
+// Uses pattern: {key}_chunk_0, {key}_chunk_1, etc.
 const cookieStorage = {
-  getItem: (key) => { /* reassemble chunked cookies */ },
-  setItem: (key, value) => { /* split large values into chunks */ },
-  removeItem: (key) => { /* remove all chunks */ }
+  getItem: (key: string): string | null => {
+    try {
+      const cookies = document.cookie.split('; ');
+      const chunks: { index: number; value: string }[] = [];
+      
+      // Find all chunks for this key (pattern: key_chunk_N)
+      for (const cookie of cookies) {
+        const [cookieKey, ...valueParts] = cookie.split('=');
+        const cookieValue = valueParts.join('='); // Handle values with = in them
+        
+        // Match pattern: key_chunk_0, key_chunk_1, etc.
+        if (cookieKey.startsWith(`${key}_chunk_`)) {
+          const indexStr = cookieKey.substring(`${key}_chunk_`.length);
+          const index = parseInt(indexStr, 10);
+          if (!isNaN(index)) {
+            chunks.push({ index, value: decodeURIComponent(cookieValue) });
+          }
+        }
+      }
+      
+      if (chunks.length === 0) return null;
+      
+      // CRITICAL: Sort by index before joining
+      chunks.sort((a, b) => a.index - b.index);
+      return chunks.map(c => c.value).join('') || null;
+    } catch (e) {
+      console.error('Cookie read error:', e);
+      return null;
+    }
+  },
+  
+  setItem: (key: string, value: string): void => {
+    try {
+      // Clear existing chunks first
+      cookieStorage.removeItem(key);
+      
+      // Split into 3KB chunks
+      const chunks: string[] = [];
+      for (let i = 0; i < value.length; i += COOKIE_CHUNK_SIZE) {
+        chunks.push(value.substring(i, i + COOKIE_CHUNK_SIZE));
+      }
+      
+      const maxAge = 60 * 60 * 24 * 7; // 7 days
+      
+      chunks.forEach((chunk, index) => {
+        const chunkKey = `${key}_chunk_${index}`;
+        const encodedChunk = encodeURIComponent(chunk);
+        
+        // CRITICAL: domain=.buntinggpt.com (with leading dot) for cross-subdomain sharing
+        document.cookie = `${chunkKey}=${encodedChunk}; path=/; domain=.buntinggpt.com; max-age=${maxAge}; SameSite=Lax; Secure`;
+      });
+    } catch (e) {
+      console.error('Cookie write error:', e);
+    }
+  },
+  
+  removeItem: (key: string): void => {
+    try {
+      const cookies = document.cookie.split('; ');
+      
+      for (const cookie of cookies) {
+        const [cookieKey] = cookie.split('=');
+        if (cookieKey.startsWith(`${key}_chunk_`)) {
+          document.cookie = `${cookieKey}=; path=/; domain=.buntinggpt.com; max-age=0`;
+        }
+      }
+    } catch (e) {
+      console.error('Cookie remove error:', e);
+    }
+  }
 };
 
-// Use localStorage for development/preview environments
-const devStorage = window.localStorage;
+// Use localStorage for development (localhost, preview URLs)
+const devStorage = typeof window !== 'undefined' ? window.localStorage : undefined;
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
@@ -97,337 +168,253 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
 });
 ```
 
-**Critical:** The cookie domain is set to `.buntinggpt.com` which allows cookies to be shared across all subdomains. Large JWT tokens are automatically chunked into multiple cookies to avoid the 4KB browser limit.
+**Critical Notes:**
+- Cookie domain MUST be `.buntinggpt.com` (with leading dot) for subdomain sharing
+- 3KB chunk size prevents 4KB browser cookie limit issues
+- Chunk pattern: `{key}_chunk_0`, `{key}_chunk_1`, etc.
+- Chunks MUST be sorted by index on reassembly
+- Development uses localStorage (cookies don't work on localhost)
 
 ---
 
-## Message Types
+## Part 2: Parent Domain Implementation
 
-### Messages Sent by Parent App
+### 2.1 Parent AuthContext
 
-| Type | Payload | When Sent |
-|------|---------|-----------|
-| `PROVIDE_USER` | `{ user: { id, email }, origin, timestamp }` | On iframe load + on REQUEST_USER |
-| `PROVIDE_TOKEN` | `{ token, refreshToken, origin, timestamp }` | On iframe load + on REQUEST_TOKEN |
+**File:** `src/contexts/AuthContext.tsx` (Parent App)
 
-### Messages Sent by Embedded Apps (Requests)
-
-| Type | When Sent |
-|------|-----------|
-| `REQUEST_USER` | When app needs user data and hasn't received it |
-| `REQUEST_TOKEN` | When app needs tokens and hasn't received them |
-
----
-
-## Parent App Implementation
-
-### Dashboard.tsx (for notes.buntinggpt.com)
+The parent AuthContext manages Supabase auth and logs token diagnostics:
 
 ```typescript
-interface AuthMessage {
-  type: 'PROVIDE_USER' | 'PROVIDE_TOKEN';
-  user?: { id: string; email: string; };
-  token?: string;
-  refreshToken?: string;
-  origin: string;
-  timestamp: number;
+// In onAuthStateChange callback, log token diagnostics:
+if (currentSession) {
+  console.log('[AuthContext] Token diagnostics:', {
+    event,
+    hasAccessToken: !!currentSession.access_token,
+    accessTokenLength: currentSession.access_token?.length || 0,
+    hasRefreshToken: !!currentSession.refresh_token,
+    refreshTokenLength: currentSession.refresh_token?.length || 0,
+    // Refresh tokens should be substantial (100+ chars typically)
+    refreshTokenValid: (currentSession.refresh_token?.length || 0) > 20
+  });
 }
-
-// Send auth on iframe load
-useEffect(() => {
-  const handleIframeLoad = () => {
-    if (iframe?.contentWindow && user && session) {
-      // Send user info
-      iframe.contentWindow.postMessage({
-        type: 'PROVIDE_USER',
-        user: { id: user.id, email: user.email || '' },
-        origin: window.location.origin,
-        timestamp: Date.now()
-      }, 'https://notes.buntinggpt.com');
-
-      // Send tokens (BOTH access_token AND refresh_token required!)
-      iframe.contentWindow.postMessage({
-        type: 'PROVIDE_TOKEN',
-        token: session.access_token,
-        refreshToken: session.refresh_token,
-        origin: window.location.origin,
-        timestamp: Date.now()
-      }, 'https://notes.buntinggpt.com');
-    }
-  };
-  
-  iframe.addEventListener('load', handleIframeLoad);
-}, [user, session]);
-
-// Listen for requests from iframe
-useEffect(() => {
-  const handleMessage = (event: MessageEvent) => {
-    if (event.origin !== 'https://notes.buntinggpt.com') return;
-    
-    if (event.data?.type === 'REQUEST_USER') {
-      // Respond with user data
-    } else if (event.data?.type === 'REQUEST_TOKEN') {
-      // Respond with tokens
-    }
-  };
-  
-  window.addEventListener('message', handleMessage);
-}, [user, session]);
 ```
 
-### Iframe.tsx (Generic for any subdomain)
+### 2.2 Iframe Component (Parent App)
 
-The `Iframe.tsx` component handles any `*.buntinggpt.com` subdomain by detecting the URL:
+**File:** `src/pages/Iframe.tsx`
+
+Key responsibilities:
+- Detects buntinggpt.com subdomains via `isBuntingGptSubdomain()`
+- Sends both new format (`BUNTINGGPT_AUTH_TOKEN`) and legacy formats (`PROVIDE_USER`, `PROVIDE_TOKEN`)
+- Validates access_token is a JWT (3 parts) but NOT refresh_token (it's opaque)
+- Responds to `REQUEST_TOKEN` and `REQUEST_USER` messages from iframe
+
+**Message Types Sent:**
 
 ```typescript
-const isBuntingGptSubdomain = (url: string): boolean => {
-  const parsedUrl = new URL(url);
-  return parsedUrl.hostname.endsWith('.buntinggpt.com');
-};
+// New consolidated format
+{
+  type: 'BUNTINGGPT_AUTH_TOKEN',
+  accessToken: session.access_token,
+  refreshToken: session.refresh_token,
+  access_token: session.access_token,  // snake_case for compatibility
+  refresh_token: session.refresh_token,
+  user: { id: user.id, email: user.email },
+  origin: window.location.origin,
+  timestamp: Date.now()
+}
 
-const needsSupabaseAuth = url ? isBuntingGptSubdomain(url) : false;
-const targetOrigin = url ? getOriginFromUrl(url) : '*';
-
-// In handleIframeLoad, check needsSupabaseAuth before sending postMessage
+// Legacy formats for backward compatibility
+{ type: 'PROVIDE_USER', user: { id, email }, origin, timestamp }
+{ type: 'PROVIDE_TOKEN', access_token, refresh_token, token, origin, timestamp }
 ```
 
 ---
 
-## Embedded App Implementation (Template)
+## Part 3: Subdomain App Implementation
 
-### AuthContext.tsx for Embedded Apps
+### 3.1 Embedded App AuthContext
+
+For subdomain apps, implement postMessage listener:
 
 ```typescript
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { supabase } from "@/integrations/supabase/client";
-
-interface AuthContextType {
-  user: any;
-  session: any;
-  isLoading: boolean;
-  isEmbedded: boolean;
-}
-
-const AuthContext = createContext<AuthContextType>({
-  user: null,
-  session: null,
-  isLoading: true,
-  isEmbedded: false,
-});
-
 // Detect if running inside an iframe
 const isEmbedded = typeof window !== 'undefined' && window.self !== window.top;
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<any>(null);
-  const [session, setSession] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [receivedPostMessageAuth, setReceivedPostMessageAuth] = useState(false);
+// Listen for auth from parent
+const handleMessage = async (event: MessageEvent) => {
+  // Only accept from buntinggpt.com domains
+  if (!event.origin.endsWith('.buntinggpt.com') && 
+      event.origin !== 'https://buntinggpt.com') {
+    return;
+  }
 
-  useEffect(() => {
-    let mounted = true;
-    let authTimeout: NodeJS.Timeout | null = null;
+  if (event.data?.type === 'BUNTINGGPT_AUTH_TOKEN' && 
+      event.data.accessToken && 
+      event.data.refreshToken) {
+    
+    const { data, error } = await supabase.auth.setSession({
+      access_token: event.data.accessToken,
+      refresh_token: event.data.refreshToken
+    });
 
-    // Set up Supabase auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, currentSession) => {
-        console.log('[Embedded Auth] State change:', event);
-        if (!mounted) return;
-        
-        if (currentSession) {
-          setSession(currentSession);
-          setUser(currentSession.user);
-          setIsLoading(false);
-        } else if (event === 'SIGNED_OUT') {
-          setSession(null);
-          setUser(null);
-        }
+    if (!error && data.session) {
+      // Validate RLS context
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.id === data.session.user.id) {
+        console.log('[Embedded Auth] RLS context validated ✓');
       }
-    );
-
-    // Listen for postMessage auth from parent
-    const handleMessage = async (event: MessageEvent) => {
-      // Only accept messages from parent buntinggpt.com domain
-      if (!event.origin.endsWith('.buntinggpt.com') && 
-          event.origin !== 'https://buntinggpt.com') {
-        return;
-      }
-
-      console.log('[Embedded Auth] Received message:', event.data?.type);
-
-      if (event.data?.type === 'PROVIDE_USER') {
-        console.log('[Embedded Auth] Received user:', event.data.user?.email);
-      }
-
-      if (event.data?.type === 'PROVIDE_TOKEN' && 
-          event.data.token && 
-          event.data.refreshToken) {
-        console.log('[Embedded Auth] Received tokens, establishing session...');
-        
-        try {
-          const { data, error } = await supabase.auth.setSession({
-            access_token: event.data.token,
-            refresh_token: event.data.refreshToken
-          });
-
-          if (error) {
-            console.error('[Embedded Auth] setSession error:', error);
-          } else if (data.session) {
-            console.log('[Embedded Auth] Session established for:', data.session.user?.email);
-            setReceivedPostMessageAuth(true);
-            
-            // Clear timeout since we got auth
-            if (authTimeout) {
-              clearTimeout(authTimeout);
-              authTimeout = null;
-            }
-          }
-        } catch (err) {
-          console.error('[Embedded Auth] Failed to set session:', err);
-        }
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-
-    // If embedded, request auth from parent after a short delay
-    if (isEmbedded) {
-      console.log('[Embedded Auth] Running in iframe, requesting auth from parent');
-      
-      // Request auth immediately
-      window.parent.postMessage({ type: 'REQUEST_USER' }, '*');
-      window.parent.postMessage({ type: 'REQUEST_TOKEN' }, '*');
-      
-      // Set timeout for fallback check
-      authTimeout = setTimeout(() => {
-        if (mounted && isLoading && !receivedPostMessageAuth) {
-          console.log('[Embedded Auth] Timeout waiting for postMessage auth');
-          // Check if we have an existing session
-          supabase.auth.getSession().then(({ data: { session } }) => {
-            if (session) {
-              setSession(session);
-              setUser(session.user);
-            }
-            setIsLoading(false);
-          });
-        }
-      }, 5000);
-    } else {
-      // Not embedded - normal session check
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (mounted) {
-          setSession(session);
-          setUser(session?.user ?? null);
-          setIsLoading(false);
-        }
-      });
     }
+  }
+};
 
-    return () => {
-      mounted = false;
-      if (authTimeout) clearTimeout(authTimeout);
-      subscription.unsubscribe();
-      window.removeEventListener('message', handleMessage);
-    };
-  }, []);
+window.addEventListener('message', handleMessage);
 
-  return (
-    <AuthContext.Provider value={{ user, session, isLoading, isEmbedded }}>
-      {children}
-    </AuthContext.Provider>
-  );
+// Request auth from parent
+if (isEmbedded) {
+  window.parent.postMessage({ type: 'REQUEST_TOKEN' }, '*');
+  window.parent.postMessage({ type: 'REQUEST_USER' }, '*');
 }
-
-export const useAuth = () => useContext(AuthContext);
 ```
 
-### PrivateRoute.tsx for Embedded Apps
+### 3.2 Embedded App PrivateRoute
+
+**Critical:** Never redirect to `/auth` when embedded:
 
 ```typescript
-import { Navigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+const { user, isLoading, isEmbedded } = useAuth();
 
-interface PrivateRouteProps {
-  children: React.ReactNode;
+if (!user) {
+  if (isEmbedded) {
+    // Show message instead of redirect
+    return <div>Authentication required from parent app</div>;
+  }
+  return <Navigate to="/auth" />;
 }
-
-export const PrivateRoute = ({ children }: PrivateRouteProps) => {
-  const { user, isLoading, isEmbedded } = useAuth();
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        {isEmbedded && (
-          <p className="ml-3 text-sm text-muted-foreground">
-            Waiting for authentication from parent app...
-          </p>
-        )}
-      </div>
-    );
-  }
-
-  // CRITICAL: Never redirect to /auth when embedded in iframe!
-  // This would show a login page inside the iframe, which is confusing UX
-  if (!user) {
-    if (isEmbedded) {
-      return (
-        <div className="flex flex-col items-center justify-center min-h-screen p-4">
-          <h2 className="text-lg font-semibold mb-2">Authentication Required</h2>
-          <p className="text-sm text-muted-foreground text-center">
-            Please log in to the main BuntingGPT application to access this content.
-          </p>
-        </div>
-      );
-    }
-    return <Navigate to="/auth" replace />;
-  }
-
-  return <>{children}</>;
-};
 ```
 
 ---
 
-## Security Considerations
+## Part 4: Token Requirements
 
-1. **Origin Validation**: Always validate `event.origin` before processing postMessage data
-2. **Target Origin**: Always specify the exact target origin (never use `*` for sensitive data)
-3. **Token Expiry**: Tokens expire; the embedded app should handle token refresh via `supabase.auth.onAuthStateChange`
-4. **HTTPS Required**: All communication must be over HTTPS
-5. **Cookie Domain**: Cookies use `domain=.buntinggpt.com` for cross-subdomain sharing
-6. **Chunked Cookies**: Large JWT tokens are split into multiple cookies to avoid browser 4KB limits
+### Expected Token Lengths
 
----
+| Token | Expected Length | Format |
+|-------|-----------------|--------|
+| access_token | 800-1500 chars | JWT (3 dot-separated parts) |
+| refresh_token | 100+ chars | **Opaque string** (NOT a JWT!) |
 
-## Troubleshooting
+**Critical:** The refresh_token is NOT a JWT. Do not validate it as having 3 parts. It's an opaque string that Supabase uses internally.
 
-### "Session expired" or "Invalid Refresh Token" errors
-- **Cause**: Large JWT tokens exceeding 4KB cookie limit
-- **Solution**: Ensure chunked cookie storage is implemented in `client.ts`
-- **Action**: User should sign out and sign back in to create properly chunked cookies
-
-### Embedded app shows login page
-- **Cause**: `PrivateRoute` is redirecting to `/auth` when embedded
-- **Solution**: Check `isEmbedded` flag and show "waiting for auth" message instead
-
-### Tokens not received in iframe
-- **Cause**: Parent app not sending `refreshToken` alongside `token`
-- **Solution**: Ensure both `session.access_token` AND `session.refresh_token` are sent in `PROVIDE_TOKEN` message
-
-### Auth works on localhost but not production
-- **Cause**: Different storage strategies (localStorage vs cookies)
-- **Solution**: Verify `isProductionDomain` detection is correct
+If refresh_token is < 20 characters, cookies are corrupted!
 
 ---
 
-## Checklist for New Embedded Apps
+## Part 5: Validation & Debugging
 
-- [ ] Copy `src/integrations/supabase/client.ts` exactly from parent app (same URL, key, storage config)
-- [ ] Implement AuthContext with postMessage listener (see template above)
-- [ ] Implement PrivateRoute with iframe detection
-- [ ] Never redirect to /auth when `isEmbedded === true`
-- [ ] Request auth from parent on mount: `window.parent.postMessage({ type: 'REQUEST_TOKEN' }, '*')`
-- [ ] Test with both email/password and Microsoft OAuth login flows
-- [ ] Verify refresh token is being sent and session refreshes work
-- [ ] Test after signing out and back in to ensure cookie chunking works
+### 5.1 Console Validation Script
+
+Run in browser console on both parent and embedded apps:
+
+```javascript
+console.log('\n=== AUTH VALIDATION ===\n');
+
+// 1. Cookie presence
+console.log('1. COOKIES:');
+const allCookies = document.cookie;
+console.log('  Has auth chunks:', allCookies.includes('_chunk_'));
+console.log('  Chunk pattern matches:', allCookies.includes('sb-') && allCookies.includes('_chunk_'));
+
+// 2. Supabase session
+console.log('\n2. SUPABASE SESSION:');
+supabase.auth.getSession().then(({ data: { session }, error }) => {
+  if (session) {
+    console.log('  User:', session.user.email);
+    console.log('  Access token length:', session.access_token.length);
+    console.log('  Refresh token length:', session.refresh_token.length);
+    console.log('  Refresh token valid:', session.refresh_token.length > 20);
+    console.log('  Expires:', new Date(session.expires_at * 1000));
+  } else {
+    console.log('  No session', error);
+  }
+});
+
+// 3. Environment
+console.log('\n3. ENVIRONMENT:');
+console.log('  Hostname:', window.location.hostname);
+console.log('  Is production:', window.location.hostname.endsWith('.buntinggpt.com'));
+console.log('  Is embedded:', window.self !== window.top);
+```
+
+### 5.2 Troubleshooting Decision Tree
+
+```
+Auth failing in iframe?
+│
+├─ Refresh token only 12 chars?
+│  ├─ Check: Cookie chunking pattern matches (key_chunk_0, key_chunk_1...)
+│  ├─ Fix: Use documented cookieStorage implementation
+│  └─ Fix: Sign out and back in to recreate cookies with new pattern
+│
+├─ Session set but not persisted?
+│  ├─ Check: supabase.auth.getSession() after setSession()
+│  ├─ Fix: Verify cookie domain is ".buntinggpt.com" (with leading dot)
+│  └─ Fix: Check no duplicate/conflicting cookie storage implementations
+│
+├─ RLS queries fail after auth?
+│  ├─ Check: supabase.auth.getUser() returns user
+│  ├─ Fix: Verify refresh_token is valid (not truncated)
+│  └─ Fix: Check JWT has "role: authenticated" claim
+│
+└─ Works on localhost but not production?
+   ├─ Fix: Ensure HTTPS (cookies require Secure flag)
+   └─ Fix: Check isProductionDomain detection
+```
+
+---
+
+## Part 6: Security Checklist
+
+- [ ] Origin validation: All postMessage handlers check event.origin
+- [ ] Target origin: Never use '*' when sending tokens
+- [ ] HTTPS only: All domains use HTTPS
+- [ ] Cookie domain: Explicitly set to `.buntinggpt.com`
+- [ ] No redirect in iframe: PrivateRoute checks isEmbedded
+- [ ] Token validation: Access token is JWT (3 parts), refresh token is opaque
+
+---
+
+## Quick Start for New Subdomain Apps
+
+1. **Copy exact Supabase config** from parent app (`client.ts`) - including cookieStorage
+2. **Implement AuthContext** with postMessage listener
+3. **Implement PrivateRoute** with iframe detection
+4. **Sign out and back in** on parent to recreate cookies with new chunking pattern
+5. **Test** with validation script in both parent and iframe
+6. **Verify** RLS queries work with authenticated user
+
+---
+
+## Common Issues & Fixes
+
+### Issue: Refresh token is only 12 characters
+**Cause:** Old cookie chunking pattern (`_chunks` + `_0`) vs new pattern (`_chunk_0`)
+**Fix:** 
+1. Update `client.ts` to use `_chunk_N` pattern (no separate chunks counter)
+2. Sign out completely on parent domain
+3. Clear all cookies for `.buntinggpt.com`
+4. Sign back in to create cookies with new pattern
+
+### Issue: "Session was set but not persisted to client"
+**Cause:** Cookie storage corruption during read/write
+**Fix:** Verify chunks are sorted by index before joining in `getItem()`
+
+### Issue: Works on localhost, fails in production
+**Cause:** Different storage (localStorage vs cookies)
+**Fix:** Ensure `isProductionDomain` detection works correctly
+
+---
+
+**Version:** 2.1 (December 2024)  
+**Last Updated:** Fixed cookie chunking pattern to use `_chunk_N` suffix consistently
