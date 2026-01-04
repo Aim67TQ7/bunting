@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AlertCircle, TrendingUp, DollarSign, Shield, FileText } from "lucide-react";
+import { AlertCircle, TrendingUp, DollarSign, Shield, FileText, Wrench, Briefcase, Scale, ClipboardCheck } from "lucide-react";
 
 interface ContractAnalysisDisplayProps {
   analysis: string;
@@ -45,6 +45,61 @@ interface ParsedAnalysis {
   negotiation_strategy?: {
     must_change: string[];
     should_change: string[];
+  };
+  required_skills: {
+    summary: {
+      total_skills: number;
+      critical_skills: number;
+      skills_gap_risk: string;
+    };
+    technical: Array<{
+      name: string;
+      category: string;
+      proficiency: string;
+      requirement_type: string;
+      clause_reference: string;
+      description: string;
+      is_specialized: boolean;
+      criticality: string;
+    }>;
+    business: Array<{
+      name: string;
+      category: string;
+      proficiency: string;
+      requirement_type: string;
+      clause_reference: string;
+      description: string;
+      is_specialized: boolean;
+      criticality: string;
+    }>;
+    legal: Array<{
+      name: string;
+      category: string;
+      proficiency: string;
+      requirement_type: string;
+      clause_reference: string;
+      description: string;
+      is_specialized: boolean;
+      criticality: string;
+    }>;
+    compliance: Array<{
+      name: string;
+      category: string;
+      proficiency: string;
+      requirement_type: string;
+      clause_reference: string;
+      description: string;
+      certification_required: string;
+      is_specialized: boolean;
+      criticality: string;
+    }>;
+    skill_gaps: Array<{
+      skill_name: string;
+      gap_severity: string;
+      mitigation_options: string;
+      training_available: boolean;
+      outsourcing_possible: boolean;
+    }>;
   };
 }
 
@@ -113,6 +168,43 @@ function parseXML(xmlString: string): ParsedAnalysis {
     (item) => item.querySelector("clause")?.textContent?.trim() || ""
   );
 
+  // Parse required skills
+  const parseSkill = (skillEl: Element, includesCert = false) => {
+    const base = {
+      name: skillEl.querySelector("name")?.textContent?.trim() || "",
+      category: skillEl.querySelector("category")?.textContent?.trim() || "",
+      proficiency: skillEl.querySelector("proficiency_required")?.textContent?.trim() || "",
+      requirement_type: skillEl.querySelector("requirement_type")?.textContent?.trim() || "",
+      clause_reference: skillEl.querySelector("clause_reference")?.textContent?.trim() || "",
+      description: skillEl.querySelector("description")?.textContent?.trim() || "",
+      is_specialized: skillEl.querySelector("is_specialized")?.textContent?.trim()?.toLowerCase() === "true",
+      criticality: skillEl.querySelector("criticality")?.textContent?.trim() || "",
+    };
+    if (includesCert) {
+      return { ...base, certification_required: skillEl.querySelector("certification_required")?.textContent?.trim() || "" };
+    }
+    return base;
+  };
+
+  const required_skills = {
+    summary: {
+      total_skills: parseInt(getTextContent("skills_summary > total_skills_identified")) || 0,
+      critical_skills: parseInt(getTextContent("skills_summary > critical_skills_count")) || 0,
+      skills_gap_risk: getTextContent("skills_summary > skills_gap_risk"),
+    },
+    technical: Array.from(xmlDoc.querySelectorAll("technical_skills > skill")).map(s => parseSkill(s)) as ParsedAnalysis["required_skills"]["technical"],
+    business: Array.from(xmlDoc.querySelectorAll("business_skills > skill")).map(s => parseSkill(s)) as ParsedAnalysis["required_skills"]["business"],
+    legal: Array.from(xmlDoc.querySelectorAll("legal_skills > skill")).map(s => parseSkill(s)) as ParsedAnalysis["required_skills"]["legal"],
+    compliance: Array.from(xmlDoc.querySelectorAll("compliance_skills > skill")).map(s => parseSkill(s, true)) as ParsedAnalysis["required_skills"]["compliance"],
+    skill_gaps: Array.from(xmlDoc.querySelectorAll("skill_gaps > gap")).map(gap => ({
+      skill_name: gap.querySelector("skill_name")?.textContent?.trim() || "",
+      gap_severity: gap.querySelector("gap_severity")?.textContent?.trim() || "",
+      mitigation_options: gap.querySelector("mitigation_options")?.textContent?.trim() || "",
+      training_available: gap.querySelector("training_available")?.textContent?.trim()?.toLowerCase() === "true",
+      outsourcing_possible: gap.querySelector("outsourcing_possible")?.textContent?.trim()?.toLowerCase() === "true",
+    })),
+  };
+
   return {
     metadata,
     executive_summary,
@@ -120,6 +212,7 @@ function parseXML(xmlString: string): ParsedAnalysis {
     risk_breakdown,
     critical_issues,
     negotiation_strategy: { must_change, should_change },
+    required_skills,
   };
 }
 
@@ -140,6 +233,47 @@ function getSeverityVariant(severity: string): "destructive" | "default" | "seco
       return "secondary";
     default:
       return "outline";
+  }
+}
+
+function getProficiencyColor(proficiency: string): string {
+  switch (proficiency.toLowerCase()) {
+    case "expert":
+      return "bg-purple-500";
+    case "advanced":
+      return "bg-blue-500";
+    case "intermediate":
+      return "bg-green-500";
+    case "basic":
+      return "bg-gray-500";
+    default:
+      return "bg-gray-400";
+  }
+}
+
+function getCriticalityVariant(criticality: string): "destructive" | "default" | "secondary" | "outline" {
+  switch (criticality.toLowerCase()) {
+    case "critical":
+      return "destructive";
+    case "important":
+      return "default";
+    case "nice-to-have":
+      return "outline";
+    default:
+      return "secondary";
+  }
+}
+
+function getSkillGapColor(severity: string): string {
+  switch (severity.toLowerCase()) {
+    case "critical":
+      return "hsl(var(--destructive))";
+    case "high":
+      return "hsl(var(--warning))";
+    case "medium":
+      return "hsl(var(--warning) / 0.6)";
+    default:
+      return "hsl(var(--muted-foreground))";
   }
 }
 
@@ -284,6 +418,207 @@ export function ContractAnalysisDisplay({ analysis }: ContractAnalysisDisplayPro
           </div>
         </CardContent>
       </Card>
+
+      {/* Required Skills */}
+      {(data.required_skills.technical.length > 0 ||
+        data.required_skills.business.length > 0 ||
+        data.required_skills.legal.length > 0 ||
+        data.required_skills.compliance.length > 0) && (
+        <Accordion type="single" collapsible defaultValue="skills">
+          <AccordionItem value="skills">
+            <AccordionTrigger className="hover:no-underline">
+              <div className="flex items-center gap-2 font-semibold">
+                <Wrench className="h-4 w-4" />
+                Required Skills ({data.required_skills.summary.total_skills ||
+                  (data.required_skills.technical.length +
+                   data.required_skills.business.length +
+                   data.required_skills.legal.length +
+                   data.required_skills.compliance.length)})
+                {data.required_skills.summary.skills_gap_risk && (
+                  <Badge variant={getSeverityVariant(data.required_skills.summary.skills_gap_risk)} className="ml-2">
+                    {data.required_skills.summary.skills_gap_risk} Gap Risk
+                  </Badge>
+                )}
+              </div>
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="space-y-4 pt-2">
+                {/* Skills Summary */}
+                {(data.required_skills.summary.total_skills > 0 || data.required_skills.summary.critical_skills > 0) && (
+                  <div className="grid grid-cols-3 gap-3 text-sm mb-4">
+                    <div className="text-center p-2 bg-muted rounded">
+                      <div className="text-2xl font-bold">{data.required_skills.summary.total_skills}</div>
+                      <div className="text-muted-foreground text-xs">Total Skills</div>
+                    </div>
+                    <div className="text-center p-2 bg-muted rounded">
+                      <div className="text-2xl font-bold text-destructive">{data.required_skills.summary.critical_skills}</div>
+                      <div className="text-muted-foreground text-xs">Critical</div>
+                    </div>
+                    <div className="text-center p-2 bg-muted rounded">
+                      <div className="text-2xl font-bold" style={{ color: getSkillGapColor(data.required_skills.summary.skills_gap_risk) }}>
+                        {data.required_skills.summary.skills_gap_risk || "N/A"}
+                      </div>
+                      <div className="text-muted-foreground text-xs">Gap Risk</div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Technical Skills */}
+                {data.required_skills.technical.length > 0 && (
+                  <div>
+                    <div className="font-medium text-sm mb-2 flex items-center gap-2">
+                      <Wrench className="h-3 w-3" />
+                      Technical Skills ({data.required_skills.technical.length})
+                    </div>
+                    <div className="space-y-2">
+                      {data.required_skills.technical.map((skill, i) => (
+                        <div key={i} className="flex items-start gap-2 p-2 bg-muted/50 rounded text-sm">
+                          <div className="flex-1">
+                            <div className="font-medium flex items-center gap-2">
+                              {skill.name}
+                              {skill.is_specialized && <Badge variant="outline" className="text-xs">Specialized</Badge>}
+                            </div>
+                            {skill.description && <div className="text-muted-foreground text-xs mt-1">{skill.description}</div>}
+                            {skill.clause_reference && <div className="text-xs text-blue-500 mt-1">Ref: {skill.clause_reference}</div>}
+                          </div>
+                          <div className="flex flex-col items-end gap-1">
+                            <Badge className={getProficiencyColor(skill.proficiency)}>{skill.proficiency}</Badge>
+                            <Badge variant={getCriticalityVariant(skill.criticality)}>{skill.criticality}</Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Business Skills */}
+                {data.required_skills.business.length > 0 && (
+                  <div>
+                    <div className="font-medium text-sm mb-2 flex items-center gap-2">
+                      <Briefcase className="h-3 w-3" />
+                      Business Skills ({data.required_skills.business.length})
+                    </div>
+                    <div className="space-y-2">
+                      {data.required_skills.business.map((skill, i) => (
+                        <div key={i} className="flex items-start gap-2 p-2 bg-muted/50 rounded text-sm">
+                          <div className="flex-1">
+                            <div className="font-medium flex items-center gap-2">
+                              {skill.name}
+                              {skill.is_specialized && <Badge variant="outline" className="text-xs">Specialized</Badge>}
+                            </div>
+                            {skill.description && <div className="text-muted-foreground text-xs mt-1">{skill.description}</div>}
+                            {skill.clause_reference && <div className="text-xs text-blue-500 mt-1">Ref: {skill.clause_reference}</div>}
+                          </div>
+                          <div className="flex flex-col items-end gap-1">
+                            <Badge className={getProficiencyColor(skill.proficiency)}>{skill.proficiency}</Badge>
+                            <Badge variant={getCriticalityVariant(skill.criticality)}>{skill.criticality}</Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Legal Skills */}
+                {data.required_skills.legal.length > 0 && (
+                  <div>
+                    <div className="font-medium text-sm mb-2 flex items-center gap-2">
+                      <Scale className="h-3 w-3" />
+                      Legal Skills ({data.required_skills.legal.length})
+                    </div>
+                    <div className="space-y-2">
+                      {data.required_skills.legal.map((skill, i) => (
+                        <div key={i} className="flex items-start gap-2 p-2 bg-muted/50 rounded text-sm">
+                          <div className="flex-1">
+                            <div className="font-medium flex items-center gap-2">
+                              {skill.name}
+                              {skill.is_specialized && <Badge variant="outline" className="text-xs">Specialized</Badge>}
+                            </div>
+                            {skill.description && <div className="text-muted-foreground text-xs mt-1">{skill.description}</div>}
+                            {skill.clause_reference && <div className="text-xs text-blue-500 mt-1">Ref: {skill.clause_reference}</div>}
+                          </div>
+                          <div className="flex flex-col items-end gap-1">
+                            <Badge className={getProficiencyColor(skill.proficiency)}>{skill.proficiency}</Badge>
+                            <Badge variant={getCriticalityVariant(skill.criticality)}>{skill.criticality}</Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Compliance Skills */}
+                {data.required_skills.compliance.length > 0 && (
+                  <div>
+                    <div className="font-medium text-sm mb-2 flex items-center gap-2">
+                      <ClipboardCheck className="h-3 w-3" />
+                      Compliance Skills ({data.required_skills.compliance.length})
+                    </div>
+                    <div className="space-y-2">
+                      {data.required_skills.compliance.map((skill, i) => (
+                        <div key={i} className="flex items-start gap-2 p-2 bg-muted/50 rounded text-sm">
+                          <div className="flex-1">
+                            <div className="font-medium flex items-center gap-2">
+                              {skill.name}
+                              {skill.is_specialized && <Badge variant="outline" className="text-xs">Specialized</Badge>}
+                            </div>
+                            {skill.description && <div className="text-muted-foreground text-xs mt-1">{skill.description}</div>}
+                            {skill.certification_required && (
+                              <div className="text-xs text-amber-600 mt-1">Cert Required: {skill.certification_required}</div>
+                            )}
+                            {skill.clause_reference && <div className="text-xs text-blue-500 mt-1">Ref: {skill.clause_reference}</div>}
+                          </div>
+                          <div className="flex flex-col items-end gap-1">
+                            <Badge className={getProficiencyColor(skill.proficiency)}>{skill.proficiency}</Badge>
+                            <Badge variant={getCriticalityVariant(skill.criticality)}>{skill.criticality}</Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Skill Gaps */}
+                {data.required_skills.skill_gaps.length > 0 && (
+                  <div className="mt-4 pt-4 border-t">
+                    <div className="font-medium text-sm mb-2 flex items-center gap-2 text-destructive">
+                      <AlertCircle className="h-3 w-3" />
+                      Identified Skill Gaps ({data.required_skills.skill_gaps.length})
+                    </div>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Skill</TableHead>
+                          <TableHead>Severity</TableHead>
+                          <TableHead>Mitigation</TableHead>
+                          <TableHead>Options</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {data.required_skills.skill_gaps.map((gap, i) => (
+                          <TableRow key={i}>
+                            <TableCell className="font-medium">{gap.skill_name}</TableCell>
+                            <TableCell>
+                              <Badge variant={getSeverityVariant(gap.gap_severity)}>{gap.gap_severity}</Badge>
+                            </TableCell>
+                            <TableCell className="text-sm max-w-xs">{gap.mitigation_options}</TableCell>
+                            <TableCell>
+                              <div className="flex gap-1">
+                                {gap.training_available && <Badge variant="outline" className="text-xs">Training</Badge>}
+                                {gap.outsourcing_possible && <Badge variant="outline" className="text-xs">Outsource</Badge>}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+      )}
 
       {/* Critical Issues */}
       {data.critical_issues.length > 0 && (
