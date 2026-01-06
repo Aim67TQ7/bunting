@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth, registerIframe, unregisterIframe } from "@/contexts/AuthContext";
 
 // Message types for legacy token/license apps
 interface LegacyMessage {
@@ -69,6 +69,7 @@ const Iframe = () => {
   const [licenseValue, setLicenseValue] = useState<string | null>(null);
   const [iframeLoaded, setIframeLoaded] = useState(false);
   const [authSent, setAuthSent] = useState(false);
+  const [iframeId] = useState(() => `iframe-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
   
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
@@ -254,6 +255,21 @@ const Iframe = () => {
 
     loadUrlData();
   }, [location]);
+
+  // Register/unregister iframe with AuthContext for token refresh propagation
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe || !needsSupabaseAuth || !url) return;
+
+    // Register this iframe so AuthContext can send token refreshes
+    registerIframe(iframeId, iframe, targetOrigin);
+    console.log(`[Iframe] Registered with AuthContext: ${iframeId} -> ${targetOrigin}`);
+
+    return () => {
+      unregisterIframe(iframeId);
+      console.log(`[Iframe] Unregistered from AuthContext: ${iframeId}`);
+    };
+  }, [iframeId, needsSupabaseAuth, targetOrigin, url]);
 
   // Handle iframe load event
   useEffect(() => {
