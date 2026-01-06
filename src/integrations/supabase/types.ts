@@ -1997,6 +1997,78 @@ export type Database = {
         }
         Relationships: []
       }
+      lucid_org_chart: {
+        Row: {
+          created_at: string
+          department: string | null
+          id: string
+          image_url: string | null
+          job_title: string | null
+          lucid_shape_id: string | null
+          name: string
+          raw_data: Json | null
+          reports_to_name: string | null
+          synced_at: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          department?: string | null
+          id?: string
+          image_url?: string | null
+          job_title?: string | null
+          lucid_shape_id?: string | null
+          name: string
+          raw_data?: Json | null
+          reports_to_name?: string | null
+          synced_at?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          department?: string | null
+          id?: string
+          image_url?: string | null
+          job_title?: string | null
+          lucid_shape_id?: string | null
+          name?: string
+          raw_data?: Json | null
+          reports_to_name?: string | null
+          synced_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      lucid_sync_log: {
+        Row: {
+          completed_at: string | null
+          error_message: string | null
+          id: string
+          records_synced: number | null
+          started_at: string
+          status: string
+          sync_type: string
+        }
+        Insert: {
+          completed_at?: string | null
+          error_message?: string | null
+          id?: string
+          records_synced?: number | null
+          started_at?: string
+          status: string
+          sync_type?: string
+        }
+        Update: {
+          completed_at?: string | null
+          error_message?: string | null
+          id?: string
+          records_synced?: number | null
+          started_at?: string
+          status?: string
+          sync_type?: string
+        }
+        Relationships: []
+      }
       "MAI Customers": {
         Row: {
           Customer: string | null
@@ -2981,6 +3053,91 @@ export type Database = {
         }
         Relationships: []
       }
+      pep_evaluations: {
+        Row: {
+          created_at: string
+          employee_id: string
+          employee_info_json: Json | null
+          id: string
+          pdf_generated_at: string | null
+          pdf_url: string | null
+          period_year: number
+          qualitative_json: Json | null
+          quantitative_json: Json | null
+          reopen_reason: string | null
+          reopened_at: string | null
+          reopened_by: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          submitted_at: string | null
+          summary_json: Json | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          employee_id: string
+          employee_info_json?: Json | null
+          id?: string
+          pdf_generated_at?: string | null
+          pdf_url?: string | null
+          period_year: number
+          qualitative_json?: Json | null
+          quantitative_json?: Json | null
+          reopen_reason?: string | null
+          reopened_at?: string | null
+          reopened_by?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_at?: string | null
+          summary_json?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          employee_id?: string
+          employee_info_json?: Json | null
+          id?: string
+          pdf_generated_at?: string | null
+          pdf_url?: string | null
+          period_year?: number
+          qualitative_json?: Json | null
+          quantitative_json?: Json | null
+          reopen_reason?: string | null
+          reopened_at?: string | null
+          reopened_by?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_at?: string | null
+          summary_json?: Json | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pep_evaluations_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pep_evaluations_reopened_by_fkey"
+            columns: ["reopened_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pep_evaluations_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       photos: {
         Row: {
           content_type: string
@@ -3765,49 +3922,67 @@ export type Database = {
       }
       rvw_goals: {
         Row: {
+          achievable: string | null
           actual_result: string | null
           created_at: string
           description: string | null
+          goal_type: string | null
           id: string
           manager_comments: string | null
           manager_score: number | null
+          measurable: string | null
+          relevant: string | null
           review_id: string
           self_comments: string | null
           self_score: number | null
           sort_order: number | null
+          specific: string | null
           target_kpi: string | null
+          time_bound: string | null
           title: string
           updated_at: string
           weight: number
         }
         Insert: {
+          achievable?: string | null
           actual_result?: string | null
           created_at?: string
           description?: string | null
+          goal_type?: string | null
           id?: string
           manager_comments?: string | null
           manager_score?: number | null
+          measurable?: string | null
+          relevant?: string | null
           review_id: string
           self_comments?: string | null
           self_score?: number | null
           sort_order?: number | null
+          specific?: string | null
           target_kpi?: string | null
+          time_bound?: string | null
           title: string
           updated_at?: string
           weight?: number
         }
         Update: {
+          achievable?: string | null
           actual_result?: string | null
           created_at?: string
           description?: string | null
+          goal_type?: string | null
           id?: string
           manager_comments?: string | null
           manager_score?: number | null
+          measurable?: string | null
+          relevant?: string | null
           review_id?: string
           self_comments?: string | null
           self_score?: number | null
           sort_order?: number | null
+          specific?: string | null
           target_kpi?: string | null
+          time_bound?: string | null
           title?: string
           updated_at?: string
           weight?: number
@@ -3963,6 +4138,8 @@ export type Database = {
           end_date: string
           id: string
           org_id: string | null
+          self_eval_cutoff: string | null
+          self_eval_locked: boolean | null
           start_date: string
           status: string
           template_id: string | null
@@ -3975,6 +4152,8 @@ export type Database = {
           end_date: string
           id?: string
           org_id?: string | null
+          self_eval_cutoff?: string | null
+          self_eval_locked?: boolean | null
           start_date: string
           status?: string
           template_id?: string | null
@@ -3987,6 +4166,8 @@ export type Database = {
           end_date?: string
           id?: string
           org_id?: string | null
+          self_eval_cutoff?: string | null
+          self_eval_locked?: boolean | null
           start_date?: string
           status?: string
           template_id?: string | null
@@ -5443,6 +5624,10 @@ export type Database = {
       }
     }
     Functions: {
+      admin_set_cycle_lock: {
+        Args: { _cycle_id: string; _locked: boolean }
+        Returns: undefined
+      }
       assign_user_role: {
         Args: { role_to_assign: string; target_user_id: string }
         Returns: boolean
@@ -5495,6 +5680,7 @@ export type Database = {
           userprincipalname: string
         }[]
       }
+      get_current_employee_id: { Args: never; Returns: string }
       get_employee_by_user_id: {
         Args: { user_id_param: string }
         Returns: {
@@ -5545,6 +5731,10 @@ export type Database = {
       }
       is_admin_level: { Args: { _user_id: string }; Returns: boolean }
       is_demo_user: { Args: { user_email: string }; Returns: boolean }
+      is_in_management_chain: {
+        Args: { _target_employee_id: string; _viewer_employee_id: string }
+        Returns: boolean
+      }
       is_manager_level: { Args: { _user_id: string }; Returns: boolean }
       is_notes_board_admin: {
         Args: { _board_id: string; _employee_id: string }
@@ -5637,6 +5827,10 @@ export type Database = {
         Args: { _review_id: string; _user_id: string }
         Returns: boolean
       }
+      rvw_is_self_eval_locked: {
+        Args: { _review_id: string }
+        Returns: boolean
+      }
       rvw_owns_review: {
         Args: { _review_id: string; _user_id: string }
         Returns: boolean
@@ -5722,7 +5916,13 @@ export type Database = {
         | "md_flow_calculator"
         | "five_s"
         | "fmea"
-      job_level: "Executive" | "Manager" | "Supervisor" | "Lead" | "Employee"
+      job_level:
+        | "Admin"
+        | "Executive"
+        | "Manager"
+        | "Supervisor"
+        | "Lead"
+        | "Employee"
       rvw_author_role: "manager" | "employee"
       rvw_cycle_status: "draft" | "active" | "closed"
       rvw_review_status: "draft" | "pending_approval" | "published" | "signed"
@@ -5885,7 +6085,14 @@ export const Constants = {
         "five_s",
         "fmea",
       ],
-      job_level: ["Executive", "Manager", "Supervisor", "Lead", "Employee"],
+      job_level: [
+        "Admin",
+        "Executive",
+        "Manager",
+        "Supervisor",
+        "Lead",
+        "Employee",
+      ],
       rvw_author_role: ["manager", "employee"],
       rvw_cycle_status: ["draft", "active", "closed"],
       rvw_review_status: ["draft", "pending_approval", "published", "signed"],

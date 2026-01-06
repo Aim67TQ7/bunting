@@ -1,14 +1,88 @@
 import { createContext, useContext, ReactNode, useState, useEffect } from 'react';
+import { Session } from '@supabase/supabase-js';
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { isDemoMode, getDemoEmail, disableDemoMode } from "@/utils/demoMode";
 
-// Define a more complete auth context interface
+// =============================================================================
+// IFRAME REGISTRY - Global tracking of embedded apps for token propagation
+// =============================================================================
+const activeIframes = new Map<string, { iframe: HTMLIFrameElement; origin: string }>();
+
+export function registerIframe(id: string, iframe: HTMLIFrameElement, origin: string) {
+  activeIframes.set(id, { iframe, origin });
+  console.log(`[AuthContext] Iframe registered: ${origin} (${activeIframes.size} total)`);
+}
+
+export function unregisterIframe(id: string) {
+  activeIframes.delete(id);
+  console.log(`[AuthContext] Iframe unregistered (${activeIframes.size} remaining)`);
+}
+
+// Propagate tokens to ALL registered iframes (called on TOKEN_REFRESHED and SIGNED_IN)
+function propagateTokensToIframes(session: Session) {
+  if (activeIframes.size === 0) return;
+  
+  console.log(`[AuthContext] Propagating tokens to ${activeIframes.size} iframes`);
+  
+  activeIframes.forEach(({ iframe, origin }, id) => {
+    if (!iframe.contentWindow) {
+      console.warn(`[AuthContext] Iframe ${id} has no contentWindow`);
+      return;
+    }
+    
+    try {
+      // Send new standardized format
+      iframe.contentWindow.postMessage({
+        type: 'BUNTINGGPT_AUTH_TOKEN',
+        user: {
+          id: session.user.id,
+          email: session.user.email || ''
+        },
+        accessToken: session.access_token,
+        refreshToken: session.refresh_token,
+        access_token: session.access_token,  // Legacy format
+        refresh_token: session.refresh_token, // Legacy format
+        token: session.access_token,          // Legacy format
+        expiresAt: session.expires_at,
+        origin: window.location.origin,
+        timestamp: Date.now()
+      }, origin);
+      
+      // Also send legacy format for older embedded apps
+      iframe.contentWindow.postMessage({
+        type: 'PROVIDE_TOKEN',
+        token: session.access_token,
+        refreshToken: session.refresh_token,
+        origin: window.location.origin,
+        timestamp: Date.now()
+      }, origin);
+      
+      iframe.contentWindow.postMessage({
+        type: 'PROVIDE_USER',
+        user: { 
+          id: session.user.id, 
+          email: session.user.email || '' 
+        },
+        origin: window.location.origin,
+        timestamp: Date.now()
+      }, origin);
+      
+      console.log(`[AuthContext] Tokens sent to iframe: ${origin}`);
+    } catch (err) {
+      console.error(`[AuthContext] Failed to send tokens to iframe ${origin}:`, err);
+    }
+  });
+}
+
+// =============================================================================
+// AUTH CONTEXT TYPE
+// =============================================================================
 interface AuthContextType {
   user: any;
   session: any;
   isLoading: boolean;
-  sessionChecked: boolean; // New flag to indicate initial session check completed
+  sessionChecked: boolean;
   signUp: (email: string, password: string) => Promise<{ error: any | null }>;
   signUpWithEmailOnly: (email: string) => Promise<{ error: any | null }>;
   signIn: (email: string, password: string) => Promise<{ error: any | null }>;
@@ -101,6 +175,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setSession(currentSession);
           setUser(currentSession?.user ?? null);
           
+          // CRITICAL: Propagate tokens to ALL registered iframes
+          if (currentSession) {
+            console.log(`[AuthContext] ${event} - propagating to iframes`);
+            propagateTokensToIframes(currentSession);
+          }
+          
           // Clean URL after OAuth callback
           if (hasOAuthCallbackParams()) {
             window.history.replaceState({}, '', window.location.pathname);
@@ -116,6 +196,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (currentSession) {
             setSession(currentSession);
             setUser(currentSession.user);
+            // Also propagate on initial session if iframes are already registered
+            propagateTokensToIframes(currentSession);
           } else if (isDemoMode()) {
             setUser({ id: 'demo', email: getDemoEmail() || 'demo@buntingmagnetics.com' });
           }
