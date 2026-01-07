@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AppItemIconUpload } from "@/components/admin/AppItemIconUpload";
 import { UserPasswordManager } from "@/components/admin/UserPasswordManager";
+import { BadgeQRGenerator } from "@/components/admin/BadgeQRGenerator";
 import { Plus, Pencil, Trash2, Image, ExternalLink } from "lucide-react";
 
 const ADMIN_EMAIL = "rclausing@buntingmagnetics.com";
@@ -347,6 +348,7 @@ export default function AdminAppItems() {
   return (
     <PageLayout title="Admin - App Items">
       <div className="p-4 md:p-6 space-y-6">
+        <BadgeQRGenerator />
         <UserPasswordManager />
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
