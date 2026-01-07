@@ -14,6 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { BrandLogo } from "@/components/brand-logo";
 import { useAuth } from "@/contexts/AuthContext";
 import { 
@@ -125,12 +126,14 @@ export default function Auth() {
   const { 
     user, isLoading, signIn, signInWithMicrosoft, signUp, signUpWithEmailOnly, 
     resetPassword, verifyOtpAndUpdatePassword, verifyOtpAndCreateAccount,
-    lookupBadge, signUpWithBadge, verifyBadgeSignup, signInWithBadge, resetBadgePin, verifyBadgePinReset
+    lookupBadge, signUpWithBadge, verifyBadgeSignup, signInWithBadge, resetBadgePin, verifyBadgePinReset,
+    quickSignUpWithBadge, changeBadgePin
   } = useAuth();
   const [isMicrosoftLoading, setIsMicrosoftLoading] = useState(false);
   const [authMode, setAuthMode] = useState<
     "login" | "signup" | "email-signup" | "otp-signup" | "reset" | "otp-reset" |
-    "badge-lookup" | "badge-login" | "badge-signup" | "badge-reset" | "badge-otp-reset"
+    "badge-lookup" | "badge-login" | "badge-signup" | "badge-reset" | "badge-otp-reset" |
+    "badge-qr-signup" | "badge-change-pin"
   >("login");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -139,11 +142,24 @@ export default function Auth() {
   const [badgeNumber, setBadgeNumber] = useState("");
   const [badgeEmployeeName, setBadgeEmployeeName] = useState("");
   const [badgeSupervisorEmail, setBadgeSupervisorEmail] = useState("");
+  const [qrPin, setQrPin] = useState<string | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [secretOpen, setSecretOpen] = useState(false);
   const [secretCode, setSecretCode] = useState("");
+
+  // Check for QR code PIN in URL params on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const pinFromUrl = params.get('badge_pin');
+    if (pinFromUrl) {
+      setQrPin(pinFromUrl);
+      setAuthMode("badge-qr-signup");
+      // Clean URL
+      window.history.replaceState({}, '', '/auth');
+    }
+  }, []);
 
   // Form for login
   const loginForm = useForm<z.infer<typeof loginSchema>>({
@@ -869,6 +885,105 @@ export default function Auth() {
                 </Button>
               </form>
             </Form>
+          )}
+
+          {/* QR Code Signup Form */}
+          {authMode === "badge-qr-signup" && (
+            <div className="space-y-4">
+              <div className="p-4 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
+                <p className="text-sm text-green-800 dark:text-green-200">
+                  Welcome! Enter your badge number to create your account.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="qr-badge">Badge Number</Label>
+                <Input 
+                  id="qr-badge"
+                  value={badgeNumber}
+                  onChange={(e) => setBadgeNumber(e.target.value)}
+                  placeholder="Enter your badge number"
+                  className={isMobile ? 'h-12 text-base' : ''}
+                />
+              </div>
+              <Button 
+                className={`w-full ${isMobile ? 'h-12 text-base' : ''}`}
+                disabled={isLoading || !badgeNumber || !qrPin}
+                onClick={async () => {
+                  if (!qrPin) return;
+                  const { error, requiresPinChange, employeeName } = await quickSignUpWithBadge(badgeNumber, qrPin);
+                  if (error) {
+                    toast({ title: "Signup failed", description: error.message, variant: "destructive" });
+                  } else {
+                    setBadgeEmployeeName(employeeName || "");
+                    setAuthMode("badge-change-pin");
+                    toast({ title: "Account created!", description: "Now set your personal PIN." });
+                  }
+                }}
+              >
+                {isLoading ? "Creating account..." : "Create Account"}
+              </Button>
+            </div>
+          )}
+
+          {/* PIN Change Form (after first login) */}
+          {authMode === "badge-change-pin" && (
+            <div className="space-y-4">
+              <div className="p-4 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
+                <p className="text-sm text-amber-800 dark:text-amber-200">
+                  {badgeEmployeeName ? `Welcome, ${badgeEmployeeName}! ` : ""}Please set your personal PIN to secure your account.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="new-pin">New PIN (4-8 digits)</Label>
+                <Input 
+                  id="new-pin"
+                  type="password"
+                  maxLength={8}
+                  placeholder="Enter new PIN"
+                  className={isMobile ? 'h-12 text-base' : ''}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirm-new-pin">Confirm PIN</Label>
+                <Input 
+                  id="confirm-new-pin"
+                  type="password"
+                  maxLength={8}
+                  placeholder="Confirm new PIN"
+                  className={isMobile ? 'h-12 text-base' : ''}
+                />
+              </div>
+              <Button 
+                className={`w-full ${isMobile ? 'h-12 text-base' : ''}`}
+                disabled={isLoading}
+                onClick={async () => {
+                  const newPin = (document.getElementById('new-pin') as HTMLInputElement)?.value;
+                  const confirmPin = (document.getElementById('confirm-new-pin') as HTMLInputElement)?.value;
+                  if (!newPin || !confirmPin) {
+                    toast({ title: "Missing PIN", description: "Please enter and confirm your new PIN.", variant: "destructive" });
+                    return;
+                  }
+                  if (newPin !== confirmPin) {
+                    toast({ title: "PINs don't match", description: "Please make sure your PINs match.", variant: "destructive" });
+                    return;
+                  }
+                  if (newPin.length < 4 || newPin.length > 8) {
+                    toast({ title: "Invalid PIN", description: "PIN must be 4-8 digits.", variant: "destructive" });
+                    return;
+                  }
+                  const { error } = await changeBadgePin(badgeNumber, qrPin || "", newPin);
+                  if (error) {
+                    toast({ title: "Failed to set PIN", description: error.message, variant: "destructive" });
+                  } else {
+                    toast({ title: "PIN set successfully!", description: "You can now use your badge and PIN to log in." });
+                    // Navigate to dashboard
+                    navigate("/", { replace: true });
+                  }
+                }}
+              >
+                {isLoading ? "Setting PIN..." : "Set PIN & Continue"}
+              </Button>
+            </div>
           )}
 
           {authMode === "signup" && (

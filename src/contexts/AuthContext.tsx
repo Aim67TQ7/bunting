@@ -84,6 +84,7 @@ interface BadgeLookupResult {
   employeeName?: string;
   supervisorEmail?: string;
   error?: string;
+  requiresPinChange?: boolean;
 }
 
 interface AuthContextType {
@@ -104,9 +105,12 @@ interface AuthContextType {
   lookupBadge: (badgeNumber: string) => Promise<BadgeLookupResult>;
   signUpWithBadge: (badgeNumber: string) => Promise<{ error: any | null; supervisorEmail?: string }>;
   verifyBadgeSignup: (badgeNumber: string, otp: string, pin: string) => Promise<{ error: any | null; session?: any }>;
-  signInWithBadge: (badgeNumber: string, pin: string) => Promise<{ error: any | null }>;
+  signInWithBadge: (badgeNumber: string, pin: string) => Promise<{ error: any | null; requiresPinChange?: boolean }>;
   resetBadgePin: (badgeNumber: string) => Promise<{ error: any | null; supervisorEmail?: string }>;
   verifyBadgePinReset: (badgeNumber: string, otp: string, newPin: string) => Promise<{ error: any | null }>;
+  // QR code signup flow
+  quickSignUpWithBadge: (badgeNumber: string, pin: string) => Promise<{ error: any | null; requiresPinChange?: boolean; employeeName?: string }>;
+  changeBadgePin: (badgeNumber: string, currentPin: string, newPin: string) => Promise<{ error: any | null }>;
 }
 
 // Create context with default values
@@ -131,6 +135,9 @@ const AuthContext = createContext<AuthContextType>({
   signInWithBadge: async () => ({ error: null }),
   resetBadgePin: async () => ({ error: null }),
   verifyBadgePinReset: async () => ({ error: null }),
+  // QR code signup flow
+  quickSignUpWithBadge: async () => ({ error: null }),
+  changeBadgePin: async () => ({ error: null }),
 });
 
 // Helper function to validate email domain
@@ -631,7 +638,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      return { error: null };
+      return { error: null, requiresPinChange: data.requiresPinChange };
     } catch (error: any) {
       return { error: { message: error.message || 'Failed to sign in with badge' } };
     }
@@ -677,6 +684,72 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // =============================================================================
+  // QR CODE SIGNUP FLOW METHODS
+  // =============================================================================
+
+  const quickSignUpWithBadge = async (badgeNumber: string, pin: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('badge-auth', {
+        body: { action: 'quick-signup', badgeNumber, pin },
+      });
+
+      if (error) {
+        return { error: { message: error.message } };
+      }
+
+      if (data.error) {
+        return { error: { message: data.error } };
+      }
+
+      // If we got a magic link, verify it to get a session
+      if (data.magicLink) {
+        const url = new URL(data.magicLink);
+        const token = url.searchParams.get('token');
+        const type = url.searchParams.get('type');
+
+        if (token && type === 'magiclink') {
+          const { error: verifyError } = await supabase.auth.verifyOtp({
+            token_hash: token,
+            type: 'magiclink',
+          });
+
+          if (verifyError) {
+            return { error: { message: verifyError.message } };
+          }
+        }
+      }
+
+      return { 
+        error: null, 
+        requiresPinChange: data.requiresPinChange,
+        employeeName: data.employeeName,
+      };
+    } catch (error: any) {
+      return { error: { message: error.message || 'Failed to create account' } };
+    }
+  };
+
+  const changeBadgePin = async (badgeNumber: string, currentPin: string, newPin: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('badge-auth', {
+        body: { action: 'change-pin', badgeNumber, pin: currentPin, newPin },
+      });
+
+      if (error) {
+        return { error: { message: error.message } };
+      }
+
+      if (data.error) {
+        return { error: { message: data.error } };
+      }
+
+      return { error: null };
+    } catch (error: any) {
+      return { error: { message: error.message || 'Failed to change PIN' } };
+    }
+  };
+
   const value = {
     user,
     session,
@@ -698,6 +771,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signInWithBadge,
     resetBadgePin,
     verifyBadgePinReset,
+    // QR code signup flow
+    quickSignUpWithBadge,
+    changeBadgePin,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
