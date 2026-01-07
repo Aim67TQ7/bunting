@@ -78,6 +78,14 @@ function propagateTokensToIframes(session: Session) {
 // =============================================================================
 // AUTH CONTEXT TYPE
 // =============================================================================
+interface BadgeLookupResult {
+  exists: boolean;
+  hasAccount?: boolean;
+  employeeName?: string;
+  supervisorEmail?: string;
+  error?: string;
+}
+
 interface AuthContextType {
   user: any;
   session: any;
@@ -92,6 +100,13 @@ interface AuthContextType {
   verifyOtpAndUpdatePassword: (email: string, token: string, password: string) => Promise<{ error: any | null }>;
   verifyOtpAndCreateAccount: (email: string, token: string, password: string) => Promise<{ error: any | null }>;
   updatePassword: (password: string) => Promise<{ error: any | null }>;
+  // Badge auth methods
+  lookupBadge: (badgeNumber: string) => Promise<BadgeLookupResult>;
+  signUpWithBadge: (badgeNumber: string) => Promise<{ error: any | null; supervisorEmail?: string }>;
+  verifyBadgeSignup: (badgeNumber: string, otp: string, pin: string) => Promise<{ error: any | null; session?: any }>;
+  signInWithBadge: (badgeNumber: string, pin: string) => Promise<{ error: any | null }>;
+  resetBadgePin: (badgeNumber: string) => Promise<{ error: any | null; supervisorEmail?: string }>;
+  verifyBadgePinReset: (badgeNumber: string, otp: string, newPin: string) => Promise<{ error: any | null }>;
 }
 
 // Create context with default values
@@ -109,6 +124,13 @@ const AuthContext = createContext<AuthContextType>({
   verifyOtpAndUpdatePassword: async () => ({ error: null }),
   verifyOtpAndCreateAccount: async () => ({ error: null }),
   updatePassword: async () => ({ error: null }),
+  // Badge auth defaults
+  lookupBadge: async () => ({ exists: false }),
+  signUpWithBadge: async () => ({ error: null }),
+  verifyBadgeSignup: async () => ({ error: null }),
+  signInWithBadge: async () => ({ error: null }),
+  resetBadgePin: async () => ({ error: null }),
+  verifyBadgePinReset: async () => ({ error: null }),
 });
 
 // Helper function to validate email domain
@@ -510,6 +532,151 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // =============================================================================
+  // BADGE AUTHENTICATION METHODS
+  // =============================================================================
+  
+  const lookupBadge = async (badgeNumber: string): Promise<BadgeLookupResult> => {
+    try {
+      const { data, error } = await supabase.functions.invoke('badge-auth', {
+        body: { action: 'lookup', badgeNumber },
+      });
+
+      if (error) {
+        return { exists: false, error: error.message };
+      }
+
+      return data as BadgeLookupResult;
+    } catch (error: any) {
+      return { exists: false, error: error.message || 'Failed to lookup badge' };
+    }
+  };
+
+  const signUpWithBadge = async (badgeNumber: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('badge-auth', {
+        body: { action: 'signup-request', badgeNumber },
+      });
+
+      if (error) {
+        return { error: { message: error.message } };
+      }
+
+      if (data.error) {
+        return { error: { message: data.error } };
+      }
+
+      return { error: null, supervisorEmail: data.supervisorEmail };
+    } catch (error: any) {
+      return { error: { message: error.message || 'Failed to request badge signup' } };
+    }
+  };
+
+  const verifyBadgeSignup = async (badgeNumber: string, otp: string, pin: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('badge-auth', {
+        body: { action: 'signup-verify', badgeNumber, otp, pin },
+      });
+
+      if (error) {
+        return { error: { message: error.message } };
+      }
+
+      if (data.error) {
+        return { error: { message: data.error } };
+      }
+
+      // If we got a session back, set it
+      if (data.session) {
+        await supabase.auth.setSession(data.session);
+        return { error: null, session: data.session };
+      }
+
+      return { error: null };
+    } catch (error: any) {
+      return { error: { message: error.message || 'Failed to verify badge signup' } };
+    }
+  };
+
+  const signInWithBadge = async (badgeNumber: string, pin: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('badge-auth', {
+        body: { action: 'login', badgeNumber, pin },
+      });
+
+      if (error) {
+        return { error: { message: error.message } };
+      }
+
+      if (data.error) {
+        return { error: { message: data.error } };
+      }
+
+      // If we got a magic link, verify it to get a session
+      if (data.magicLink) {
+        // Extract the token from the magic link URL
+        const url = new URL(data.magicLink);
+        const token = url.searchParams.get('token');
+        const type = url.searchParams.get('type');
+
+        if (token && type === 'magiclink') {
+          const { error: verifyError } = await supabase.auth.verifyOtp({
+            token_hash: token,
+            type: 'magiclink',
+          });
+
+          if (verifyError) {
+            return { error: { message: verifyError.message } };
+          }
+        }
+      }
+
+      return { error: null };
+    } catch (error: any) {
+      return { error: { message: error.message || 'Failed to sign in with badge' } };
+    }
+  };
+
+  const resetBadgePin = async (badgeNumber: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('badge-auth', {
+        body: { action: 'reset-request', badgeNumber },
+      });
+
+      if (error) {
+        return { error: { message: error.message } };
+      }
+
+      if (data.error) {
+        return { error: { message: data.error } };
+      }
+
+      return { error: null, supervisorEmail: data.supervisorEmail };
+    } catch (error: any) {
+      return { error: { message: error.message || 'Failed to request PIN reset' } };
+    }
+  };
+
+  const verifyBadgePinReset = async (badgeNumber: string, otp: string, newPin: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('badge-auth', {
+        body: { action: 'reset-verify', badgeNumber, otp, pin: newPin },
+      });
+
+      if (error) {
+        return { error: { message: error.message } };
+      }
+
+      if (data.error) {
+        return { error: { message: data.error } };
+      }
+
+      return { error: null };
+    } catch (error: any) {
+      return { error: { message: error.message || 'Failed to reset PIN' } };
+    }
+  };
+
   const value = {
     user,
     session,
@@ -524,6 +691,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     verifyOtpAndUpdatePassword,
     verifyOtpAndCreateAccount,
     updatePassword,
+    // Badge auth
+    lookupBadge,
+    signUpWithBadge,
+    verifyBadgeSignup,
+    signInWithBadge,
+    resetBadgePin,
+    verifyBadgePinReset,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

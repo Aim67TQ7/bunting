@@ -25,7 +25,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { toast } from "@/hooks/use-toast";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, BadgeCheck } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { enableDemoMode } from "@/utils/demoMode";
@@ -91,14 +91,54 @@ const otpResetSchema = z.object({
   path: ["confirmPassword"],
 });
 
+// Badge authentication schemas
+const badgeLookupSchema = z.object({
+  badgeNumber: z.string().min(2, "Badge number is required"),
+});
+
+const badgeLoginSchema = z.object({
+  badgeNumber: z.string().min(2, "Badge number is required"),
+  pin: z.string().min(4, "PIN must be at least 4 digits").max(8, "PIN must be at most 8 digits"),
+});
+
+const badgeSignupSchema = z.object({
+  badgeNumber: z.string().min(2, "Badge number is required"),
+  otp: z.string().length(6, "Verification code must be 6 digits"),
+  pin: z.string().min(4, "PIN must be at least 4 digits").max(8, "PIN must be at most 8 digits"),
+  confirmPin: z.string(),
+}).refine((data) => data.pin === data.confirmPin, {
+  message: "PINs don't match",
+  path: ["confirmPin"],
+});
+
+const badgeResetSchema = z.object({
+  badgeNumber: z.string().min(2, "Badge number is required"),
+  otp: z.string().length(6, "Verification code must be 6 digits"),
+  pin: z.string().min(4, "PIN must be at least 4 digits").max(8, "PIN must be at most 8 digits"),
+  confirmPin: z.string(),
+}).refine((data) => data.pin === data.confirmPin, {
+  message: "PINs don't match",
+  path: ["confirmPin"],
+});
+
 export default function Auth() {
-  const { user, isLoading, signIn, signInWithMicrosoft, signUp, signUpWithEmailOnly, resetPassword, verifyOtpAndUpdatePassword, verifyOtpAndCreateAccount } = useAuth();
+  const { 
+    user, isLoading, signIn, signInWithMicrosoft, signUp, signUpWithEmailOnly, 
+    resetPassword, verifyOtpAndUpdatePassword, verifyOtpAndCreateAccount,
+    lookupBadge, signUpWithBadge, verifyBadgeSignup, signInWithBadge, resetBadgePin, verifyBadgePinReset
+  } = useAuth();
   const [isMicrosoftLoading, setIsMicrosoftLoading] = useState(false);
-  const [authMode, setAuthMode] = useState<"login" | "signup" | "email-signup" | "otp-signup" | "reset" | "otp-reset">("login");
+  const [authMode, setAuthMode] = useState<
+    "login" | "signup" | "email-signup" | "otp-signup" | "reset" | "otp-reset" |
+    "badge-lookup" | "badge-login" | "badge-signup" | "badge-reset" | "badge-otp-reset"
+  >("login");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [signupEmail, setSignupEmail] = useState("");
+  const [badgeNumber, setBadgeNumber] = useState("");
+  const [badgeEmployeeName, setBadgeEmployeeName] = useState("");
+  const [badgeSupervisorEmail, setBadgeSupervisorEmail] = useState("");
   const location = useLocation();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -160,6 +200,27 @@ export default function Auth() {
       password: "",
       confirmPassword: "",
     },
+  });
+
+  // Badge auth forms
+  const badgeLookupForm = useForm<z.infer<typeof badgeLookupSchema>>({
+    resolver: zodResolver(badgeLookupSchema),
+    defaultValues: { badgeNumber: "" },
+  });
+
+  const badgeLoginForm = useForm<z.infer<typeof badgeLoginSchema>>({
+    resolver: zodResolver(badgeLoginSchema),
+    defaultValues: { badgeNumber: "", pin: "" },
+  });
+
+  const badgeSignupForm = useForm<z.infer<typeof badgeSignupSchema>>({
+    resolver: zodResolver(badgeSignupSchema),
+    defaultValues: { badgeNumber: "", otp: "", pin: "", confirmPin: "" },
+  });
+
+  const badgeResetForm = useForm<z.infer<typeof badgeResetSchema>>({
+    resolver: zodResolver(badgeResetSchema),
+    defaultValues: { badgeNumber: "", otp: "", pin: "", confirmPin: "" },
   });
 
   // Redirect if already authenticated - check if profile is complete
@@ -359,6 +420,136 @@ export default function Auth() {
     // Note: On success, user will be redirected to Microsoft, so no need to handle success state
   };
 
+  // =============================================================================
+  // BADGE AUTHENTICATION HANDLERS
+  // =============================================================================
+
+  // Handle badge lookup
+  const onBadgeLookupSubmit = async (values: z.infer<typeof badgeLookupSchema>) => {
+    const result = await lookupBadge(values.badgeNumber);
+    
+    if (!result.exists) {
+      toast({
+        title: "Badge not found",
+        description: result.error || "Please check your badge number and try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setBadgeNumber(values.badgeNumber);
+    setBadgeEmployeeName(result.employeeName || "");
+    setBadgeSupervisorEmail(result.supervisorEmail || "");
+
+    if (result.hasAccount) {
+      // Existing user - go to login
+      badgeLoginForm.setValue("badgeNumber", values.badgeNumber);
+      setAuthMode("badge-login");
+      toast({
+        title: `Welcome back, ${result.employeeName}!`,
+        description: "Please enter your PIN to sign in.",
+      });
+    } else {
+      // New user - start signup
+      const { error, supervisorEmail } = await signUpWithBadge(values.badgeNumber);
+      
+      if (error) {
+        toast({
+          title: "Signup request failed",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setBadgeSupervisorEmail(supervisorEmail || result.supervisorEmail || "");
+      badgeSignupForm.setValue("badgeNumber", values.badgeNumber);
+      setAuthMode("badge-signup");
+      toast({
+        title: `Hi ${result.employeeName}!`,
+        description: `A verification code has been sent to your supervisor (${supervisorEmail || result.supervisorEmail}).`,
+      });
+    }
+  };
+
+  // Handle badge login
+  const onBadgeLoginSubmit = async (values: z.infer<typeof badgeLoginSchema>) => {
+    const { error } = await signInWithBadge(values.badgeNumber, values.pin);
+    
+    if (error) {
+      toast({
+        title: "Login failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Login successful",
+        description: "Welcome back!",
+      });
+    }
+  };
+
+  // Handle badge signup verification
+  const onBadgeSignupSubmit = async (values: z.infer<typeof badgeSignupSchema>) => {
+    const { error } = await verifyBadgeSignup(values.badgeNumber, values.otp, values.pin);
+    
+    if (error) {
+      toast({
+        title: "Verification failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Account created!",
+        description: "Welcome to BuntingGPT!",
+      });
+    }
+  };
+
+  // Handle badge PIN reset request
+  const onBadgeResetRequest = async () => {
+    const { error, supervisorEmail } = await resetBadgePin(badgeNumber);
+    
+    if (error) {
+      toast({
+        title: "Reset request failed",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setBadgeSupervisorEmail(supervisorEmail || "");
+    badgeResetForm.setValue("badgeNumber", badgeNumber);
+    setAuthMode("badge-otp-reset");
+    toast({
+      title: "Reset code sent",
+      description: `A verification code has been sent to your supervisor (${supervisorEmail}).`,
+    });
+  };
+
+  // Handle badge PIN reset verification
+  const onBadgeResetSubmit = async (values: z.infer<typeof badgeResetSchema>) => {
+    const { error } = await verifyBadgePinReset(values.badgeNumber, values.otp, values.pin);
+    
+    if (error) {
+      toast({
+        title: "Reset failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "PIN updated",
+        description: "Please log in with your new PIN.",
+      });
+      badgeLoginForm.setValue("badgeNumber", values.badgeNumber);
+      setAuthMode("badge-login");
+    }
+  };
+
   return (
     <div className={`flex flex-col items-center justify-center min-h-screen ${isMobile ? 'p-2' : 'p-4'} bg-muted/30`}>
       <div className={`${isMobile ? 'mb-4' : 'mb-8'}`}>
@@ -412,6 +603,39 @@ export default function Auth() {
               <CardTitle className={isMobile ? 'text-lg' : ''}>Enter Reset Code</CardTitle>
               <CardDescription className={isMobile ? 'text-sm' : ''}>
                 Enter the 6-digit code sent to {resetEmail} and your new password
+              </CardDescription>
+            </>
+          )}
+          {/* Badge auth headers */}
+          {authMode === "badge-lookup" && (
+            <>
+              <CardTitle className={isMobile ? 'text-lg' : ''}>Use my Badge</CardTitle>
+              <CardDescription className={isMobile ? 'text-sm' : ''}>
+                Enter your employee badge number to sign in
+              </CardDescription>
+            </>
+          )}
+          {authMode === "badge-login" && (
+            <>
+              <CardTitle className={isMobile ? 'text-lg' : ''}>Welcome back, {badgeEmployeeName}!</CardTitle>
+              <CardDescription className={isMobile ? 'text-sm' : ''}>
+                Enter your PIN to sign in
+              </CardDescription>
+            </>
+          )}
+          {authMode === "badge-signup" && (
+            <>
+              <CardTitle className={isMobile ? 'text-lg' : ''}>Create your PIN</CardTitle>
+              <CardDescription className={isMobile ? 'text-sm' : ''}>
+                Enter the code from your supervisor ({badgeSupervisorEmail}) and create a PIN
+              </CardDescription>
+            </>
+          )}
+          {(authMode === "badge-reset" || authMode === "badge-otp-reset") && (
+            <>
+              <CardTitle className={isMobile ? 'text-lg' : ''}>Reset your PIN</CardTitle>
+              <CardDescription className={isMobile ? 'text-sm' : ''}>
+                Enter the code from your supervisor ({badgeSupervisorEmail}) and create a new PIN
               </CardDescription>
             </>
           )}
@@ -507,7 +731,144 @@ export default function Auth() {
                   </Button>
                 </form>
               </Form>
+
+              {/* Badge Login Option */}
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-border" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">or</span>
+                </div>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                className={`w-full ${isMobile ? 'h-12 text-base' : ''} flex items-center justify-center gap-2`}
+                onClick={() => setAuthMode("badge-lookup")}
+              >
+                <BadgeCheck className="h-5 w-5" />
+                Use my Badge
+              </Button>
+              <p className="text-xs text-muted-foreground text-center">
+                For employees without company email access
+              </p>
             </div>
+          )}
+
+          {/* Badge Lookup Form */}
+          {authMode === "badge-lookup" && (
+            <Form {...badgeLookupForm}>
+              <form onSubmit={badgeLookupForm.handleSubmit(onBadgeLookupSubmit)} className="space-y-4">
+                <FormField
+                  control={badgeLookupForm.control}
+                  name="badgeNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Badge Number</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter your badge number" className={isMobile ? 'h-12 text-base' : ''} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" className={`w-full ${isMobile ? 'h-12 text-base' : ''}`} disabled={isLoading}>
+                  {isLoading ? "Looking up..." : "Continue"}
+                </Button>
+              </form>
+            </Form>
+          )}
+
+          {/* Badge Login Form */}
+          {authMode === "badge-login" && (
+            <Form {...badgeLoginForm}>
+              <form onSubmit={badgeLoginForm.handleSubmit(onBadgeLoginSubmit)} className="space-y-4">
+                <FormField
+                  control={badgeLoginForm.control}
+                  name="pin"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>PIN</FormLabel>
+                      <FormControl>
+                        <Input type="password" placeholder="Enter your PIN" maxLength={8} className={isMobile ? 'h-12 text-base' : ''} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" className={`w-full ${isMobile ? 'h-12 text-base' : ''}`} disabled={isLoading}>
+                  {isLoading ? "Signing in..." : "Sign in"}
+                </Button>
+                <Button type="button" variant="link" className="w-full" onClick={onBadgeResetRequest}>
+                  Forgot PIN?
+                </Button>
+              </form>
+            </Form>
+          )}
+
+          {/* Badge Signup Form */}
+          {authMode === "badge-signup" && (
+            <Form {...badgeSignupForm}>
+              <form onSubmit={badgeSignupForm.handleSubmit(onBadgeSignupSubmit)} className="space-y-4">
+                <FormField control={badgeSignupForm.control} name="otp" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Verification Code</FormLabel>
+                    <FormControl><Input placeholder="6-digit code" maxLength={6} {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={badgeSignupForm.control} name="pin" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Create PIN (4-8 digits)</FormLabel>
+                    <FormControl><Input type="password" placeholder="Enter PIN" maxLength={8} {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={badgeSignupForm.control} name="confirmPin" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Confirm PIN</FormLabel>
+                    <FormControl><Input type="password" placeholder="Confirm PIN" maxLength={8} {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? "Creating account..." : "Create Account"}
+                </Button>
+              </form>
+            </Form>
+          )}
+
+          {/* Badge Reset Form */}
+          {authMode === "badge-otp-reset" && (
+            <Form {...badgeResetForm}>
+              <form onSubmit={badgeResetForm.handleSubmit(onBadgeResetSubmit)} className="space-y-4">
+                <FormField control={badgeResetForm.control} name="otp" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Verification Code</FormLabel>
+                    <FormControl><Input placeholder="6-digit code" maxLength={6} {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={badgeResetForm.control} name="pin" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>New PIN (4-8 digits)</FormLabel>
+                    <FormControl><Input type="password" placeholder="Enter new PIN" maxLength={8} {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={badgeResetForm.control} name="confirmPin" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Confirm New PIN</FormLabel>
+                    <FormControl><Input type="password" placeholder="Confirm PIN" maxLength={8} {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? "Updating..." : "Update PIN"}
+                </Button>
+              </form>
+            </Form>
           )}
 
           {authMode === "signup" && (
@@ -882,6 +1243,11 @@ export default function Auth() {
                 </Button>
               </div>
             </>
+          )}
+          {(authMode === "badge-lookup" || authMode === "badge-login" || authMode === "badge-signup" || authMode === "badge-otp-reset") && (
+            <Button variant="link" onClick={() => setAuthMode("login")} className="text-sm">
+              Back to email login
+            </Button>
           )}
           {authMode === "signup" && (
             <div className={`text-center ${isMobile ? 'text-sm' : 'text-sm'}`}>
