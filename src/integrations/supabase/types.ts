@@ -1881,6 +1881,35 @@ export type Database = {
         }
         Relationships: []
       }
+      hr_admin_users: {
+        Row: {
+          employee_id: string
+          granted_at: string | null
+          granted_by: string | null
+          id: string
+        }
+        Insert: {
+          employee_id: string
+          granted_at?: string | null
+          granted_by?: string | null
+          id?: string
+        }
+        Update: {
+          employee_id?: string
+          granted_at?: string | null
+          granted_by?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_admin_users_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: true
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       iframe_sessions: {
         Row: {
           created_at: string
@@ -3211,6 +3240,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pep_settings: {
+        Row: {
+          id: string
+          setting_key: string
+          setting_value: Json
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          setting_key: string
+          setting_value: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          setting_key?: string
+          setting_value?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
       }
       photos: {
         Row: {
