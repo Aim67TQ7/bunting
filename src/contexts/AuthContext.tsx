@@ -335,94 +335,102 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let mounted = true;
     let oauthTimeout: NodeJS.Timeout | null = null;
 
-    // Set up authentication state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, currentSession) => {
-        console.log('Auth state change:', event, currentSession?.user?.email);
-        
-        // Debug: Log token lengths (never log actual values for security)
-        if (currentSession) {
-          console.log('[AuthContext] Token diagnostics:', {
-            event,
-            hasAccessToken: !!currentSession.access_token,
-            accessTokenLength: currentSession.access_token?.length || 0,
-            hasRefreshToken: !!currentSession.refresh_token,
-            refreshTokenLength: currentSession.refresh_token?.length || 0,
-            // Refresh tokens should be substantial (100+ chars typically)
-            refreshTokenValid: (currentSession.refresh_token?.length || 0) > 20
-          });
-        }
-        
-        if (!mounted) return;
+    // Async handler to properly await record creation before updating state
+    const handleAuthStateChange = async (event: string, currentSession: Session | null) => {
+      console.log('Auth state change:', event, currentSession?.user?.email);
+      
+      // Debug: Log token lengths (never log actual values for security)
+      if (currentSession) {
+        console.log('[AuthContext] Token diagnostics:', {
+          event,
+          hasAccessToken: !!currentSession.access_token,
+          accessTokenLength: currentSession.access_token?.length || 0,
+          hasRefreshToken: !!currentSession.refresh_token,
+          refreshTokenLength: currentSession.refresh_token?.length || 0,
+          refreshTokenValid: (currentSession.refresh_token?.length || 0) > 20
+        });
+      }
+      
+      if (!mounted) return;
 
-        // Clear OAuth timeout if we got an auth event
-        if (oauthTimeout) {
-          clearTimeout(oauthTimeout);
-          oauthTimeout = null;
+      // Clear OAuth timeout if we got an auth event
+      if (oauthTimeout) {
+        clearTimeout(oauthTimeout);
+        oauthTimeout = null;
+      }
+      
+      if (event === 'SIGNED_OUT') {
+        setSession(null);
+        setUser(null);
+        // Support demo mode fallback after sign out
+        if (isDemoMode()) {
+          setUser({ id: 'demo', email: getDemoEmail() || 'demo@buntingmagnetics.com' });
+        }
+      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        // CRITICAL: Propagate tokens to ALL registered iframes
+        if (currentSession) {
+          console.log(`[AuthContext] ${event} - propagating to iframes`);
+          propagateTokensToIframes(currentSession);
+          
+          // On SIGNED_IN, ensure user records exist BEFORE updating state
+          // This prevents Auth.tsx from checking emps before records are created
+          if (event === 'SIGNED_IN' && currentSession.user) {
+            const userEmail = currentSession.user.email;
+            if (userEmail) {
+              console.log('[AuthContext] Awaiting ensureEmployeeLink...');
+              await ensureEmployeeLink(currentSession.user.id, userEmail);
+            }
+            console.log('[AuthContext] Awaiting ensureUserRecordsExist...');
+            await ensureUserRecordsExist(currentSession.user);
+            console.log('[AuthContext] User records setup complete');
+          }
         }
         
-        if (event === 'SIGNED_OUT') {
-          setSession(null);
-          setUser(null);
-          // Support demo mode fallback after sign out
-          if (isDemoMode()) {
-            setUser({ id: 'demo', email: getDemoEmail() || 'demo@buntingmagnetics.com' });
-          }
-        } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        // NOW update state - Auth.tsx useEffect will find the records
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
+        
+        // Clean URL after OAuth callback
+        if (hasOAuthCallbackParams()) {
+          window.history.replaceState({}, '', window.location.pathname);
+        }
+        
+        // Mark session as checked for OAuth flow
+        setSessionChecked(true);
+        setIsLoading(false);
+      } else if (event === 'USER_UPDATED') {
+        setUser(currentSession?.user ?? null);
+      } else if (event === 'INITIAL_SESSION') {
+        // Handle initial session event - this fires when auth state is first determined
+        if (currentSession) {
           setSession(currentSession);
-          setUser(currentSession?.user ?? null);
-          
-          // CRITICAL: Propagate tokens to ALL registered iframes
-          if (currentSession) {
-            console.log(`[AuthContext] ${event} - propagating to iframes`);
-            propagateTokensToIframes(currentSession);
-            
-            // On SIGNED_IN, ensure user is linked to employee table and has required records
-            if (event === 'SIGNED_IN' && currentSession.user) {
-              const userEmail = currentSession.user.email;
-              if (userEmail) {
-                ensureEmployeeLink(currentSession.user.id, userEmail);
-              }
-              // Ensure profiles, emps, and user_preferences records exist (critical for OAuth users)
-              ensureUserRecordsExist(currentSession.user);
-            }
-          }
-          
-          // Clean URL after OAuth callback
-          if (hasOAuthCallbackParams()) {
-            window.history.replaceState({}, '', window.location.pathname);
-          }
-          
-          // Mark session as checked for OAuth flow
-          setSessionChecked(true);
-          setIsLoading(false);
-        } else if (event === 'USER_UPDATED') {
-          setUser(currentSession?.user ?? null);
-        } else if (event === 'INITIAL_SESSION') {
-          // Handle initial session event - this fires when auth state is first determined
-          if (currentSession) {
-            setSession(currentSession);
-            setUser(currentSession.user);
-            // Also propagate on initial session if iframes are already registered
-            propagateTokensToIframes(currentSession);
-          } else if (isDemoMode()) {
-            setUser({ id: 'demo', email: getDemoEmail() || 'demo@buntingmagnetics.com' });
-          }
-          
-          // Only mark as checked if NOT waiting for OAuth callback
-          if (!hasOAuthCallbackParams()) {
-            setSessionChecked(true);
-            setIsLoading(false);
-          }
-        } else if (!currentSession && isDemoMode()) {
-          // No session but demo mode enabled
+          setUser(currentSession.user);
+          // Also propagate on initial session if iframes are already registered
+          propagateTokensToIframes(currentSession);
+        } else if (isDemoMode()) {
           setUser({ id: 'demo', email: getDemoEmail() || 'demo@buntingmagnetics.com' });
         }
         
-        // Only set loading false if we got a definitive auth event (and not OAuth waiting)
-        if (event !== 'INITIAL_SESSION' && !hasOAuthCallbackParams()) {
+        // Only mark as checked if NOT waiting for OAuth callback
+        if (!hasOAuthCallbackParams()) {
+          setSessionChecked(true);
           setIsLoading(false);
         }
+      } else if (!currentSession && isDemoMode()) {
+        // No session but demo mode enabled
+        setUser({ id: 'demo', email: getDemoEmail() || 'demo@buntingmagnetics.com' });
+      }
+      
+      // Only set loading false if we got a definitive auth event (and not OAuth waiting)
+      if (event !== 'INITIAL_SESSION' && !hasOAuthCallbackParams()) {
+        setIsLoading(false);
+      }
+    };
+
+    // Set up authentication state listener - calls async handler
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, currentSession) => {
+        handleAuthStateChange(event, currentSession);
       }
     );
 
