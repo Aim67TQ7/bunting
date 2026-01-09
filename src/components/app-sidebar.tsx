@@ -1,11 +1,9 @@
-
 import { cn } from "@/lib/utils";
 import { BrandLogo } from "@/components/brand-logo";
 import { NavItem, NavSection } from "@/components/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { UserGuideButton } from "@/components/user-guide/UserGuideButton";
-import { MessageSquare, History, Calculator, LineChart, Grid3X3, Menu, User, LogOut, BarChart3 } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
+import { MessageSquare, History, Calculator, Grid3X3, User, LogOut, BarChart3, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarTrigger } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -29,6 +27,7 @@ export function AppSidebar({ className }: AppSidebarProps) {
   const [profile, setProfile] = useState<any>(null);
   const { favorites } = useFavorites();
   const [favItems, setFavItems] = useState<any[]>([]);
+  const [featuredItems, setFeaturedItems] = useState<any[]>([]);
 
   // Fetch user profile data
   useEffect(() => {
@@ -73,6 +72,24 @@ useEffect(() => {
   };
   loadFavs();
 }, [favorites]);
+
+// Fetch featured items (admin-promoted apps for all users)
+useEffect(() => {
+  const loadFeatured = async () => {
+    const { data, error } = await (supabase as any)
+      .from('app_items')
+      .select('id,name,url,category,icon_path')
+      .eq('sidebar_featured', true)
+      .eq('is_active', true);
+    if (error) {
+      console.error('Error fetching featured items', error);
+      setFeaturedItems([]);
+      return;
+    }
+    setFeaturedItems(data || []);
+  };
+  loadFeatured();
+}, []);
 
 // Realtime subscribe to profile avatar updates for the current user
 useEffect(() => {
@@ -171,7 +188,22 @@ useEffect(() => {
           <NavItem icon={BarChart3} title="Metrics" href="/reports" />
         </NavSection>
 
-        {/* Favorites under Tools */}
+        {/* Featured - Admin promoted apps for all users */}
+        {featuredItems.length > 0 && (
+          <NavSection title="Featured">
+            {featuredItems.map((it) => {
+              const href = it.url?.startsWith('/iframe')
+                ? it.url
+                : `/iframe?${new URLSearchParams({ url: it.url, title: it.name, id: it.id, sourceTable: 'app_items' }).toString()}`;
+              const Icon = it.category === 'calculator' ? Calculator : Star;
+              return (
+                <NavItem key={it.id} icon={Icon} title={it.name} href={href} />
+              );
+            })}
+          </NavSection>
+        )}
+
+        {/* Favorites - User's personal favorites */}
         {favItems.length > 0 && (
           <NavSection title="Favorites">
             {favItems.map((it) => {
