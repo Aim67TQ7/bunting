@@ -40,7 +40,7 @@ const Dashboard = () => {
         }
 
         try {
-          console.log('[Dashboard] Sending auth to bot.buntinggpt.com');
+          console.log('[Dashboard] Sending auth to notes.buntinggpt.com');
 
           // Send NEW format (BUNTINGGPT_AUTH_TOKEN) with user embedded
           const newFormatMessage: AuthMessage = {
@@ -53,7 +53,7 @@ const Dashboard = () => {
             origin: window.location.origin,
             timestamp: Date.now()
           };
-          iframe.contentWindow.postMessage(newFormatMessage, 'https://bot.buntinggpt.com');
+          iframe.contentWindow.postMessage(newFormatMessage, 'https://notes.buntinggpt.com');
           console.log('[Dashboard] Sent BUNTINGGPT_AUTH_TOKEN');
 
           // Send legacy PROVIDE_USER for backward compatibility
@@ -63,7 +63,7 @@ const Dashboard = () => {
             origin: window.location.origin,
             timestamp: Date.now()
           };
-          iframe.contentWindow.postMessage(userMessage, 'https://bot.buntinggpt.com');
+          iframe.contentWindow.postMessage(userMessage, 'https://notes.buntinggpt.com');
 
           // Send legacy PROVIDE_TOKEN for backward compatibility
           const tokenMessage: AuthMessage = {
@@ -76,7 +76,7 @@ const Dashboard = () => {
             origin: window.location.origin,
             timestamp: Date.now()
           };
-          iframe.contentWindow.postMessage(tokenMessage, 'https://bot.buntinggpt.com');
+          iframe.contentWindow.postMessage(tokenMessage, 'https://notes.buntinggpt.com');
           console.log('[Dashboard] Auth sent (new + legacy formats)');
         } catch (error) {
           console.warn('[Dashboard] Failed to send auth data to iframe:', error);
@@ -94,7 +94,7 @@ const Dashboard = () => {
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       // Only accept messages from notes.buntinggpt.com
-      if (event.origin !== 'https://bot.buntinggpt.com') return;
+      if (event.origin !== 'https://notes.buntinggpt.com') return;
       
       const iframe = iframeRef.current;
       if (!iframe?.contentWindow || !user || !session) return;
@@ -108,7 +108,7 @@ const Dashboard = () => {
           origin: window.location.origin,
           timestamp: Date.now()
         };
-        iframe.contentWindow.postMessage(message, 'https://bot.buntinggpt.com');
+        iframe.contentWindow.postMessage(message, 'https://notes.buntinggpt.com');
         console.log('[Dashboard] User data provided in response to request');
       } else if ((type === 'REQUEST_TOKEN' || type === 'BUNTINGGPT_AUTH_REQUEST') && session?.access_token && session?.refresh_token) {
         // Validate JWT format before sending
@@ -133,7 +133,7 @@ const Dashboard = () => {
           origin: window.location.origin,
           timestamp: Date.now()
         };
-        iframe.contentWindow.postMessage(newMessage, 'https://bot.buntinggpt.com');
+        iframe.contentWindow.postMessage(newMessage, 'https://notes.buntinggpt.com');
 
         // Send legacy format
         const legacyMessage: AuthMessage = {
@@ -146,7 +146,7 @@ const Dashboard = () => {
           origin: window.location.origin,
           timestamp: Date.now()
         };
-        iframe.contentWindow.postMessage(legacyMessage, 'https://bot.buntinggpt.com');
+        iframe.contentWindow.postMessage(legacyMessage, 'https://notes.buntinggpt.com');
         console.log('[Dashboard] Auth provided (new + legacy formats)');
       }
     };
@@ -159,7 +159,7 @@ const Dashboard = () => {
     <PageLayout title="Dashboard">
       <iframe
         ref={iframeRef}
-        src="https://bot.buntinggpt.com"
+        src="https://notes.buntinggpt.com"
         className="w-full h-full border-0"
         title="Dashboard"
         sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads"

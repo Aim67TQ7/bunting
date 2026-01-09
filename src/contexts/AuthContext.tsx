@@ -156,86 +156,6 @@ const hasOAuthCallbackParams = (): boolean => {
          search.includes('error=');
 };
 
-// =============================================================================
-// ENSURE USER RECORDS EXIST - Defensive creation for OAuth users
-// =============================================================================
-async function ensureUserRecordsExist(userId: string, userMetadata: any, email: string | undefined) {
-  console.log('[AuthContext] Ensuring user records exist for:', email);
-  
-  try {
-    // Check and create profiles record if missing
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('id', userId)
-      .maybeSingle();
-    
-    if (!profile && !profileError) {
-      const fullName = userMetadata?.full_name || userMetadata?.name || '';
-      const firstName = fullName ? fullName.split(' ')[0] : (email ? email.split('@')[0] : 'User');
-      
-      const { error: insertError } = await supabase.from('profiles').insert({
-        id: userId,
-        first_name: firstName,
-      });
-      
-      if (insertError) {
-        console.warn('[AuthContext] Failed to create profile:', insertError.message);
-      } else {
-        console.log('[AuthContext] Created profiles record');
-      }
-    }
-    
-    // Check and create emps record if missing
-    const { data: emp, error: empError } = await supabase
-      .from('emps')
-      .select('id')
-      .eq('user_id', userId)
-      .maybeSingle();
-    
-    if (!emp && !empError) {
-      const displayName = userMetadata?.full_name || userMetadata?.name || (email ? email.split('@')[0] : 'New User');
-      
-      const { error: insertError } = await supabase.from('emps').insert({
-        user_id: userId,
-        display_name: displayName,
-      });
-      
-      if (insertError) {
-        console.warn('[AuthContext] Failed to create emps record:', insertError.message);
-      } else {
-        console.log('[AuthContext] Created emps record');
-      }
-    }
-    
-    // Check and create user_preferences record if missing
-    const { data: prefs, error: prefsError } = await supabase
-      .from('user_preferences')
-      .select('id')
-      .eq('user_id', userId)
-      .maybeSingle();
-    
-    if (!prefs && !prefsError) {
-      const { error: insertError } = await supabase.from('user_preferences').insert({
-        user_id: userId,
-        theme: 'dark',
-        enabled_functions: ['magnetism_calculator', 'five_why', 'ai_assistant'],
-      });
-      
-      if (insertError) {
-        console.warn('[AuthContext] Failed to create user_preferences:', insertError.message);
-      } else {
-        console.log('[AuthContext] Created user_preferences record');
-      }
-    }
-    
-    console.log('[AuthContext] User records check complete');
-  } catch (error) {
-    console.error('[AuthContext] Error ensuring user records exist:', error);
-  }
-}
-
-
 // Provider component that wraps app
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<any>(null);
@@ -288,16 +208,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (currentSession) {
             console.log(`[AuthContext] ${event} - propagating to iframes`);
             propagateTokensToIframes(currentSession);
-            
-            // DEFENSIVE: Ensure user records exist for OAuth users (especially Microsoft)
-            // This runs in background without blocking the auth flow
-            if (event === 'SIGNED_IN') {
-              ensureUserRecordsExist(
-                currentSession.user.id,
-                currentSession.user.user_metadata,
-                currentSession.user.email
-              );
-            }
           }
           
           // Clean URL after OAuth callback
@@ -340,62 +250,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Check for existing session with better error handling
     const initializeAuth = async () => {
-      // If we're returning from OAuth, try to exchange the code immediately (more reliable than waiting)
+      // If we're returning from OAuth, wait for the auth event instead of calling getSession immediately
       if (hasOAuthCallbackParams()) {
-        const params = new URLSearchParams(window.location.search);
-        const code = params.get('code');
-
-        if (code) {
-          console.log('[AuthContext] OAuth code detected, exchanging for session...');
-
-          try {
-            const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-
-            if (!mounted) return;
-
-            if (error) {
-              console.error('[AuthContext] OAuth code exchange failed:', error);
-              toast({
-                title: 'Microsoft login failed',
-                description: error.message || 'Could not complete OAuth login. Please try again.',
-                variant: 'destructive',
-              });
-              setSessionChecked(true);
-              setIsLoading(false);
-              window.history.replaceState({}, '', window.location.pathname);
-              return;
-            }
-
-            console.log('[AuthContext] OAuth code exchange succeeded for:', data?.user?.email);
-            // Session/user will also be set via onAuthStateChange, but set optimistic state to avoid loops.
-            if (data?.session) {
-              setSession(data.session);
-              setUser(data.session.user);
-              propagateTokensToIframes(data.session);
-              setSessionChecked(true);
-              setIsLoading(false);
-            }
-
-            window.history.replaceState({}, '', window.location.pathname);
-            return;
-          } catch (err) {
-            console.error('[AuthContext] OAuth code exchange threw:', err);
-            if (mounted) {
-              toast({
-                title: 'Microsoft login failed',
-                description: 'Could not complete OAuth login. Please try again.',
-                variant: 'destructive',
-              });
-              setSessionChecked(true);
-              setIsLoading(false);
-              window.history.replaceState({}, '', window.location.pathname);
-            }
-            return;
-          }
-        }
-
-        console.log('[AuthContext] OAuth callback detected, waiting for auth event...');
-
+        console.log('OAuth callback detected, waiting for auth event...');
+        
         // Set a timeout to prevent infinite waiting if OAuth fails
         oauthTimeout = setTimeout(() => {
           if (mounted && isLoading) {
@@ -406,7 +264,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             window.history.replaceState({}, '', window.location.pathname);
           }
         }, 5000);
-
+        
         return;
       }
 
