@@ -124,6 +124,80 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_runs: {
+        Row: {
+          completed_at: string | null
+          error_log: string | null
+          id: string
+          input_context: Json | null
+          org_id: string | null
+          output_artifact: Json | null
+          parent_run_id: string | null
+          project_id: string | null
+          started_at: string | null
+          status: string
+          tool_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          error_log?: string | null
+          id?: string
+          input_context?: Json | null
+          org_id?: string | null
+          output_artifact?: Json | null
+          parent_run_id?: string | null
+          project_id?: string | null
+          started_at?: string | null
+          status: string
+          tool_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          error_log?: string | null
+          id?: string
+          input_context?: Json | null
+          org_id?: string | null
+          output_artifact?: Json | null
+          parent_run_id?: string | null
+          project_id?: string | null
+          started_at?: string | null
+          status?: string
+          tool_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_runs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_runs_parent_run_id_fkey"
+            columns: ["parent_run_id"]
+            isOneToOne: false
+            referencedRelation: "agent_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_runs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_runs_tool_id_fkey"
+            columns: ["tool_id"]
+            isOneToOne: false
+            referencedRelation: "tools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_test_analyses: {
         Row: {
           analysis_text: string
@@ -2172,6 +2246,57 @@ export type Database = {
         }
         Relationships: []
       }
+      magsep_knowledge: {
+        Row: {
+          answer: string
+          category: string
+          chunk_type: string
+          content_for_embedding: string | null
+          content_hash: string | null
+          created_at: string | null
+          embedding: string | null
+          equipment_types: Json | null
+          id: string
+          industries: Json | null
+          keywords: Json | null
+          metadata: Json | null
+          question: string
+          subcategory: string | null
+        }
+        Insert: {
+          answer: string
+          category: string
+          chunk_type: string
+          content_for_embedding?: string | null
+          content_hash?: string | null
+          created_at?: string | null
+          embedding?: string | null
+          equipment_types?: Json | null
+          id: string
+          industries?: Json | null
+          keywords?: Json | null
+          metadata?: Json | null
+          question: string
+          subcategory?: string | null
+        }
+        Update: {
+          answer?: string
+          category?: string
+          chunk_type?: string
+          content_for_embedding?: string | null
+          content_hash?: string | null
+          created_at?: string | null
+          embedding?: string | null
+          equipment_types?: Json | null
+          id?: string
+          industries?: Json | null
+          keywords?: Json | null
+          metadata?: Json | null
+          question?: string
+          subcategory?: string | null
+        }
+        Relationships: []
+      }
       "MAI Customers": {
         Row: {
           Customer: string | null
@@ -2511,6 +2636,42 @@ export type Database = {
           order_count?: number
           status?: string | null
           total_amount?: number
+        }
+        Relationships: []
+      }
+      mto_daily: {
+        Row: {
+          book_to_bill: number | null
+          confirmed_backlog: number | null
+          created_at: string
+          days_in_house: number | null
+          id: string
+          incoming: number | null
+          otd: number | null
+          shipped: number | null
+          total_orders: number | null
+        }
+        Insert: {
+          book_to_bill?: number | null
+          confirmed_backlog?: number | null
+          created_at?: string
+          days_in_house?: number | null
+          id?: string
+          incoming?: number | null
+          otd?: number | null
+          shipped?: number | null
+          total_orders?: number | null
+        }
+        Update: {
+          book_to_bill?: number | null
+          confirmed_backlog?: number | null
+          created_at?: string
+          days_in_house?: number | null
+          id?: string
+          incoming?: number | null
+          otd?: number | null
+          shipped?: number | null
+          total_orders?: number | null
         }
         Relationships: []
       }
@@ -3156,6 +3317,24 @@ export type Database = {
         }
         Relationships: []
       }
+      organizations: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       pep_evaluations: {
         Row: {
           created_at: string
@@ -3300,6 +3479,47 @@ export type Database = {
           },
         ]
       }
+      pinned_context: {
+        Row: {
+          content_snapshot: string | null
+          file_name: string
+          file_type: string | null
+          id: string
+          pinned_at: string | null
+          project_id: string | null
+          storage_path: string
+          user_id: string | null
+        }
+        Insert: {
+          content_snapshot?: string | null
+          file_name: string
+          file_type?: string | null
+          id?: string
+          pinned_at?: string | null
+          project_id?: string | null
+          storage_path: string
+          user_id?: string | null
+        }
+        Update: {
+          content_snapshot?: string | null
+          file_name?: string
+          file_type?: string | null
+          id?: string
+          pinned_at?: string | null
+          project_id?: string | null
+          storage_path?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pinned_context_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_knowledge_embeddings: {
         Row: {
           chunk_title: string
@@ -3374,6 +3594,44 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      projects: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          org_id: string | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          org_id?: string | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          org_id?: string | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       prospector: {
         Row: {
@@ -4669,6 +4927,54 @@ export type Database = {
         }
         Relationships: []
       }
+      smart_actions: {
+        Row: {
+          action_type: string
+          button_label: string
+          id: string
+          is_global: boolean | null
+          org_id: string | null
+          system_prompt: string | null
+          tool_id: string | null
+          trigger_pattern: string
+        }
+        Insert: {
+          action_type: string
+          button_label: string
+          id?: string
+          is_global?: boolean | null
+          org_id?: string | null
+          system_prompt?: string | null
+          tool_id?: string | null
+          trigger_pattern: string
+        }
+        Update: {
+          action_type?: string
+          button_label?: string
+          id?: string
+          is_global?: boolean | null
+          org_id?: string | null
+          system_prompt?: string | null
+          tool_id?: string | null
+          trigger_pattern?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "smart_actions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "smart_actions_tool_id_fkey"
+            columns: ["tool_id"]
+            isOneToOne: false
+            referencedRelation: "tools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       supplier_data: {
         Row: {
           created_at: string | null
@@ -5331,6 +5637,50 @@ export type Database = {
           },
         ]
       }
+      tools: {
+        Row: {
+          category: string
+          config: Json | null
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          org_id: string | null
+          version: number | null
+        }
+        Insert: {
+          category: string
+          config?: Json | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          org_id?: string | null
+          version?: number | null
+        }
+        Update: {
+          category?: string
+          config?: Json | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          org_id?: string | null
+          version?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tools_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       training_data: {
         Row: {
           content: Json
@@ -5961,6 +6311,30 @@ export type Database = {
       rvw_owns_review: {
         Args: { _review_id: string; _user_id: string }
         Returns: boolean
+      }
+      search_magsep_by_keywords: {
+        Args: { search_keywords: string[] }
+        Returns: {
+          answer: string
+          category: string
+          id: string
+          match_count: number
+          question: string
+        }[]
+      }
+      search_magsep_knowledge: {
+        Args: {
+          match_count?: number
+          match_threshold?: number
+          query_embedding: string
+        }
+        Returns: {
+          answer: string
+          category: string
+          id: string
+          question: string
+          similarity: number
+        }[]
       }
       search_product_knowledge: {
         Args: {
