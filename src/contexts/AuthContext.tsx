@@ -156,6 +156,86 @@ const hasOAuthCallbackParams = (): boolean => {
          search.includes('error=');
 };
 
+// =============================================================================
+// ENSURE USER RECORDS EXIST - Defensive creation for OAuth users
+// =============================================================================
+async function ensureUserRecordsExist(userId: string, userMetadata: any, email: string | undefined) {
+  console.log('[AuthContext] Ensuring user records exist for:', email);
+  
+  try {
+    // Check and create profiles record if missing
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', userId)
+      .maybeSingle();
+    
+    if (!profile && !profileError) {
+      const fullName = userMetadata?.full_name || userMetadata?.name || '';
+      const firstName = fullName ? fullName.split(' ')[0] : (email ? email.split('@')[0] : 'User');
+      
+      const { error: insertError } = await supabase.from('profiles').insert({
+        id: userId,
+        first_name: firstName,
+      });
+      
+      if (insertError) {
+        console.warn('[AuthContext] Failed to create profile:', insertError.message);
+      } else {
+        console.log('[AuthContext] Created profiles record');
+      }
+    }
+    
+    // Check and create emps record if missing
+    const { data: emp, error: empError } = await supabase
+      .from('emps')
+      .select('id')
+      .eq('user_id', userId)
+      .maybeSingle();
+    
+    if (!emp && !empError) {
+      const displayName = userMetadata?.full_name || userMetadata?.name || (email ? email.split('@')[0] : 'New User');
+      
+      const { error: insertError } = await supabase.from('emps').insert({
+        user_id: userId,
+        display_name: displayName,
+      });
+      
+      if (insertError) {
+        console.warn('[AuthContext] Failed to create emps record:', insertError.message);
+      } else {
+        console.log('[AuthContext] Created emps record');
+      }
+    }
+    
+    // Check and create user_preferences record if missing
+    const { data: prefs, error: prefsError } = await supabase
+      .from('user_preferences')
+      .select('id')
+      .eq('user_id', userId)
+      .maybeSingle();
+    
+    if (!prefs && !prefsError) {
+      const { error: insertError } = await supabase.from('user_preferences').insert({
+        user_id: userId,
+        theme: 'dark',
+        enabled_functions: ['magnetism_calculator', 'five_why', 'ai_assistant'],
+      });
+      
+      if (insertError) {
+        console.warn('[AuthContext] Failed to create user_preferences:', insertError.message);
+      } else {
+        console.log('[AuthContext] Created user_preferences record');
+      }
+    }
+    
+    console.log('[AuthContext] User records check complete');
+  } catch (error) {
+    console.error('[AuthContext] Error ensuring user records exist:', error);
+  }
+}
+
+
 // Provider component that wraps app
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<any>(null);
@@ -208,6 +288,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (currentSession) {
             console.log(`[AuthContext] ${event} - propagating to iframes`);
             propagateTokensToIframes(currentSession);
+            
+            // DEFENSIVE: Ensure user records exist for OAuth users (especially Microsoft)
+            // This runs in background without blocking the auth flow
+            if (event === 'SIGNED_IN') {
+              ensureUserRecordsExist(
+                currentSession.user.id,
+                currentSession.user.user_metadata,
+                currentSession.user.email
+              );
+            }
           }
           
           // Clean URL after OAuth callback
