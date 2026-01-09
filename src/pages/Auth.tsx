@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -240,24 +240,58 @@ export default function Auth() {
   });
 
   const [isRedirecting, setIsRedirecting] = useState(false);
+  
+  // Guard to prevent multiple redirect attempts during OAuth callback
+  const hasStartedRedirect = useRef(false);
 
   // Redirect if already authenticated - check if profile is complete
   useEffect(() => {
     const checkProfileAndRedirect = async () => {
+      // CRITICAL: Prevent multiple redirect attempts (fixes OAuth loop)
+      if (hasStartedRedirect.current) {
+        console.log('[Auth] Redirect already in progress, skipping');
+        return;
+      }
+      
       if (user && !isLoading) {
+        hasStartedRedirect.current = true;
         setIsRedirecting(true);
         console.log('[Auth] User authenticated, checking profile for:', user.email);
         
+        // Small delay to allow ensureUserRecordsExist in AuthContext to complete
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
         try {
-          // Check if user has completed their employee profile
-          const { data: empProfile, error } = await supabase
-            .from("emps")
-            .select("location, job_level")
-            .eq("user_id", user.id)
-            .maybeSingle();
-
-          if (error && error.code !== "PGRST116") {
-            console.error("[Auth] Error checking employee profile:", error);
+          // Retry logic for fetching emps record (may still be creating)
+          let attempts = 0;
+          const maxAttempts = 3;
+          let empProfile = null;
+          let lastError = null;
+          
+          while (attempts < maxAttempts) {
+            console.log(`[Auth] Checking emps profile, attempt ${attempts + 1}/${maxAttempts}`);
+            
+            const { data, error } = await supabase
+              .from("emps")
+              .select("location, job_level")
+              .eq("user_id", user.id)
+              .maybeSingle();
+            
+            if (error && error.code !== "PGRST116") {
+              console.error("[Auth] Error checking employee profile:", error);
+              lastError = error;
+            }
+            
+            if (data) {
+              empProfile = data;
+              break;
+            }
+            
+            attempts++;
+            if (attempts < maxAttempts) {
+              console.log('[Auth] No emps record yet, waiting 500ms before retry...');
+              await new Promise(resolve => setTimeout(resolve, 500));
+            }
           }
 
           console.log('[Auth] Profile check result:', { empProfile, hasLocation: !!empProfile?.location, hasJobLevel: !!empProfile?.job_level });
@@ -282,6 +316,11 @@ export default function Auth() {
     };
 
     checkProfileAndRedirect();
+    
+    // Cleanup: reset redirect guard on unmount
+    return () => {
+      hasStartedRedirect.current = false;
+    };
   }, [user, isLoading, navigate, location.state]);
 
   // If still loading or redirecting, show loading indicator
