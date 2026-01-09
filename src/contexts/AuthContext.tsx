@@ -99,6 +99,7 @@ interface AuthContextType {
   session: any;
   isLoading: boolean;
   sessionChecked: boolean;
+  isSettingUpRecords: boolean;
   signUp: (email: string, password: string) => Promise<{ error: any | null }>;
   signUpWithEmailOnly: (email: string) => Promise<{ error: any | null }>;
   signIn: (email: string, password: string) => Promise<{ error: any | null }>;
@@ -126,6 +127,7 @@ const AuthContext = createContext<AuthContextType>({
   session: null,
   isLoading: true,
   sessionChecked: false,
+  isSettingUpRecords: false,
   signUp: async () => ({ error: null }),
   signUpWithEmailOnly: async () => ({ error: null }),
   signIn: async () => ({ error: null }),
@@ -330,6 +332,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [session, setSession] = useState<any>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
+  const [isSettingUpRecords, setIsSettingUpRecords] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -375,14 +378,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // On SIGNED_IN, ensure user records exist BEFORE updating state
           // This prevents Auth.tsx from checking emps before records are created
           if (event === 'SIGNED_IN' && currentSession.user) {
-            const userEmail = currentSession.user.email;
-            if (userEmail) {
-              console.log('[AuthContext] Awaiting ensureEmployeeLink...');
-              await ensureEmployeeLink(currentSession.user.id, userEmail);
+            setIsSettingUpRecords(true);  // Block Auth.tsx redirect
+            try {
+              const userEmail = currentSession.user.email;
+              if (userEmail) {
+                console.log('[AuthContext] Awaiting ensureEmployeeLink...');
+                await ensureEmployeeLink(currentSession.user.id, userEmail);
+              }
+              console.log('[AuthContext] Awaiting ensureUserRecordsExist...');
+              await ensureUserRecordsExist(currentSession.user);
+              console.log('[AuthContext] User records setup complete');
+            } finally {
+              setIsSettingUpRecords(false);
             }
-            console.log('[AuthContext] Awaiting ensureUserRecordsExist...');
-            await ensureUserRecordsExist(currentSession.user);
-            console.log('[AuthContext] User records setup complete');
           }
         }
         
@@ -956,6 +964,7 @@ const changeBadgePin = async (badgeNumber: string, currentPin: string, newPin: s
     session,
     isLoading,
     sessionChecked,
+    isSettingUpRecords,
     signUp,
     signUpWithEmailOnly,
     signIn,

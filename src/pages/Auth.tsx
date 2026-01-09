@@ -124,7 +124,7 @@ const badgeResetSchema = z.object({
 
 export default function Auth() {
   const { 
-    user, isLoading, signIn, signInWithMicrosoft, signUp, signUpWithEmailOnly, 
+    user, isLoading, isSettingUpRecords, signIn, signInWithMicrosoft, signUp, signUpWithEmailOnly, 
     resetPassword, verifyOtpAndUpdatePassword, verifyOtpAndCreateAccount,
     lookupBadge, signUpWithBadge, verifyBadgeSignup, signInWithBadge, resetBadgePin, verifyBadgePinReset,
     quickSignUpWithBadge, changeBadgePin
@@ -243,7 +243,8 @@ export default function Auth() {
   // Redirect if already authenticated - check if profile is complete
   useEffect(() => {
     const checkProfileAndRedirect = async () => {
-      if (user && !isLoading) {
+      // Wait for user setup to complete before checking profile
+      if (user && !isLoading && !isSettingUpRecords) {
         try {
           // Check if user has completed their employee profile
           const { data: empProfile, error } = await supabase
@@ -274,7 +275,7 @@ export default function Auth() {
     };
 
     checkProfileAndRedirect();
-  }, [user, isLoading, navigate, location.state]);
+  }, [user, isLoading, isSettingUpRecords, navigate, location.state]);
 
   // If still loading, show loading indicator
   if (isLoading) {
