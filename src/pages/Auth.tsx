@@ -135,6 +135,7 @@ export default function Auth() {
     "badge-lookup" | "badge-login" | "badge-signup" | "badge-reset" | "badge-otp-reset" |
     "badge-qr-signup" | "badge-change-pin"
   >("login");
+  const [showEmailLogin, setShowEmailLogin] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
@@ -699,6 +700,93 @@ export default function Auth() {
               <p className="text-xs text-muted-foreground text-center">
                 For employees without company email access
               </p>
+
+              {/* Collapsible Email Login for Legacy Users */}
+              <div className="relative mt-6">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-border" />
+                </div>
+                <div className="relative flex justify-center text-xs">
+                  <span className="bg-card px-2 text-muted-foreground">
+                    Already have an email account?
+                  </span>
+                </div>
+              </div>
+
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="w-full text-muted-foreground hover:text-foreground"
+                onClick={() => setShowEmailLogin(!showEmailLogin)}
+              >
+                {showEmailLogin ? "Hide email login" : "Sign in with email"}
+              </Button>
+
+              {showEmailLogin && (
+                <Form {...loginForm}>
+                  <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4 pt-2">
+                    <p className="text-xs text-muted-foreground text-center">
+                      For accounts created before Microsoft login was available
+                    </p>
+                    <FormField
+                      control={loginForm.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="you@buntingmagnetics.com" 
+                              className={isMobile ? 'h-12 text-base' : ''} 
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={loginForm.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Password</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Input 
+                                type={showPassword ? "text" : "password"} 
+                                placeholder="••••••••" 
+                                className={isMobile ? 'h-12 text-base pr-10' : 'pr-10'} 
+                                {...field} 
+                              />
+                              <button
+                                type="button"
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                onClick={() => setShowPassword(!showPassword)}
+                              >
+                                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                              </button>
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Button type="submit" className={`w-full ${isMobile ? 'h-12 text-base' : ''}`} disabled={isLoading}>
+                      {isLoading ? "Signing in..." : "Sign in"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="w-full text-sm"
+                      onClick={() => setAuthMode("reset")}
+                    >
+                      Forgot password?
+                    </Button>
+                  </form>
+                </Form>
+              )}
             </div>
           )}
 
