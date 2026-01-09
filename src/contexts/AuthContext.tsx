@@ -340,10 +340,62 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Check for existing session with better error handling
     const initializeAuth = async () => {
-      // If we're returning from OAuth, wait for the auth event instead of calling getSession immediately
+      // If we're returning from OAuth, try to exchange the code immediately (more reliable than waiting)
       if (hasOAuthCallbackParams()) {
-        console.log('OAuth callback detected, waiting for auth event...');
-        
+        const params = new URLSearchParams(window.location.search);
+        const code = params.get('code');
+
+        if (code) {
+          console.log('[AuthContext] OAuth code detected, exchanging for session...');
+
+          try {
+            const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+
+            if (!mounted) return;
+
+            if (error) {
+              console.error('[AuthContext] OAuth code exchange failed:', error);
+              toast({
+                title: 'Microsoft login failed',
+                description: error.message || 'Could not complete OAuth login. Please try again.',
+                variant: 'destructive',
+              });
+              setSessionChecked(true);
+              setIsLoading(false);
+              window.history.replaceState({}, '', window.location.pathname);
+              return;
+            }
+
+            console.log('[AuthContext] OAuth code exchange succeeded for:', data?.user?.email);
+            // Session/user will also be set via onAuthStateChange, but set optimistic state to avoid loops.
+            if (data?.session) {
+              setSession(data.session);
+              setUser(data.session.user);
+              propagateTokensToIframes(data.session);
+              setSessionChecked(true);
+              setIsLoading(false);
+            }
+
+            window.history.replaceState({}, '', window.location.pathname);
+            return;
+          } catch (err) {
+            console.error('[AuthContext] OAuth code exchange threw:', err);
+            if (mounted) {
+              toast({
+                title: 'Microsoft login failed',
+                description: 'Could not complete OAuth login. Please try again.',
+                variant: 'destructive',
+              });
+              setSessionChecked(true);
+              setIsLoading(false);
+              window.history.replaceState({}, '', window.location.pathname);
+            }
+            return;
+          }
+        }
+
+        console.log('[AuthContext] OAuth callback detected, waiting for auth event...');
+
         // Set a timeout to prevent infinite waiting if OAuth fails
         oauthTimeout = setTimeout(() => {
           if (mounted && isLoading) {
@@ -354,7 +406,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             window.history.replaceState({}, '', window.location.pathname);
           }
         }, 5000);
-        
+
         return;
       }
 
