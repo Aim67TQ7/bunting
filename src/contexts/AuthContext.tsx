@@ -3,6 +3,13 @@ import { Session } from '@supabase/supabase-js';
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { isDemoMode, getDemoEmail, disableDemoMode } from "@/utils/demoMode";
+import { Database } from "@/integrations/supabase/types";
+
+type EmployeeLocation = Database["public"]["Enums"]["employee_location"];
+type JobLevel = Database["public"]["Enums"]["job_level"];
+
+const VALID_LOCATIONS: EmployeeLocation[] = ["Newton", "DuBois", "Redditch", "Berkhamsted", "Home-Office"];
+const VALID_JOB_LEVELS: JobLevel[] = ["Admin", "Employee", "Executive", "Lead", "Manager", "Supervisor"];
 
 // =============================================================================
 // IFRAME REGISTRY - Global tracking of embedded apps for token propagation
@@ -205,6 +212,118 @@ const ensureEmployeeLink = async (userId: string, userEmail: string) => {
   }
 };
 
+// Helper function to ensure profiles and emps records exist for OAuth users
+const ensureUserRecordsExist = async (user: { id: string; email?: string; user_metadata?: any }) => {
+  if (!user?.id) return;
+  
+  const userId = user.id;
+  const email = user.email || '';
+  const fullName = user.user_metadata?.full_name || 
+                   user.user_metadata?.name || 
+                   email.split('@')[0] || 'User';
+  
+  console.log('[AuthContext] Ensuring user records exist for:', email);
+  
+  try {
+    // Check/create profiles record
+    const { data: existingProfile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', userId)
+      .maybeSingle();
+    
+    if (!existingProfile) {
+      console.log('[AuthContext] Creating missing profiles record');
+      const firstName = fullName.split(' ')[0] || email.split('@')[0];
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: userId,
+          first_name: firstName
+        });
+      
+      if (profileError) {
+        console.warn('[AuthContext] Failed to create profiles record:', profileError.message);
+      } else {
+        console.log('[AuthContext] Created profiles record for:', email);
+      }
+    }
+    
+    // Check/create emps record
+    const { data: existingEmp } = await supabase
+      .from('emps')
+      .select('id')
+      .eq('user_id', userId)
+      .maybeSingle();
+    
+    if (!existingEmp) {
+      console.log('[AuthContext] Creating missing emps record');
+      
+      // Try to get data from employees table by email for location/job info
+      const { data: employeeData } = await supabase
+        .from('employees')
+        .select('location, job_level, department, job_title')
+        .eq('user_email', email)
+        .maybeSingle();
+      
+      // Validate location against emps enum values
+      const rawLocation = employeeData?.location;
+      const validLocation: EmployeeLocation | null = 
+        rawLocation && VALID_LOCATIONS.includes(rawLocation as EmployeeLocation) 
+          ? (rawLocation as EmployeeLocation) 
+          : null;
+      
+      // Validate job_level against emps enum values
+      const rawJobLevel = employeeData?.job_level;
+      const validJobLevel: JobLevel | null = 
+        rawJobLevel && VALID_JOB_LEVELS.includes(rawJobLevel as JobLevel) 
+          ? (rawJobLevel as JobLevel) 
+          : null;
+      
+      const { error: empError } = await supabase
+        .from('emps')
+        .insert({
+          user_id: userId,
+          display_name: fullName,
+          location: validLocation,
+          job_level: validJobLevel,
+          department: employeeData?.department || null,
+          job_title: employeeData?.job_title || null
+        });
+      
+      if (empError) {
+        console.warn('[AuthContext] Failed to create emps record:', empError.message);
+      } else {
+        console.log('[AuthContext] Created emps record for:', email);
+      }
+    }
+    
+    // Check/create user_preferences record
+    const { data: existingPrefs } = await supabase
+      .from('user_preferences')
+      .select('id')
+      .eq('user_id', userId)
+      .maybeSingle();
+    
+    if (!existingPrefs) {
+      console.log('[AuthContext] Creating missing user_preferences record');
+      const { error: prefsError } = await supabase
+        .from('user_preferences')
+        .insert({
+          user_id: userId
+        });
+      
+      if (prefsError) {
+        console.warn('[AuthContext] Failed to create user_preferences record:', prefsError.message);
+      } else {
+        console.log('[AuthContext] Created user_preferences record for:', email);
+      }
+    }
+  } catch (err) {
+    console.warn('[AuthContext] ensureUserRecordsExist error:', err);
+  }
+};
+
 // Provider component that wraps app
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<any>(null);
@@ -258,9 +377,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             console.log(`[AuthContext] ${event} - propagating to iframes`);
             propagateTokensToIframes(currentSession);
             
-            // On SIGNED_IN, ensure user is linked to employee table
-            if (event === 'SIGNED_IN' && currentSession.user?.email) {
-              ensureEmployeeLink(currentSession.user.id, currentSession.user.email);
+            // On SIGNED_IN, ensure user is linked to employee table and has required records
+            if (event === 'SIGNED_IN' && currentSession.user) {
+              const userEmail = currentSession.user.email;
+              if (userEmail) {
+                ensureEmployeeLink(currentSession.user.id, userEmail);
+              }
+              // Ensure profiles, emps, and user_preferences records exist (critical for OAuth users)
+              ensureUserRecordsExist(currentSession.user);
             }
           }
           
