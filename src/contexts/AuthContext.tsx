@@ -156,6 +156,55 @@ const hasOAuthCallbackParams = (): boolean => {
          search.includes('error=');
 };
 
+// Helper function to link auth user to employees table via email
+const ensureEmployeeLink = async (userId: string, userEmail: string) => {
+  if (!userId || !userEmail) return;
+  
+  try {
+    // Check if user is already linked to an employee
+    const { data: existingLink } = await supabase
+      .from('employees')
+      .select('id')
+      .eq('user_id', userId)
+      .maybeSingle();
+    
+    if (existingLink) {
+      console.log('[AuthContext] User already linked to employee record');
+      return;
+    }
+    
+    // Try to find employee by email and link them
+    const { data: employee, error } = await supabase
+      .from('employees')
+      .select('id, user_id')
+      .eq('user_email', userEmail)
+      .maybeSingle();
+    
+    if (error) {
+      console.warn('[AuthContext] Employee lookup error:', error.message);
+      return;
+    }
+    
+    if (employee && !employee.user_id) {
+      // Found an unlinked employee with matching email - link them
+      const { error: updateError } = await supabase
+        .from('employees')
+        .update({ user_id: userId })
+        .eq('id', employee.id);
+      
+      if (updateError) {
+        console.warn('[AuthContext] Failed to link user to employee:', updateError.message);
+      } else {
+        console.log('[AuthContext] Successfully linked user to employee record');
+      }
+    } else if (!employee) {
+      console.log('[AuthContext] No employee record found for email:', userEmail);
+    }
+  } catch (err) {
+    console.warn('[AuthContext] ensureEmployeeLink error:', err);
+  }
+};
+
 // Provider component that wraps app
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<any>(null);
@@ -208,6 +257,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (currentSession) {
             console.log(`[AuthContext] ${event} - propagating to iframes`);
             propagateTokensToIframes(currentSession);
+            
+            // On SIGNED_IN, ensure user is linked to employee table
+            if (event === 'SIGNED_IN' && currentSession.user?.email) {
+              ensureEmployeeLink(currentSession.user.id, currentSession.user.email);
+            }
           }
           
           // Clean URL after OAuth callback
@@ -539,14 +593,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // =============================================================================
+// =============================================================================
   // BADGE AUTHENTICATION METHODS
   // =============================================================================
   
+  // Helper to pad badge numbers to 5 digits with leading zeros
+  const padBadgeNumber = (badge: string): string => {
+    // Remove any non-digit characters and pad to 5 digits
+    const digitsOnly = badge.replace(/\D/g, '');
+    return digitsOnly.padStart(5, '0');
+  };
+  
   const lookupBadge = async (badgeNumber: string): Promise<BadgeLookupResult> => {
     try {
+      const paddedBadge = padBadgeNumber(badgeNumber);
       const { data, error } = await supabase.functions.invoke('badge-auth', {
-        body: { action: 'lookup', badgeNumber },
+        body: { action: 'lookup', badgeNumber: paddedBadge },
       });
 
       if (error) {
@@ -559,10 +621,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signUpWithBadge = async (badgeNumber: string) => {
+const signUpWithBadge = async (badgeNumber: string) => {
     try {
+      const paddedBadge = padBadgeNumber(badgeNumber);
       const { data, error } = await supabase.functions.invoke('badge-auth', {
-        body: { action: 'signup-request', badgeNumber },
+        body: { action: 'signup-request', badgeNumber: paddedBadge },
       });
 
       if (error) {
@@ -579,10 +642,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const verifyBadgeSignup = async (badgeNumber: string, otp: string, pin: string) => {
+const verifyBadgeSignup = async (badgeNumber: string, otp: string, pin: string) => {
     try {
+      const paddedBadge = padBadgeNumber(badgeNumber);
       const { data, error } = await supabase.functions.invoke('badge-auth', {
-        body: { action: 'signup-verify', badgeNumber, otp, pin },
+        body: { action: 'signup-verify', badgeNumber: paddedBadge, otp, pin },
       });
 
       if (error) {
@@ -605,10 +669,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signInWithBadge = async (badgeNumber: string, pin: string) => {
+const signInWithBadge = async (badgeNumber: string, pin: string) => {
     try {
+      const paddedBadge = padBadgeNumber(badgeNumber);
       const { data, error } = await supabase.functions.invoke('badge-auth', {
-        body: { action: 'login', badgeNumber, pin },
+        body: { action: 'login', badgeNumber: paddedBadge, pin },
       });
 
       if (error) {
@@ -644,10 +709,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const resetBadgePin = async (badgeNumber: string) => {
+const resetBadgePin = async (badgeNumber: string) => {
     try {
+      const paddedBadge = padBadgeNumber(badgeNumber);
       const { data, error } = await supabase.functions.invoke('badge-auth', {
-        body: { action: 'reset-request', badgeNumber },
+        body: { action: 'reset-request', badgeNumber: paddedBadge },
       });
 
       if (error) {
@@ -664,10 +730,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const verifyBadgePinReset = async (badgeNumber: string, otp: string, newPin: string) => {
+const verifyBadgePinReset = async (badgeNumber: string, otp: string, newPin: string) => {
     try {
+      const paddedBadge = padBadgeNumber(badgeNumber);
       const { data, error } = await supabase.functions.invoke('badge-auth', {
-        body: { action: 'reset-verify', badgeNumber, otp, pin: newPin },
+        body: { action: 'reset-verify', badgeNumber: paddedBadge, otp, pin: newPin },
       });
 
       if (error) {
@@ -688,10 +755,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // QR CODE SIGNUP FLOW METHODS
   // =============================================================================
 
-  const quickSignUpWithBadge = async (badgeNumber: string, pin: string) => {
+const quickSignUpWithBadge = async (badgeNumber: string, pin: string) => {
     try {
+      const paddedBadge = padBadgeNumber(badgeNumber);
       const { data, error } = await supabase.functions.invoke('badge-auth', {
-        body: { action: 'quick-signup', badgeNumber, pin },
+        body: { action: 'quick-signup', badgeNumber: paddedBadge, pin },
       });
 
       if (error) {
@@ -730,10 +798,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const changeBadgePin = async (badgeNumber: string, currentPin: string, newPin: string) => {
+const changeBadgePin = async (badgeNumber: string, currentPin: string, newPin: string) => {
     try {
+      const paddedBadge = padBadgeNumber(badgeNumber);
       const { data, error } = await supabase.functions.invoke('badge-auth', {
-        body: { action: 'change-pin', badgeNumber, pin: currentPin, newPin },
+        body: { action: 'change-pin', badgeNumber: paddedBadge, pin: currentPin, newPin },
       });
 
       if (error) {
