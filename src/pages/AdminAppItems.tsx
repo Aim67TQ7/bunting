@@ -40,6 +40,7 @@ interface AppItem {
   coming_soon: boolean | null;
   show_to_demo: boolean;
   requires_auth: boolean | null;
+  sidebar_featured: boolean | null;
   created_at: string | null;
 }
 
@@ -59,6 +60,7 @@ const defaultFormState = {
   coming_soon: false,
   show_to_demo: true,
   requires_auth: false,
+  sidebar_featured: false,
 };
 
 export default function AdminAppItems() {
@@ -193,7 +195,7 @@ export default function AdminAppItems() {
     }
   };
 
-  const handleToggle = async (item: AppItem, field: "is_active" | "is_new" | "coming_soon" | "show_to_demo", value: boolean) => {
+  const handleToggle = async (item: AppItem, field: "is_active" | "is_new" | "coming_soon" | "show_to_demo" | "sidebar_featured", value: boolean) => {
     setUpdatingIds(s => new Set(s).add(item.id));
     
     const { error } = await supabase.from("app_items").update({ [field]: value }).eq("id", item.id);
@@ -229,6 +231,7 @@ export default function AdminAppItems() {
       coming_soon: item.coming_soon ?? false,
       show_to_demo: item.show_to_demo ?? true,
       requires_auth: item.requires_auth ?? false,
+      sidebar_featured: item.sidebar_featured ?? false,
     });
     setIsEditOpen(true);
   };
@@ -329,6 +332,10 @@ export default function AdminAppItems() {
             <Label>Requires Auth</Label>
             <Switch checked={form.requires_auth} onCheckedChange={v => setForm(f => ({ ...f, requires_auth: v }))} />
           </div>
+          <div className="flex items-center justify-between rounded-lg border p-3 bg-primary/5 border-primary/20">
+            <Label className="text-primary font-medium">⭐ Featured in Sidebar</Label>
+            <Switch checked={form.sidebar_featured} onCheckedChange={v => setForm(f => ({ ...f, sidebar_featured: v }))} />
+          </div>
         </div>
       </TabsContent>
       
@@ -399,17 +406,18 @@ export default function AdminAppItems() {
                     <TableHead className="text-center">New</TableHead>
                     <TableHead className="text-center">Coming Soon</TableHead>
                     <TableHead className="text-center">Demo</TableHead>
+                    <TableHead className="text-center">⭐ Featured</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center py-8">Loading...</TableCell>
+                      <TableCell colSpan={9} className="text-center py-8">Loading...</TableCell>
                     </TableRow>
                   ) : filteredItems.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center py-8">No items found.</TableCell>
+                      <TableCell colSpan={9} className="text-center py-8">No items found.</TableCell>
                     </TableRow>
                   ) : (
                     filteredItems.map(item => (
@@ -505,6 +513,13 @@ export default function AdminAppItems() {
                             checked={!!item.show_to_demo}
                             disabled={updatingIds.has(item.id)}
                             onCheckedChange={v => handleToggle(item, "show_to_demo", v)}
+                          />
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Switch
+                            checked={!!item.sidebar_featured}
+                            disabled={updatingIds.has(item.id)}
+                            onCheckedChange={v => handleToggle(item, "sidebar_featured", v)}
                           />
                         </TableCell>
                         <TableCell className="text-right">
