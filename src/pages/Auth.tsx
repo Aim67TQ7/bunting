@@ -239,10 +239,15 @@ export default function Auth() {
     defaultValues: { badgeNumber: "", otp: "", pin: "", confirmPin: "" },
   });
 
+  const [isRedirecting, setIsRedirecting] = useState(false);
+
   // Redirect if already authenticated - check if profile is complete
   useEffect(() => {
     const checkProfileAndRedirect = async () => {
       if (user && !isLoading) {
+        setIsRedirecting(true);
+        console.log('[Auth] User authenticated, checking profile for:', user.email);
+        
         try {
           // Check if user has completed their employee profile
           const { data: empProfile, error } = await supabase
@@ -252,22 +257,26 @@ export default function Auth() {
             .maybeSingle();
 
           if (error && error.code !== "PGRST116") {
-            console.error("Error checking employee profile:", error);
+            console.error("[Auth] Error checking employee profile:", error);
           }
+
+          console.log('[Auth] Profile check result:', { empProfile, hasLocation: !!empProfile?.location, hasJobLevel: !!empProfile?.job_level });
 
           // If no profile or missing required fields, redirect to settings
           if (!empProfile || !empProfile.location || !empProfile.job_level) {
+            console.log('[Auth] Profile incomplete, redirecting to settings');
             navigate("/settings", { replace: true });
             return;
           }
 
           // Profile complete - redirect to original destination or home
           const origin = location.state?.from?.pathname || "/";
+          console.log('[Auth] Profile complete, redirecting to:', origin);
           navigate(origin, { replace: true });
         } catch (err) {
-          console.error("Error in profile check:", err);
-          // On error, default to redirecting to settings
-          navigate("/settings", { replace: true });
+          console.error("[Auth] Error in profile check:", err);
+          // On error, default to redirecting home (not settings to avoid loops)
+          navigate("/", { replace: true });
         }
       }
     };
@@ -275,18 +284,26 @@ export default function Auth() {
     checkProfileAndRedirect();
   }, [user, isLoading, navigate, location.state]);
 
-  // If still loading, show loading indicator
-  if (isLoading) {
+  // If still loading or redirecting, show loading indicator
+  if (isLoading || isRedirecting) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        {isRedirecting && (
+          <p className="ml-3 text-muted-foreground">Signing you in...</p>
+        )}
       </div>
     );
   }
 
-  // If already authenticated, don't render the login form
+  // If already authenticated but not yet redirecting (shouldn't happen normally)
   if (user) {
-    return null; // The useEffect will handle the redirect
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <p className="ml-3 text-muted-foreground">Loading...</p>
+      </div>
+    );
   }
 
   // Handle login submission
