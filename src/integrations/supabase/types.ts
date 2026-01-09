@@ -2300,6 +2300,30 @@ export type Database = {
         }
         Relationships: []
       }
+      magsep_subscribers: {
+        Row: {
+          email: string
+          id: string
+          is_active: boolean
+          name: string | null
+          subscribed_at: string
+        }
+        Insert: {
+          email: string
+          id?: string
+          is_active?: boolean
+          name?: string | null
+          subscribed_at?: string
+        }
+        Update: {
+          email?: string
+          id?: string
+          is_active?: boolean
+          name?: string | null
+          subscribed_at?: string
+        }
+        Relationships: []
+      }
       "MAI Customers": {
         Row: {
           Customer: string | null
