@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { PageLayout } from "@/components/page-layout";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth, registerIframe, unregisterIframe } from "@/contexts/AuthContext";
 
 interface AuthMessage {
   type: 'PROVIDE_USER' | 'PROVIDE_TOKEN' | 'BUNTINGGPT_AUTH_TOKEN' | 'BUNTINGGPT_AUTH_REQUEST';
@@ -20,9 +20,20 @@ interface AuthMessage {
   timestamp: number;
 }
 
+const IFRAME_URL = "https://notes.buntinggpt.com";
+
 const Dashboard = () => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const { user, session } = useAuth();
+
+  // Register iframe for token refresh propagation
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (iframe) {
+      registerIframe('dashboard-notes', iframe, IFRAME_URL);
+      return () => unregisterIframe('dashboard-notes');
+    }
+  }, []);
 
   // Send auth data to iframe via postMessage
   useEffect(() => {
@@ -30,17 +41,22 @@ const Dashboard = () => {
     
     const handleIframeLoad = () => {
       if (iframe?.contentWindow && user && session?.access_token && session?.refresh_token) {
-        // Validate JWT format before sending
+        // Validate access_token is a JWT (3 parts)
         const accessTokenParts = session.access_token.split('.');
-        const refreshTokenParts = session.refresh_token.split('.');
-        
-        if (accessTokenParts.length !== 3 || refreshTokenParts.length !== 3) {
-          console.error('Invalid JWT format - tokens may not be established yet');
+        if (accessTokenParts.length !== 3) {
+          console.error('[Dashboard] Invalid access_token JWT format');
+          return;
+        }
+
+        // Validate refresh_token exists and has substantial length
+        // NOTE: Refresh tokens are OPAQUE strings, NOT JWTs - do NOT validate as 3 parts!
+        if (session.refresh_token.length < 20) {
+          console.error('[Dashboard] Refresh token appears truncated:', session.refresh_token.length);
           return;
         }
 
         try {
-          console.log('[Dashboard] Sending auth to notes.buntinggpt.com');
+          console.log('[Dashboard] Sending auth to', IFRAME_URL);
 
           // Send NEW format (BUNTINGGPT_AUTH_TOKEN) with user embedded
           const newFormatMessage: AuthMessage = {
@@ -53,7 +69,7 @@ const Dashboard = () => {
             origin: window.location.origin,
             timestamp: Date.now()
           };
-          iframe.contentWindow.postMessage(newFormatMessage, 'https://notes.buntinggpt.com');
+          iframe.contentWindow.postMessage(newFormatMessage, IFRAME_URL);
           console.log('[Dashboard] Sent BUNTINGGPT_AUTH_TOKEN');
 
           // Send legacy PROVIDE_USER for backward compatibility
@@ -63,7 +79,7 @@ const Dashboard = () => {
             origin: window.location.origin,
             timestamp: Date.now()
           };
-          iframe.contentWindow.postMessage(userMessage, 'https://notes.buntinggpt.com');
+          iframe.contentWindow.postMessage(userMessage, IFRAME_URL);
 
           // Send legacy PROVIDE_TOKEN for backward compatibility
           const tokenMessage: AuthMessage = {
@@ -76,7 +92,7 @@ const Dashboard = () => {
             origin: window.location.origin,
             timestamp: Date.now()
           };
-          iframe.contentWindow.postMessage(tokenMessage, 'https://notes.buntinggpt.com');
+          iframe.contentWindow.postMessage(tokenMessage, IFRAME_URL);
           console.log('[Dashboard] Auth sent (new + legacy formats)');
         } catch (error) {
           console.warn('[Dashboard] Failed to send auth data to iframe:', error);
@@ -93,8 +109,8 @@ const Dashboard = () => {
   // Listen for auth requests from iframe
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      // Only accept messages from notes.buntinggpt.com
-      if (event.origin !== 'https://notes.buntinggpt.com') return;
+      // Only accept messages from the target subdomain
+      if (event.origin !== IFRAME_URL) return;
       
       const iframe = iframeRef.current;
       if (!iframe?.contentWindow || !user || !session) return;
@@ -108,15 +124,19 @@ const Dashboard = () => {
           origin: window.location.origin,
           timestamp: Date.now()
         };
-        iframe.contentWindow.postMessage(message, 'https://notes.buntinggpt.com');
+        iframe.contentWindow.postMessage(message, IFRAME_URL);
         console.log('[Dashboard] User data provided in response to request');
       } else if ((type === 'REQUEST_TOKEN' || type === 'BUNTINGGPT_AUTH_REQUEST') && session?.access_token && session?.refresh_token) {
-        // Validate JWT format before sending
+        // Validate access_token is a JWT (3 parts)
         const accessTokenParts = session.access_token.split('.');
-        const refreshTokenParts = session.refresh_token.split('.');
-        
-        if (accessTokenParts.length !== 3 || refreshTokenParts.length !== 3) {
-          console.error('[Dashboard] Invalid JWT format in response to auth request');
+        if (accessTokenParts.length !== 3) {
+          console.error('[Dashboard] Invalid access_token JWT format in response to auth request');
+          return;
+        }
+
+        // Validate refresh_token exists and has substantial length (NOT a JWT!)
+        if (session.refresh_token.length < 20) {
+          console.error('[Dashboard] Refresh token appears truncated in response');
           return;
         }
 
@@ -133,7 +153,7 @@ const Dashboard = () => {
           origin: window.location.origin,
           timestamp: Date.now()
         };
-        iframe.contentWindow.postMessage(newMessage, 'https://notes.buntinggpt.com');
+        iframe.contentWindow.postMessage(newMessage, IFRAME_URL);
 
         // Send legacy format
         const legacyMessage: AuthMessage = {
@@ -146,7 +166,7 @@ const Dashboard = () => {
           origin: window.location.origin,
           timestamp: Date.now()
         };
-        iframe.contentWindow.postMessage(legacyMessage, 'https://notes.buntinggpt.com');
+        iframe.contentWindow.postMessage(legacyMessage, IFRAME_URL);
         console.log('[Dashboard] Auth provided (new + legacy formats)');
       }
     };
@@ -159,7 +179,7 @@ const Dashboard = () => {
     <PageLayout title="Dashboard">
       <iframe
         ref={iframeRef}
-        src="https://notes.buntinggpt.com"
+        src={IFRAME_URL}
         className="w-full h-full border-0"
         title="Dashboard"
         sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads"
