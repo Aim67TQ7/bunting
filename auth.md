@@ -12,14 +12,16 @@
 **Critical Success Factors:**
 - Explicit cookie domain (`.buntinggpt.com`) for cross-subdomain sharing
 - Cookie chunking pattern: `{key}_chunk_0`, `{key}_chunk_1`, etc.
-- Token refresh events propagated to all active iframes
+- Token refresh events propagated to all active iframes via iframe registry
 - RLS credentials validated end-to-end in embedded contexts
+- **Refresh tokens are OPAQUE strings, NOT JWTs** - never validate as 3 dot-separated parts!
 
 **Failure Modes Without This System:**
 - Third-party cookie blocking breaks iframe auth
 - Token expiry after ~1 hour causes silent RLS failures
 - Large JWTs (>4KB) exceed cookie limits and corrupt sessions
 - Mismatched chunking patterns cause truncated tokens
+- **Incorrect refresh token validation blocks valid auth silently**
 
 ---
 
@@ -29,13 +31,15 @@
 ┌─────────────────────────────────────────────────────────────────┐
 │                buntinggpt.com (PARENT DOMAIN)                   │
 │                                                                 │
-│  [AuthContext] ──► Manages Supabase session + token refresh    │
+│  [AuthContext] ──► Manages Supabase session + token refresh     │
+│       │            ──► Maintains iframe registry for propagation│
 │       │                                                          │
-│       ├──► On iframe load: Send PROVIDE_USER + PROVIDE_TOKEN    │
-│       ├──► On token refresh: Re-send tokens to all iframes      │
+│       ├──► On iframe load: Send BUNTINGGPT_AUTH_TOKEN           │
+│       ├──► On token refresh: Re-send tokens to all iframes     │
 │       └──► On REQUEST_*: Respond with current credentials       │
 │                                                                 │
-│  [Dashboard/Iframe] ──► postMessage() to subdomain              │
+│  [Dashboard/Iframe.tsx] ──► postMessage() to subdomain          │
+│       │                     ──► Registers with iframe registry  │
 │       │                                                          │
 │       ▼                                                          │
 │  ┌──────────────────────────────────────────────────────────┐  │
@@ -48,7 +52,7 @@
 ┌─────────────────────────────────────────────────────────────────┐
 │              notes.buntinggpt.com (SUBDOMAIN APP)               │
 │                                                                 │
-│  [AuthContext] ──► Listens for postMessage from parent         │
+│  [useParentAuth Hook] ──► Listens for postMessage from parent  │
 │       │                                                          │
 │       ├──► Receives tokens ──► supabase.auth.setSession()      │
 │       ├──► Validates RLS context ──► auth.uid() populated      │
@@ -179,41 +183,99 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
 
 ## Part 2: Parent Domain Implementation
 
-### 2.1 Parent AuthContext
+### 2.1 Parent AuthContext with Iframe Registry
 
 **File:** `src/contexts/AuthContext.tsx` (Parent App)
 
-The parent AuthContext manages Supabase auth and logs token diagnostics:
+The parent AuthContext manages Supabase auth, logs token diagnostics, and maintains an iframe registry for token propagation:
 
 ```typescript
-// In onAuthStateChange callback, log token diagnostics:
-if (currentSession) {
-  console.log('[AuthContext] Token diagnostics:', {
-    event,
-    hasAccessToken: !!currentSession.access_token,
-    accessTokenLength: currentSession.access_token?.length || 0,
-    hasRefreshToken: !!currentSession.refresh_token,
-    refreshTokenLength: currentSession.refresh_token?.length || 0,
-    // Refresh tokens should be substantial (100+ chars typically)
-    refreshTokenValid: (currentSession.refresh_token?.length || 0) > 20
+// Iframe registry for token propagation
+const activeIframes = new Map<string, { iframe: HTMLIFrameElement; origin: string }>();
+
+const registerIframe = (id: string, iframe: HTMLIFrameElement, origin: string) => {
+  activeIframes.set(id, { iframe, origin });
+};
+
+const unregisterIframe = (id: string) => {
+  activeIframes.delete(id);
+};
+
+// Propagate tokens to all registered iframes
+const propagateTokensToIframes = (session: Session) => {
+  activeIframes.forEach(({ iframe, origin }, id) => {
+    if (iframe.contentWindow) {
+      const message = {
+        type: 'BUNTINGGPT_AUTH_TOKEN',
+        accessToken: session.access_token,
+        refreshToken: session.refresh_token,
+        access_token: session.access_token,
+        refresh_token: session.refresh_token,
+        user: { id: session.user.id, email: session.user.email || '' },
+        origin: window.location.origin,
+        timestamp: Date.now()
+      };
+      iframe.contentWindow.postMessage(message, origin);
+      console.log(`[AuthContext] Propagated tokens to iframe: ${id}`);
+    }
   });
+};
+
+// In onAuthStateChange callback:
+if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+  if (currentSession) {
+    propagateTokensToIframes(currentSession);
+    
+    // Log token diagnostics
+    console.log('[AuthContext] Token diagnostics:', {
+      event,
+      hasAccessToken: !!currentSession.access_token,
+      accessTokenLength: currentSession.access_token?.length || 0,
+      hasRefreshToken: !!currentSession.refresh_token,
+      refreshTokenLength: currentSession.refresh_token?.length || 0,
+      // Refresh tokens should be substantial (100+ chars typically)
+      refreshTokenValid: (currentSession.refresh_token?.length || 0) > 20
+    });
+  }
 }
 ```
 
-### 2.2 Iframe Component (Parent App)
+### 2.2 Dashboard/Iframe Component (Parent App)
 
-**File:** `src/pages/Iframe.tsx`
+**File:** `src/pages/Dashboard.tsx` or `src/pages/Iframe.tsx`
 
 Key responsibilities:
+- Registers with iframe registry on mount, unregisters on unmount
 - Detects buntinggpt.com subdomains via `isBuntingGptSubdomain()`
-- Sends both new format (`BUNTINGGPT_AUTH_TOKEN`) and legacy formats (`PROVIDE_USER`, `PROVIDE_TOKEN`)
-- Validates access_token is a JWT (3 parts) but NOT refresh_token (it's opaque)
+- Sends both new format (`BUNTINGGPT_AUTH_TOKEN`) and legacy formats
+- **Validates access_token is a JWT (3 parts) but NOT refresh_token (it's OPAQUE!)**
 - Responds to `REQUEST_TOKEN` and `REQUEST_USER` messages from iframe
+
+**⚠️ CRITICAL: Token Validation Pattern**
+
+```typescript
+// ✅ CORRECT - Only validate access_token as JWT
+const accessTokenParts = session.access_token.split('.');
+if (accessTokenParts.length !== 3) {
+  console.error('Invalid access_token JWT format');
+  return;
+}
+
+// ✅ CORRECT - Refresh token is OPAQUE, just check length
+if (session.refresh_token.length < 20) {
+  console.error('Refresh token appears truncated');
+  return;
+}
+
+// ❌ WRONG - This blocks valid auth!
+// const refreshTokenParts = session.refresh_token.split('.');
+// if (refreshTokenParts.length !== 3) { ... } // NEVER DO THIS!
+```
 
 **Message Types Sent:**
 
 ```typescript
-// New consolidated format
+// Primary consolidated format
 {
   type: 'BUNTINGGPT_AUTH_TOKEN',
   accessToken: session.access_token,
@@ -230,82 +292,259 @@ Key responsibilities:
 { type: 'PROVIDE_TOKEN', access_token, refresh_token, token, origin, timestamp }
 ```
 
+**Iframe Registration Pattern:**
+
+```typescript
+const IFRAME_URL = "https://notes.buntinggpt.com";
+
+const Dashboard = () => {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const { user, session, registerIframe, unregisterIframe } = useAuth();
+
+  // Register iframe for token refresh propagation
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (iframe && registerIframe && unregisterIframe) {
+      registerIframe('dashboard-notes', iframe, IFRAME_URL);
+      return () => unregisterIframe('dashboard-notes');
+    }
+  }, [registerIframe, unregisterIframe]);
+
+  // ... rest of component
+};
+```
+
 ---
 
 ## Part 3: Subdomain App Implementation
 
-### 3.1 Embedded App AuthContext
+### 3.1 useParentAuth Hook
 
-For subdomain apps, implement postMessage listener:
+**File:** `src/hooks/useParentAuth.ts` (Subdomain App)
+
+This hook handles all authentication for embedded subdomain apps:
 
 ```typescript
-// Detect if running inside an iframe
-const isEmbedded = typeof window !== 'undefined' && window.self !== window.top;
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import type { User, Session } from '@supabase/supabase-js';
 
-// Listen for auth from parent
-const handleMessage = async (event: MessageEvent) => {
-  // Only accept from buntinggpt.com domains
-  if (!event.origin.endsWith('.buntinggpt.com') && 
-      event.origin !== 'https://buntinggpt.com') {
-    return;
-  }
+const ALLOWED_ORIGINS = [
+  'https://buntinggpt.com',
+  'https://www.buntinggpt.com',
+];
 
-  if (event.data?.type === 'BUNTINGGPT_AUTH_TOKEN' && 
-      event.data.accessToken && 
-      event.data.refreshToken) {
-    
-    const { data, error } = await supabase.auth.setSession({
-      access_token: event.data.accessToken,
-      refresh_token: event.data.refreshToken
-    });
-
-    if (!error && data.session) {
-      // Validate RLS context
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user?.id === data.session.user.id) {
-        console.log('[Embedded Auth] RLS context validated ✓');
-      }
-    }
-  }
+const isAllowedOrigin = (origin: string): boolean => {
+  return ALLOWED_ORIGINS.includes(origin) || 
+         origin.endsWith('.buntinggpt.com') ||
+         origin.includes('localhost');
 };
 
-window.addEventListener('message', handleMessage);
+export const useParentAuth = () => {
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  const isEmbedded = typeof window !== 'undefined' && window.self !== window.top;
 
-// Request auth from parent
-if (isEmbedded) {
-  window.parent.postMessage({ type: 'REQUEST_TOKEN' }, '*');
-  window.parent.postMessage({ type: 'REQUEST_USER' }, '*');
-}
+  const handleMessage = useCallback(async (event: MessageEvent) => {
+    // Security: Only accept from allowed origins
+    if (!isAllowedOrigin(event.origin)) {
+      console.log('[useParentAuth] Rejected message from:', event.origin);
+      return;
+    }
+
+    const { type, accessToken, refreshToken, access_token, refresh_token } = event.data || {};
+    
+    // Support both camelCase and snake_case
+    const finalAccessToken = accessToken || access_token;
+    const finalRefreshToken = refreshToken || refresh_token;
+
+    if ((type === 'BUNTINGGPT_AUTH_TOKEN' || type === 'PROVIDE_TOKEN') && 
+        finalAccessToken && finalRefreshToken) {
+      
+      console.log('[useParentAuth] Received auth from parent');
+      
+      try {
+        const { data, error: setSessionError } = await supabase.auth.setSession({
+          access_token: finalAccessToken,
+          refresh_token: finalRefreshToken
+        });
+
+        if (setSessionError) {
+          console.error('[useParentAuth] setSession error:', setSessionError);
+          setError(setSessionError.message);
+          return;
+        }
+
+        if (data.session) {
+          setSession(data.session);
+          setUser(data.session.user);
+          setIsLoading(false);
+          
+          // Validate RLS context
+          const { data: { user: rlsUser } } = await supabase.auth.getUser();
+          if (rlsUser?.id === data.session.user.id) {
+            console.log('[useParentAuth] RLS context validated ✓');
+          }
+        }
+      } catch (err) {
+        console.error('[useParentAuth] Error setting session:', err);
+        setError('Failed to establish session');
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('message', handleMessage);
+
+    // If embedded, request auth from parent
+    if (isEmbedded) {
+      console.log('[useParentAuth] Embedded mode - requesting auth from parent');
+      window.parent.postMessage({ type: 'BUNTINGGPT_AUTH_REQUEST' }, '*');
+      window.parent.postMessage({ type: 'REQUEST_TOKEN' }, '*');
+      
+      // Timeout after 10 seconds
+      const timeout = setTimeout(() => {
+        if (!session) {
+          setError('Auth timeout - no response from parent');
+          setIsLoading(false);
+        }
+      }, 10000);
+
+      return () => {
+        clearTimeout(timeout);
+        window.removeEventListener('message', handleMessage);
+      };
+    } else {
+      // Not embedded - use normal Supabase auth flow
+      supabase.auth.getSession().then(({ data: { session: existingSession } }) => {
+        if (existingSession) {
+          setSession(existingSession);
+          setUser(existingSession.user);
+        }
+        setIsLoading(false);
+      });
+    }
+
+    return () => window.removeEventListener('message', handleMessage);
+  }, [handleMessage, isEmbedded, session]);
+
+  return { user, session, isLoading, isEmbedded, error };
+};
 ```
 
-### 3.2 Embedded App PrivateRoute
+### 3.2 Embedded App AuthContext
+
+**File:** `src/contexts/AuthContext.tsx` (Subdomain App)
+
+Wrap useParentAuth in a context for app-wide access:
+
+```typescript
+import { createContext, useContext, ReactNode } from 'react';
+import { useParentAuth } from '@/hooks/useParentAuth';
+
+const AuthContext = createContext<ReturnType<typeof useParentAuth> | undefined>(undefined);
+
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const auth = useParentAuth();
+  return <AuthContext.Provider value={auth}>{children}</AuthContext.Provider>;
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error('useAuth must be used within AuthProvider');
+  return context;
+};
+```
+
+### 3.3 Embedded App PrivateRoute
+
+**File:** `src/components/PrivateRoute.tsx` (Subdomain App)
 
 **Critical:** Never redirect to `/auth` when embedded:
 
 ```typescript
-const { user, isLoading, isEmbedded } = useAuth();
+import { Navigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
-if (!user) {
-  if (isEmbedded) {
-    // Show message instead of redirect
-    return <div>Authentication required from parent app</div>;
+export const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, isLoading, isEmbedded, error } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4" />
+          <p className="text-muted-foreground">
+            {isEmbedded ? 'Waiting for authentication from parent app...' : 'Loading...'}
+          </p>
+        </div>
+      </div>
+    );
   }
-  return <Navigate to="/auth" />;
-}
+
+  if (error && isEmbedded) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center text-destructive">
+          <p>Authentication error: {error}</p>
+          <p className="text-sm text-muted-foreground mt-2">
+            Please ensure you're accessing this app from the parent domain.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    // CRITICAL: Never redirect when embedded - show message instead
+    if (isEmbedded) {
+      return (
+        <div className="flex items-center justify-center min-h-screen">
+          <p className="text-muted-foreground">Authentication required from parent app</p>
+        </div>
+      );
+    }
+    return <Navigate to="/auth" replace />;
+  }
+
+  return <>{children}</>;
+};
 ```
 
 ---
 
 ## Part 4: Token Requirements
 
-### Expected Token Lengths
+### Expected Token Formats
 
-| Token | Expected Length | Format |
-|-------|-----------------|--------|
-| access_token | 800-1500 chars | JWT (3 dot-separated parts) |
-| refresh_token | 100+ chars | **Opaque string** (NOT a JWT!) |
+| Token | Expected Length | Format | Validation |
+|-------|-----------------|--------|------------|
+| access_token | 800-1500 chars | JWT (3 dot-separated parts) | `token.split('.').length === 3` |
+| refresh_token | 80-150 chars | **OPAQUE string** | `token.length > 20` |
 
-**Critical:** The refresh_token is NOT a JWT. Do not validate it as having 3 parts. It's an opaque string that Supabase uses internally.
+### ⚠️ CRITICAL WARNING
+
+The **refresh_token is NOT a JWT**. It is an opaque string that Supabase uses internally.
+
+**NEVER validate refresh_token as having 3 dot-separated parts!**
+
+```typescript
+// ❌ WRONG - This breaks authentication silently!
+const refreshTokenParts = session.refresh_token.split('.');
+if (refreshTokenParts.length !== 3) {
+  console.error('Invalid refresh token'); // Blocks valid auth!
+  return;
+}
+
+// ✅ CORRECT - Just verify it exists and has length
+if (!session.refresh_token || session.refresh_token.length < 20) {
+  console.error('Refresh token missing or truncated');
+  return;
+}
+```
 
 If refresh_token is < 20 characters, cookies are corrupted!
 
@@ -332,6 +571,7 @@ supabase.auth.getSession().then(({ data: { session }, error }) => {
   if (session) {
     console.log('  User:', session.user.email);
     console.log('  Access token length:', session.access_token.length);
+    console.log('  Access token is JWT:', session.access_token.split('.').length === 3);
     console.log('  Refresh token length:', session.refresh_token.length);
     console.log('  Refresh token valid:', session.refresh_token.length > 20);
     console.log('  Expires:', new Date(session.expires_at * 1000));
@@ -351,6 +591,12 @@ console.log('  Is embedded:', window.self !== window.top);
 
 ```
 Auth failing in iframe?
+│
+├─ Auth messages not being sent?
+│  ├─ Check: Console for "[Dashboard] Invalid access_token" errors
+│  ├─ Check: Was refresh_token incorrectly validated as JWT?
+│  ├─ Fix: Only validate access_token.split('.').length === 3
+│  └─ Fix: Validate refresh_token.length > 20 (NOT as JWT!)
 │
 ├─ Refresh token only 12 chars?
 │  ├─ Check: Cookie chunking pattern matches (key_chunk_0, key_chunk_1...)
@@ -377,29 +623,80 @@ Auth failing in iframe?
 ## Part 6: Security Checklist
 
 - [ ] Origin validation: All postMessage handlers check event.origin
-- [ ] Target origin: Never use '*' when sending tokens
+- [ ] Target origin: Never use '*' when sending tokens (use explicit origin)
 - [ ] HTTPS only: All domains use HTTPS
 - [ ] Cookie domain: Explicitly set to `.buntinggpt.com`
 - [ ] No redirect in iframe: PrivateRoute checks isEmbedded
-- [ ] Token validation: Access token is JWT (3 parts), refresh token is opaque
+- [ ] Token validation: Access token is JWT (3 parts), **refresh token is OPAQUE**
 
 ---
 
-## Quick Start for New Subdomain Apps
+## Quick Start Checklist for New Subdomain Apps
 
-1. **Copy exact Supabase config** from parent app (`client.ts`) - including cookieStorage
-2. **Implement AuthContext** with postMessage listener
-3. **Implement PrivateRoute** with iframe detection
-4. **Sign out and back in** on parent to recreate cookies with new chunking pattern
-5. **Test** with validation script in both parent and iframe
-6. **Verify** RLS queries work with authenticated user
+### Required Files
+
+1. **`src/integrations/supabase/client.ts`**
+   - Copy exact config from parent app
+   - Verify same Supabase project URL and anon key
+   - Include identical cookieStorage implementation
+
+2. **`src/hooks/useParentAuth.ts`**
+   - Implement as shown in Part 3.1
+   - Configure ALLOWED_ORIGINS for your domains
+
+3. **`src/contexts/AuthContext.tsx`**
+   - Wrap useParentAuth in context provider
+   - Export useAuth hook
+
+4. **`src/components/PrivateRoute.tsx`**
+   - Detect isEmbedded state
+   - Show waiting message instead of redirect when embedded
+   - Handle error states gracefully
+
+### Testing Steps
+
+1. **Parent App Test:**
+   - Open browser console on parent domain
+   - Navigate to page with embedded iframe
+   - Look for: `[Dashboard] Sending auth to...` logs
+   - Verify no errors about "Invalid JWT format"
+
+2. **Subdomain App Test:**
+   - Open embedded app in iframe
+   - Look for: `[useParentAuth] Received auth from parent` logs
+   - Look for: `[useParentAuth] RLS context validated ✓`
+   - Verify no redirect to /auth page
+
+3. **End-to-End Test:**
+   - Run validation script in both windows
+   - Confirm session exists in both contexts
+   - Test RLS-protected data queries in subdomain
 
 ---
 
 ## Common Issues & Fixes
 
+### Issue: Auth silently fails to send (no errors, but iframe doesn't receive auth)
+
+**Cause:** Refresh token incorrectly validated as JWT (expecting 3 dot-separated parts)
+
+**Fix:** 
+1. In Dashboard.tsx/Iframe.tsx, change validation:
+```typescript
+// Remove this line:
+// if (refreshTokenParts.length !== 3) { return; }
+
+// Replace with:
+if (session.refresh_token.length < 20) {
+  console.error('Refresh token appears truncated');
+  return;
+}
+```
+
 ### Issue: Refresh token is only 12 characters
+
 **Cause:** Old cookie chunking pattern (`_chunks` + `_0`) vs new pattern (`_chunk_0`)
+
 **Fix:** 
 1. Update `client.ts` to use `_chunk_N` pattern (no separate chunks counter)
 2. Sign out completely on parent domain
@@ -407,14 +704,27 @@ Auth failing in iframe?
 4. Sign back in to create cookies with new pattern
 
 ### Issue: "Session was set but not persisted to client"
+
 **Cause:** Cookie storage corruption during read/write
+
 **Fix:** Verify chunks are sorted by index before joining in `getItem()`
 
 ### Issue: Works on localhost, fails in production
+
 **Cause:** Different storage (localStorage vs cookies)
+
 **Fix:** Ensure `isProductionDomain` detection works correctly
+
+### Issue: Token refresh not reaching embedded apps
+
+**Cause:** Iframe not registered with AuthContext iframe registry
+
+**Fix:**
+1. Import `registerIframe`/`unregisterIframe` from useAuth
+2. Call `registerIframe()` on mount with iframe ref and target origin
+3. Call `unregisterIframe()` on cleanup
 
 ---
 
-**Version:** 2.1 (December 2024)  
-**Last Updated:** Fixed cookie chunking pattern to use `_chunk_N` suffix consistently
+**Version:** 3.0 (January 2026)  
+**Last Updated:** Fixed critical refresh token validation bug, added useParentAuth hook documentation, added iframe registry pattern, expanded troubleshooting

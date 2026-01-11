@@ -2375,6 +2375,50 @@ export type Database = {
         }
         Relationships: []
       }
+      maintenance_requests: {
+        Row: {
+          badge_number: string | null
+          created_at: string
+          description: string
+          equipment_id: string | null
+          id: string
+          location: string
+          session_id: string | null
+          status: string | null
+          urgency: string
+        }
+        Insert: {
+          badge_number?: string | null
+          created_at?: string
+          description: string
+          equipment_id?: string | null
+          id?: string
+          location: string
+          session_id?: string | null
+          status?: string | null
+          urgency?: string
+        }
+        Update: {
+          badge_number?: string | null
+          created_at?: string
+          description?: string
+          equipment_id?: string | null
+          id?: string
+          location?: string
+          session_id?: string | null
+          status?: string | null
+          urgency?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_requests_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       market_research_reports: {
         Row: {
           competitive_landscape: Json
@@ -3503,6 +3547,47 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: []
+      }
+      photo_reports: {
+        Row: {
+          badge_number: string | null
+          created_at: string
+          description: string | null
+          id: string
+          location: string | null
+          photo_url: string
+          session_id: string | null
+          status: string | null
+        }
+        Insert: {
+          badge_number?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          location?: string | null
+          photo_url: string
+          session_id?: string | null
+          status?: string | null
+        }
+        Update: {
+          badge_number?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          location?: string | null
+          photo_url?: string
+          session_id?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "photo_reports_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       photos: {
         Row: {
@@ -4951,6 +5036,71 @@ export type Database = {
         }
         Relationships: []
       }
+      sessions: {
+        Row: {
+          badge_id: string
+          created_at: string
+          ended_at: string | null
+          id: string
+          location: string | null
+          operator_name: string
+          started_at: string
+        }
+        Insert: {
+          badge_id: string
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          location?: string | null
+          operator_name: string
+          started_at?: string
+        }
+        Update: {
+          badge_id?: string
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          location?: string | null
+          operator_name?: string
+          started_at?: string
+        }
+        Relationships: []
+      }
+      shift_notes: {
+        Row: {
+          badge_number: string | null
+          created_at: string
+          id: string
+          note_text: string
+          session_id: string | null
+          shift_date: string | null
+        }
+        Insert: {
+          badge_number?: string | null
+          created_at?: string
+          id?: string
+          note_text: string
+          session_id?: string | null
+          shift_date?: string | null
+        }
+        Update: {
+          badge_number?: string | null
+          created_at?: string
+          id?: string
+          note_text?: string
+          session_id?: string | null
+          shift_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_notes_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shipment_history: {
         Row: {
           created_at: string | null
@@ -6146,6 +6296,50 @@ export type Database = {
             columns: ["visit_id"]
             isOneToOne: false
             referencedRelation: "rep_visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      voice_reports: {
+        Row: {
+          audio_url: string
+          badge_number: string | null
+          created_at: string
+          duration_seconds: number | null
+          id: string
+          location: string | null
+          session_id: string | null
+          status: string | null
+          transcript: string | null
+        }
+        Insert: {
+          audio_url: string
+          badge_number?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          location?: string | null
+          session_id?: string | null
+          status?: string | null
+          transcript?: string | null
+        }
+        Update: {
+          audio_url?: string
+          badge_number?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          location?: string | null
+          session_id?: string | null
+          status?: string | null
+          transcript?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_reports_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
             referencedColumns: ["id"]
           },
         ]
