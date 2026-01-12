@@ -442,6 +442,78 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     );
 
+    // ==========================================================================
+    // GLOBAL AUTH REQUEST HANDLER
+    // Responds to BUNTINGGPT_AUTH_REQUEST from ANY *.buntinggpt.com subdomain
+    // ==========================================================================
+    const handleGlobalAuthRequest = async (event: MessageEvent) => {
+      // Only accept requests from *.buntinggpt.com origins
+      const origin = event.origin;
+      if (!origin.endsWith('.buntinggpt.com') && origin !== 'https://buntinggpt.com') {
+        return;
+      }
+      
+      const messageType = event.data?.type;
+      if (messageType !== 'BUNTINGGPT_AUTH_REQUEST' && messageType !== 'REQUEST_TOKEN') {
+        return;
+      }
+      
+      console.log('[AuthContext] Global auth request received from:', origin, messageType);
+      
+      // Get fresh session (don't rely on state which may be stale)
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      
+      if (!currentSession?.access_token || !currentSession?.refresh_token) {
+        console.warn('[AuthContext] No session available to respond to auth request');
+        return;
+      }
+      
+      // Validate access token format (must be JWT with 3 parts)
+      if (currentSession.access_token.split('.').length !== 3) {
+        console.error('[AuthContext] Invalid access token format - not a JWT');
+        return;
+      }
+      
+      // Validate refresh token (opaque string, just check minimum length)
+      if (currentSession.refresh_token.length < 20) {
+        console.error('[AuthContext] Refresh token appears truncated:', currentSession.refresh_token.length);
+        return;
+      }
+      
+      // Reply to the requesting window
+      const sourceWindow = event.source as Window;
+      if (!sourceWindow) {
+        console.warn('[AuthContext] No source window to reply to');
+        return;
+      }
+      
+      // Send BUNTINGGPT_AUTH_TOKEN response with both formats
+      const authMessage = {
+        type: 'BUNTINGGPT_AUTH_TOKEN',
+        // Camel case format (new standard)
+        accessToken: currentSession.access_token,
+        refreshToken: currentSession.refresh_token,
+        // Snake case format (legacy compatibility)
+        access_token: currentSession.access_token,
+        refresh_token: currentSession.refresh_token,
+        user: {
+          id: currentSession.user.id,
+          email: currentSession.user.email || ''
+        },
+        origin: window.location.origin,
+        timestamp: Date.now()
+      };
+      
+      try {
+        sourceWindow.postMessage(authMessage, origin);
+        console.log('[AuthContext] Auth response sent to:', origin);
+      } catch (err) {
+        console.error('[AuthContext] Failed to send auth response:', err);
+      }
+    };
+    
+    window.addEventListener('message', handleGlobalAuthRequest);
+
     // Check for existing session with better error handling
     const initializeAuth = async () => {
       // If we're returning from OAuth, wait for the auth event instead of calling getSession immediately
@@ -509,6 +581,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       mounted = false;
       if (oauthTimeout) clearTimeout(oauthTimeout);
       subscription.unsubscribe();
+      window.removeEventListener('message', handleGlobalAuthRequest);
     };
   }, []);
 
