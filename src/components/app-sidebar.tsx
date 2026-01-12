@@ -152,8 +152,10 @@ useEffect(() => {
           "flex items-center transition-all duration-200",
           isMobile ? "gap-3" : "gap-2"
         )}>
-          <button 
-            onClick={() => navigate("/")}
+          <a 
+            href="https://bot.buntinggpt.com"
+            target="_blank"
+            rel="noopener noreferrer"
             className="flex items-center gap-2 flex-1 hover:opacity-80 transition-opacity cursor-pointer"
           >
             <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
@@ -166,7 +168,7 @@ useEffect(() => {
               <h1 className="font-semibold text-base text-left">BuntingGPT</h1>
               <p className="text-xs text-muted-foreground text-left">Magnetic Solutions</p>
             </div>
-          </button>
+          </a>
           {!isMobile && (
             <SidebarTrigger className="h-8 w-8 rounded-lg hover:bg-accent/50" />
           )}
