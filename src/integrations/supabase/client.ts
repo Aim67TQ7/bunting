@@ -21,95 +21,99 @@ const COOKIE_CHUNK_SIZE = 3000;
 
 // Custom cookie storage that splits large values across multiple cookies
 // Uses pattern: {key}_chunk_0, {key}_chunk_1, etc.
+//
+// CRITICAL: We chunk the *encoded* value. When reading we must concatenate all
+// encoded chunks first, then decode once, otherwise percent-encoded sequences
+// can be corrupted at chunk boundaries.
 const cookieStorage = {
   getItem: (key: string): string | null => {
     try {
       const cookies = document.cookie.split('; ');
       const chunks: { index: number; value: string }[] = [];
-      
-      // Find all chunks for this key (pattern: key_chunk_N)
+
       for (const cookie of cookies) {
         const [cookieKey, ...valueParts] = cookie.split('=');
-        const cookieValue = valueParts.join('='); // Handle values with = in them
-        
-        // Match pattern: key_chunk_0, key_chunk_1, etc.
+        const cookieValue = valueParts.join('='); // Handle values with '='
+
         if (cookieKey.startsWith(`${key}_chunk_`)) {
           const indexStr = cookieKey.substring(`${key}_chunk_`.length);
           const index = parseInt(indexStr, 10);
           if (!isNaN(index)) {
-            chunks.push({ index, value: decodeURIComponent(cookieValue) });
+            // IMPORTANT: keep it encoded; decode only after concatenation
+            chunks.push({ index, value: cookieValue });
           }
         }
       }
-      
+
       if (chunks.length === 0) {
         console.log(`Cookie read [${key}]: not found`);
         return null;
       }
-      
-      // CRITICAL: Sort by index before joining
+
       chunks.sort((a, b) => a.index - b.index);
-      const fullValue = chunks.map(c => c.value).join('');
-      
-      console.log(`Cookie read [${key}]: found (${fullValue.length} chars from ${chunks.length} chunks)`);
-      return fullValue || null;
+      const encodedFullValue = chunks.map((c) => c.value).join('');
+      const decoded = decodeURIComponent(encodedFullValue);
+
+      console.log(
+        `Cookie read [${key}]: found (${decoded.length} chars from ${chunks.length} chunks)`
+      );
+      return decoded || null;
     } catch (e) {
       console.error('Cookie read error:', e);
       return null;
     }
   },
-  
+
   setItem: (key: string, value: string): void => {
     try {
       // First, clear existing chunks
       cookieStorage.removeItem(key);
-      
-      // Split into 3KB chunks (safe margin below 4KB limit)
+
+      // Encode first, then chunk the encoded payload to prevent boundary corruption
+      const encodedValue = encodeURIComponent(value);
+
       const chunks: string[] = [];
-      for (let i = 0; i < value.length; i += COOKIE_CHUNK_SIZE) {
-        chunks.push(value.substring(i, i + COOKIE_CHUNK_SIZE));
+      for (let i = 0; i < encodedValue.length; i += COOKIE_CHUNK_SIZE) {
+        chunks.push(encodedValue.substring(i, i + COOKIE_CHUNK_SIZE));
       }
-      
-      // Set each chunk with explicit domain for cross-subdomain sharing
+
       const maxAge = 60 * 60 * 24 * 7; // 7 days
-      
+
       chunks.forEach((chunk, index) => {
         const chunkKey = `${key}_chunk_${index}`;
-        const encodedChunk = encodeURIComponent(chunk);
-        
-        // CRITICAL: domain=.buntinggpt.com (with leading dot) for cross-subdomain sharing
-        document.cookie = `${chunkKey}=${encodedChunk}; path=/; domain=.buntinggpt.com; max-age=${maxAge}; SameSite=Lax; Secure`;
+
+        // IMPORTANT: chunk is already encoded
+        document.cookie = `${chunkKey}=${chunk}; path=/; domain=.buntinggpt.com; max-age=${maxAge}; SameSite=Lax; Secure`;
       });
-      
+
       console.log(`Cookie set [${key}]: ${value.length} chars (${chunks.length} chunks)`);
     } catch (e) {
       console.error('Cookie write error:', e);
     }
   },
-  
+
   removeItem: (key: string): void => {
     try {
       const cookies = document.cookie.split('; ');
       let removedCount = 0;
-      
+
       for (const cookie of cookies) {
         const [cookieKey] = cookie.split('=');
-        
-        // Match pattern: key_chunk_N
+
         if (cookieKey.startsWith(`${key}_chunk_`)) {
           // Remove with same domain that was used to set it
           document.cookie = `${cookieKey}=; path=/; domain=.buntinggpt.com; max-age=0`;
           removedCount++;
         }
       }
-      
+
       if (removedCount > 0) {
         console.log(`Cookie removed [${key}]: ${removedCount} chunks`);
       }
     } catch (e) {
       console.error('Cookie remove error:', e);
     }
-  }
+  },
 };
 
 // Use localStorage for non-production environments (localhost, preview URLs)
