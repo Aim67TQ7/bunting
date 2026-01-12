@@ -12,15 +12,15 @@ const VALID_LOCATIONS: EmployeeLocation[] = ["Newton", "DuBois", "Redditch", "Be
 const VALID_JOB_LEVELS: JobLevel[] = ["Admin", "Employee", "Executive", "Lead", "Manager", "Supervisor"];
 
 // =============================================================================
-// SIMPLE AUTH BROADCAST - Sends to ALL iframes
+// CACHED SESSION FOR INSTANT AUTH BROADCAST - No async calls needed!
 // =============================================================================
-const broadcastAuth = async () => {
-  const { data: { session } } = await supabase.auth.getSession();
-  const token = session?.access_token;
+let cachedAccessToken: string | null = null;
+
+// SYNCHRONOUS broadcast - uses cached token, no await needed
+const broadcastAuth = () => {
+  console.log('[Auth] Broadcasting to all iframes, token exists:', !!cachedAccessToken);
   
-  console.log('[Auth] Broadcasting to all iframes, token exists:', !!token);
-  
-  // Find all iframes and send token
+  // Find all iframes and send token immediately
   document.querySelectorAll('iframe').forEach(iframe => {
     const iframeEl = iframe as HTMLIFrameElement;
     if (iframeEl.contentWindow && iframeEl.src) {
@@ -28,7 +28,7 @@ const broadcastAuth = async () => {
         const iframeOrigin = new URL(iframeEl.src).origin;
         iframeEl.contentWindow.postMessage({
           type: 'AUTH_TOKEN',
-          token: token
+          token: cachedAccessToken
         }, iframeOrigin);
         console.log('[Auth] Sent token to iframe:', iframeOrigin);
       } catch (e) {
@@ -36,6 +36,12 @@ const broadcastAuth = async () => {
       }
     }
   });
+};
+
+// Update the cached token - call this whenever session changes
+const updateCachedToken = (token: string | null) => {
+  cachedAccessToken = token;
+  console.log('[Auth] Token cache updated, exists:', !!token);
 };
 
 // =============================================================================
@@ -297,7 +303,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // ==========================================================================
     // LISTEN FOR CHILD APPS REQUESTING AUTH
     // ==========================================================================
-    const handleAuthRequest = async (event: MessageEvent) => {
+    // SYNCHRONOUS handler - uses cached token, no await needed!
+    const handleAuthRequest = (event: MessageEvent) => {
       // Validate origin is one of your subdomains
       if (!event.origin.endsWith('.buntinggpt.com') && event.origin !== 'https://buntinggpt.com') {
         return;
@@ -305,11 +312,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (event.data?.type === 'REQUEST_AUTH') {
         console.log('[Auth] Received REQUEST_AUTH from:', event.origin);
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        if (currentSession && event.source) {
+        if (cachedAccessToken && event.source) {
           (event.source as Window).postMessage({
             type: 'AUTH_TOKEN',
-            token: currentSession.access_token
+            token: cachedAccessToken
           }, event.origin);
           console.log('[Auth] Responded with AUTH_TOKEN to:', event.origin);
         }
@@ -331,12 +337,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       addLoadListenerToIframe(iframe as HTMLIFrameElement);
     });
     
-    // Watch for new iframes
+    // Watch for new iframes - also broadcast immediately if we have cached token
     const observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
         mutation.addedNodes.forEach((node) => {
           if (node.nodeName === 'IFRAME') {
             addLoadListenerToIframe(node as HTMLIFrameElement);
+            // Broadcast immediately if we already have a token cached
+            if (cachedAccessToken) {
+              setTimeout(broadcastAuth, 0); // Next tick to let iframe initialize
+            }
           }
         });
       });
@@ -360,7 +370,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (event === 'SIGNED_OUT') {
         setSession(null);
         setUser(null);
-        // Re-broadcast when auth state changes (logout)
+        // Clear cached token and broadcast logout
+        updateCachedToken(null);
         broadcastAuth();
         // Support demo mode fallback after sign out
         if (isDemoMode()) {
@@ -368,7 +379,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         if (currentSession) {
-          // Re-broadcast when auth state changes (login, refresh)
+          // Update cache and broadcast immediately (synchronous!)
+          updateCachedToken(currentSession.access_token);
           broadcastAuth();
           
           // On SIGNED_IN, ensure user records exist BEFORE updating state
@@ -405,8 +417,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (currentSession) {
           setSession(currentSession);
           setUser(currentSession.user);
-          // Also broadcast on initial session
-          setTimeout(broadcastAuth, 100);
+          // Update cache and broadcast IMMEDIATELY - no delay!
+          updateCachedToken(currentSession.access_token);
+          broadcastAuth();
         } else if (isDemoMode()) {
           setUser({ id: 'demo', email: getDemoEmail() || 'demo@buntingmagnetics.com' });
         }
