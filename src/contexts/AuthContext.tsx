@@ -12,75 +12,31 @@ const VALID_LOCATIONS: EmployeeLocation[] = ["Newton", "DuBois", "Redditch", "Be
 const VALID_JOB_LEVELS: JobLevel[] = ["Admin", "Employee", "Executive", "Lead", "Manager", "Supervisor"];
 
 // =============================================================================
-// IFRAME REGISTRY - Global tracking of embedded apps for token propagation
+// SIMPLE AUTH BROADCAST - Sends to ALL iframes
 // =============================================================================
-const activeIframes = new Map<string, { iframe: HTMLIFrameElement; origin: string }>();
-
-export function registerIframe(id: string, iframe: HTMLIFrameElement, origin: string) {
-  activeIframes.set(id, { iframe, origin });
-  console.log(`[AuthContext] Iframe registered: ${origin} (${activeIframes.size} total)`);
-}
-
-export function unregisterIframe(id: string) {
-  activeIframes.delete(id);
-  console.log(`[AuthContext] Iframe unregistered (${activeIframes.size} remaining)`);
-}
-
-// Propagate tokens to ALL registered iframes (called on TOKEN_REFRESHED and SIGNED_IN)
-function propagateTokensToIframes(session: Session) {
-  if (activeIframes.size === 0) return;
+const broadcastAuth = async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
   
-  console.log(`[AuthContext] Propagating tokens to ${activeIframes.size} iframes`);
+  console.log('[Auth] Broadcasting to all iframes, token exists:', !!token);
   
-  activeIframes.forEach(({ iframe, origin }, id) => {
-    if (!iframe.contentWindow) {
-      console.warn(`[AuthContext] Iframe ${id} has no contentWindow`);
-      return;
-    }
-    
-    try {
-      // Send new standardized format
-      iframe.contentWindow.postMessage({
-        type: 'BUNTINGGPT_AUTH_TOKEN',
-        user: {
-          id: session.user.id,
-          email: session.user.email || ''
-        },
-        accessToken: session.access_token,
-        refreshToken: session.refresh_token,
-        access_token: session.access_token,  // Legacy format
-        refresh_token: session.refresh_token, // Legacy format
-        token: session.access_token,          // Legacy format
-        expiresAt: session.expires_at,
-        origin: window.location.origin,
-        timestamp: Date.now()
-      }, origin);
-      
-      // Also send legacy format for older embedded apps
-      iframe.contentWindow.postMessage({
-        type: 'PROVIDE_TOKEN',
-        token: session.access_token,
-        refreshToken: session.refresh_token,
-        origin: window.location.origin,
-        timestamp: Date.now()
-      }, origin);
-      
-      iframe.contentWindow.postMessage({
-        type: 'PROVIDE_USER',
-        user: { 
-          id: session.user.id, 
-          email: session.user.email || '' 
-        },
-        origin: window.location.origin,
-        timestamp: Date.now()
-      }, origin);
-      
-      console.log(`[AuthContext] Tokens sent to iframe: ${origin}`);
-    } catch (err) {
-      console.error(`[AuthContext] Failed to send tokens to iframe ${origin}:`, err);
+  // Find all iframes and send token
+  document.querySelectorAll('iframe').forEach(iframe => {
+    const iframeEl = iframe as HTMLIFrameElement;
+    if (iframeEl.contentWindow && iframeEl.src) {
+      try {
+        const iframeOrigin = new URL(iframeEl.src).origin;
+        iframeEl.contentWindow.postMessage({
+          type: 'AUTH_TOKEN',
+          token: token
+        }, iframeOrigin);
+        console.log('[Auth] Sent token to iframe:', iframeOrigin);
+      } catch (e) {
+        console.warn('[Auth] Failed to send to iframe:', e);
+      }
     }
   });
-}
+};
 
 // =============================================================================
 // AUTH CONTEXT TYPE
@@ -338,21 +294,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let mounted = true;
     let oauthTimeout: NodeJS.Timeout | null = null;
 
-    // Async handler to properly await record creation before updating state
+    // ==========================================================================
+    // LISTEN FOR CHILD APPS REQUESTING AUTH
+    // ==========================================================================
+    const handleAuthRequest = async (event: MessageEvent) => {
+      // Validate origin is one of your subdomains
+      if (!event.origin.endsWith('.buntinggpt.com') && event.origin !== 'https://buntinggpt.com') {
+        return;
+      }
+      
+      if (event.data?.type === 'REQUEST_AUTH') {
+        console.log('[Auth] Received REQUEST_AUTH from:', event.origin);
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        if (currentSession && event.source) {
+          (event.source as Window).postMessage({
+            type: 'AUTH_TOKEN',
+            token: currentSession.access_token
+          }, event.origin);
+          console.log('[Auth] Responded with AUTH_TOKEN to:', event.origin);
+        }
+      }
+    };
+    
+    window.addEventListener('message', handleAuthRequest);
+
+    // Observe DOM for new iframes and add load listeners
+    const handleIframeLoad = () => broadcastAuth();
+    
+    const addLoadListenerToIframe = (iframe: HTMLIFrameElement) => {
+      iframe.removeEventListener('load', handleIframeLoad);
+      iframe.addEventListener('load', handleIframeLoad);
+    };
+    
+    // Add listeners to existing iframes
+    document.querySelectorAll('iframe').forEach(iframe => {
+      addLoadListenerToIframe(iframe as HTMLIFrameElement);
+    });
+    
+    // Watch for new iframes
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
+          if (node.nodeName === 'IFRAME') {
+            addLoadListenerToIframe(node as HTMLIFrameElement);
+          }
+        });
+      });
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    // ==========================================================================
+    // AUTH STATE CHANGE HANDLER
+    // ==========================================================================
     const handleAuthStateChange = async (event: string, currentSession: Session | null) => {
       console.log('Auth state change:', event, currentSession?.user?.email);
-      
-      // Debug: Log token lengths (never log actual values for security)
-      if (currentSession) {
-        console.log('[AuthContext] Token diagnostics:', {
-          event,
-          hasAccessToken: !!currentSession.access_token,
-          accessTokenLength: currentSession.access_token?.length || 0,
-          hasRefreshToken: !!currentSession.refresh_token,
-          refreshTokenLength: currentSession.refresh_token?.length || 0,
-          refreshTokenValid: (currentSession.refresh_token?.length || 0) > 20
-        });
-      }
       
       if (!mounted) return;
 
@@ -365,20 +360,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (event === 'SIGNED_OUT') {
         setSession(null);
         setUser(null);
+        // Re-broadcast when auth state changes (logout)
+        broadcastAuth();
         // Support demo mode fallback after sign out
         if (isDemoMode()) {
           setUser({ id: 'demo', email: getDemoEmail() || 'demo@buntingmagnetics.com' });
         }
       } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        // CRITICAL: Propagate tokens to ALL registered iframes
         if (currentSession) {
-          console.log(`[AuthContext] ${event} - propagating to iframes`);
-          propagateTokensToIframes(currentSession);
+          // Re-broadcast when auth state changes (login, refresh)
+          broadcastAuth();
           
           // On SIGNED_IN, ensure user records exist BEFORE updating state
-          // This prevents Auth.tsx from checking emps before records are created
           if (event === 'SIGNED_IN' && currentSession.user) {
-            setIsSettingUpRecords(true);  // Block Auth.tsx redirect
+            setIsSettingUpRecords(true);
             try {
               const userEmail = currentSession.user.email;
               if (userEmail) {
@@ -394,7 +389,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         }
         
-        // NOW update state - Auth.tsx useEffect will find the records
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         
@@ -403,174 +397,88 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           window.history.replaceState({}, '', window.location.pathname);
         }
         
-        // Mark session as checked for OAuth flow
         setSessionChecked(true);
         setIsLoading(false);
       } else if (event === 'USER_UPDATED') {
         setUser(currentSession?.user ?? null);
       } else if (event === 'INITIAL_SESSION') {
-        // Handle initial session event - this fires when auth state is first determined
         if (currentSession) {
           setSession(currentSession);
           setUser(currentSession.user);
-          // Also propagate on initial session if iframes are already registered
-          propagateTokensToIframes(currentSession);
+          // Also broadcast on initial session
+          setTimeout(broadcastAuth, 100);
         } else if (isDemoMode()) {
           setUser({ id: 'demo', email: getDemoEmail() || 'demo@buntingmagnetics.com' });
         }
         
-        // Only mark as checked if NOT waiting for OAuth callback
         if (!hasOAuthCallbackParams()) {
           setSessionChecked(true);
           setIsLoading(false);
         }
       } else if (!currentSession && isDemoMode()) {
-        // No session but demo mode enabled
         setUser({ id: 'demo', email: getDemoEmail() || 'demo@buntingmagnetics.com' });
       }
       
-      // Only set loading false if we got a definitive auth event (and not OAuth waiting)
       if (event !== 'INITIAL_SESSION' && !hasOAuthCallbackParams()) {
         setIsLoading(false);
       }
     };
 
-    // Set up authentication state listener - calls async handler
+    // Set up authentication state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
         handleAuthStateChange(event, currentSession);
       }
     );
 
-    // ==========================================================================
-    // GLOBAL AUTH REQUEST HANDLER
-    // Responds to BUNTINGGPT_AUTH_REQUEST from ANY *.buntinggpt.com subdomain
-    // ==========================================================================
-    const handleGlobalAuthRequest = async (event: MessageEvent) => {
-      // Only accept requests from *.buntinggpt.com origins
-      const origin = event.origin;
-      if (!origin.endsWith('.buntinggpt.com') && origin !== 'https://buntinggpt.com') {
-        return;
-      }
-      
-      const messageType = event.data?.type;
-      if (messageType !== 'BUNTINGGPT_AUTH_REQUEST' && messageType !== 'REQUEST_TOKEN') {
-        return;
-      }
-      
-      console.log('[AuthContext] Global auth request received from:', origin, messageType);
-      
-      // Get fresh session (don't rely on state which may be stale)
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
-      
-      if (!currentSession?.access_token || !currentSession?.refresh_token) {
-        console.warn('[AuthContext] No session available to respond to auth request');
-        return;
-      }
-      
-      // Validate access token format (must be JWT with 3 parts)
-      if (currentSession.access_token.split('.').length !== 3) {
-        console.error('[AuthContext] Invalid access token format - not a JWT');
-        return;
-      }
-      
-      // Validate refresh token (opaque string, just check minimum length)
-      if (currentSession.refresh_token.length < 20) {
-        console.error('[AuthContext] Refresh token appears truncated:', currentSession.refresh_token.length);
-        return;
-      }
-      
-      // Reply to the requesting window
-      const sourceWindow = event.source as Window;
-      if (!sourceWindow) {
-        console.warn('[AuthContext] No source window to reply to');
-        return;
-      }
-      
-      // Send BUNTINGGPT_AUTH_TOKEN response with both formats
-      const authMessage = {
-        type: 'BUNTINGGPT_AUTH_TOKEN',
-        // Camel case format (new standard)
-        accessToken: currentSession.access_token,
-        refreshToken: currentSession.refresh_token,
-        // Snake case format (legacy compatibility)
-        access_token: currentSession.access_token,
-        refresh_token: currentSession.refresh_token,
-        user: {
-          id: currentSession.user.id,
-          email: currentSession.user.email || ''
-        },
-        origin: window.location.origin,
-        timestamp: Date.now()
-      };
-      
-      try {
-        sourceWindow.postMessage(authMessage, origin);
-        console.log('[AuthContext] Auth response sent to:', origin);
-      } catch (err) {
-        console.error('[AuthContext] Failed to send auth response:', err);
-      }
-    };
-    
-    window.addEventListener('message', handleGlobalAuthRequest);
-
-    // Check for existing session with better error handling
+    // Check for existing session
     const initializeAuth = async () => {
-      // If we're returning from OAuth, wait for the auth event instead of calling getSession immediately
       if (hasOAuthCallbackParams()) {
-        console.log('OAuth callback detected, waiting for auth event...');
-        
-        // Set a timeout to prevent infinite waiting if OAuth fails
+        console.log('[AuthContext] OAuth params detected, waiting for auth callback...');
         oauthTimeout = setTimeout(() => {
-          if (mounted && isLoading) {
-            console.log('OAuth callback timeout - no auth event received');
-            setSessionChecked(true);
-            setIsLoading(false);
-            // Clean URL even on timeout
-            window.history.replaceState({}, '', window.location.pathname);
+          console.log('[AuthContext] OAuth timeout - falling back to getSession');
+          if (mounted) {
+            checkExistingSession();
           }
         }, 5000);
-        
         return;
       }
+      
+      await checkExistingSession();
+    };
 
+    const checkExistingSession = async () => {
       try {
-        console.log('Initializing auth session...');
-        const { data: { session: currentSession }, error } = await supabase.auth.getSession();
-        
-        if (!mounted) return;
+        console.log('[AuthContext] Checking existing session...');
+        const { data: { session: existingSession }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.warn('Session recovery error:', error.message);
-          await supabase.auth.signOut();
-        } else if (currentSession) {
-          console.log('Found existing session for:', currentSession.user?.email);
-          // Debug: Log token lengths from getSession
-          console.log('[AuthContext] getSession token diagnostics:', {
-            accessTokenLength: currentSession.access_token?.length || 0,
-            refreshTokenLength: currentSession.refresh_token?.length || 0,
-            refreshTokenValid: (currentSession.refresh_token?.length || 0) > 20
-          });
-          setSession(currentSession);
-          setUser(currentSession.user);
+          console.error('[AuthContext] Error getting session:', error);
+          if (mounted) {
+            setIsLoading(false);
+            setSessionChecked(true);
+          }
+          return;
+        }
+
+        if (!mounted) return;
+
+        if (existingSession) {
+          setSession(existingSession);
+          setUser(existingSession.user);
+          // Broadcast on initial load
+          setTimeout(broadcastAuth, 100);
         } else if (isDemoMode()) {
-          // No Supabase session but demo mode enabled
-          console.log('No session, but demo mode enabled');
-          setSession(null);
           setUser({ id: 'demo', email: getDemoEmail() || 'demo@buntingmagnetics.com' });
-        } else {
-          console.log('No session found');
         }
+        
+        setIsLoading(false);
+        setSessionChecked(true);
       } catch (error) {
-        console.error('Auth initialization error:', error);
-        // Still allow demo mode on initialization errors
-        if (isDemoMode()) {
-          setUser({ id: 'demo', email: getDemoEmail() || 'demo@buntingmagnetics.com' });
-        }
-      } finally {
+        console.error('[AuthContext] Exception getting session:', error);
         if (mounted) {
-          setSessionChecked(true);
           setIsLoading(false);
+          setSessionChecked(true);
         }
       }
     };
@@ -581,457 +489,384 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       mounted = false;
       if (oauthTimeout) clearTimeout(oauthTimeout);
       subscription.unsubscribe();
-      window.removeEventListener('message', handleGlobalAuthRequest);
+      window.removeEventListener('message', handleAuthRequest);
+      observer.disconnect();
     };
   }, []);
 
-  // Sign up with email validation
+  // =============================================================================
+  // AUTH METHODS
+  // =============================================================================
+  
   const signUp = async (email: string, password: string) => {
     if (!isValidBuntingEmail(email)) {
-      return { error: { message: "Only @buntingmagnetics.com and @buntinggpt.com email addresses are allowed" } };
+      return { error: { message: 'Only Bunting email addresses are allowed to register.' } };
     }
 
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth`
-        }
-      });
-
-      if (error) {
-        return { error };
+    const { error } = await supabase.auth.signUp({ 
+      email, 
+      password,
+      options: {
+        emailRedirectTo: window.location.origin
       }
-
-      return { error: null };
-    } catch (error) {
-      console.error('Sign up error:', error);
-      return { error };
+    });
+    
+    if (error) {
+      console.error('Sign up error:', error.message);
     }
+    
+    return { error };
   };
 
-  // Sign in with email validation and better error handling
-  const signIn = async (email: string, password: string) => {
+  const signUpWithEmailOnly = async (email: string) => {
     if (!isValidBuntingEmail(email)) {
-      return { error: { message: "Only @buntingmagnetics.com and @buntinggpt.com email addresses are allowed" } };
+      return { error: { message: 'Only Bunting email addresses are allowed to register.' } };
     }
 
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        // Handle specific error cases
-        if (error.message === 'fetch' || error.message.includes('fetch')) {
-          return { error: { message: "Network error. Please check your connection and try again." } };
-        }
-        return { error };
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        shouldCreateUser: true,
+        emailRedirectTo: window.location.origin
       }
-
-      return { error: null };
-    } catch (error) {
-      console.error('Sign in error:', error);
-      return { error: { message: "An unexpected error occurred. Please try again." } };
+    });
+    
+    if (error) {
+      console.error('Email-only sign up error:', error.message);
     }
+    
+    return { error };
   };
 
-  // Sign in with Microsoft (Azure AD)
-  const signInWithMicrosoft = async () => {
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'azure',
-        options: {
-          redirectTo: `${window.location.origin}/auth`,
-          scopes: 'email profile openid',
-        }
-      });
-
-      if (error) {
-        return { error };
-      }
-
-      return { error: null };
-    } catch (error) {
-      console.error('Microsoft sign in error:', error);
-      return { error: { message: "An unexpected error occurred. Please try again." } };
+  const signIn = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    
+    if (error) {
+      console.error('Sign in error:', error.message);
     }
+    
+    return { error };
+  };
+
+  const signInWithMicrosoft = async () => {
+    console.log('[AuthContext] Starting Microsoft OAuth sign-in...');
+    console.log('[AuthContext] Current origin:', window.location.origin);
+    
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'azure',
+      options: {
+        scopes: 'openid profile email',
+        redirectTo: window.location.origin
+      }
+    });
+    
+    if (error) {
+      console.error('[AuthContext] Microsoft sign-in error:', error.message);
+    } else {
+      console.log('[AuthContext] OAuth initiated - browser should redirect...');
+    }
+    
+    return { error };
   };
 
   const signOut = async () => {
-    setIsLoading(true);
-    try {
-      await supabase.auth.signOut();
+    console.log('[AuthContext] Signing out...');
+    
+    // Disable demo mode when signing out
+    if (isDemoMode()) {
+      disableDemoMode();
+    }
+    
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error('Sign out error:', error.message);
+      toast({
+        title: "Sign out failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    } else {
       setUser(null);
       setSession(null);
-      // Exit demo mode on sign out
-      disableDemoMode();
-    } catch (error) {
-      console.error('Sign out error:', error);
-    } finally {
-      setIsLoading(false);
+      // Broadcast logout
+      broadcastAuth();
     }
   };
 
-  // Reset password with OTP - sends 6-digit code via email
   const resetPassword = async (email: string) => {
-    if (!isValidBuntingEmail(email)) {
-      return { error: { message: "Only @buntingmagnetics.com and @buntinggpt.com email addresses are allowed" } };
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`
+    });
+    
+    if (error) {
+      console.error('Reset password error:', error.message);
     }
-
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: undefined, // Don't use redirect for OTP flow
-      });
-
-      if (error) {
-        return { error };
-      }
-      
-      return { error: null };
-    } catch (error) {
-      return { error };
-    }
+    
+    return { error };
   };
 
-  // Verify OTP and update password
   const verifyOtpAndUpdatePassword = async (email: string, token: string, password: string) => {
-    try {
-      // First verify the OTP
-      const { error: verifyError } = await supabase.auth.verifyOtp({
-        email,
-        token,
-        type: 'recovery'
-      });
-
-      if (verifyError) {
-        return { error: verifyError };
-      }
-
-      // Then update the password
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: password
-      });
-
-      if (updateError) {
-        return { error: updateError };
-      }
-      
-      return { error: null };
-    } catch (error) {
-      return { error };
+    // First verify the OTP
+    const { error: verifyError } = await supabase.auth.verifyOtp({
+      email,
+      token,
+      type: 'recovery'
+    });
+    
+    if (verifyError) {
+      console.error('OTP verification error:', verifyError.message);
+      return { error: verifyError };
     }
+
+    // Then update the password
+    const { error: updateError } = await supabase.auth.updateUser({ password });
+    
+    if (updateError) {
+      console.error('Password update error:', updateError.message);
+    }
+    
+    return { error: updateError };
   };
 
-  // Email-only signup - uses reset password flow for new accounts
-  const signUpWithEmailOnly = async (email: string) => {
-    if (!isValidBuntingEmail(email)) {
-      return { error: { message: "Only @buntingmagnetics.com and @buntinggpt.com email addresses are allowed" } };
-    }
-
-    try {
-      // First, try to sign in to check if user exists
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password: 'dummy-password-to-check-existence'
-      });
-
-      // If we get a specific "Invalid login credentials" error, user might exist
-      // If we get any other error or success, user exists
-      if (signInError && !signInError.message.includes('Invalid login credentials')) {
-        // User exists, return special error to redirect to login
-        return { error: { message: "EXISTING_USER", details: "An account with this email already exists. Please sign in instead." } };
-      }
-
-      // User doesn't exist, proceed with signup
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: undefined, // Don't use redirect for OTP flow
-      });
-
-      if (error) {
-        return { error };
-      }
-      
-      return { error: null };
-    } catch (error) {
-      return { error };
-    }
-  };
-
-  // Verify OTP and create new account with password
   const verifyOtpAndCreateAccount = async (email: string, token: string, password: string) => {
-    try {
-      // First verify the OTP
-      const { error: verifyError } = await supabase.auth.verifyOtp({
-        email,
-        token,
-        type: 'recovery'
-      });
-
-      if (verifyError) {
-        return { error: verifyError };
-      }
-
-      // Then update the password (this creates the account)
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: password
-      });
-
-      if (updateError) {
-        return { error: updateError };
-      }
-      
-      return { error: null };
-    } catch (error) {
-      return { error };
+    // First verify the OTP to establish a session
+    const { data, error: verifyError } = await supabase.auth.verifyOtp({
+      email,
+      token,
+      type: 'signup'
+    });
+    
+    if (verifyError) {
+      console.error('OTP verification error:', verifyError.message);
+      return { error: verifyError };
     }
+
+    // Then update the user with a password
+    const { error: updateError } = await supabase.auth.updateUser({ password });
+    
+    if (updateError) {
+      console.error('Password update error:', updateError.message);
+      return { error: updateError };
+    }
+
+    // Ensure user records exist
+    if (data?.user) {
+      await ensureUserRecordsExist(data.user);
+    }
+    
+    return { error: null };
   };
 
-  // Update password for authenticated users
   const updatePassword = async (password: string) => {
-    try {
-      const { error } = await supabase.auth.updateUser({
-        password: password
-      });
-
-      if (error) {
-        return { error };
-      }
-      
-      return { error: null };
-    } catch (error) {
-      return { error };
+    const { error } = await supabase.auth.updateUser({ password });
+    
+    if (error) {
+      console.error('Update password error:', error.message);
     }
+    
+    return { error };
   };
 
-// =============================================================================
-  // BADGE AUTHENTICATION METHODS
   // =============================================================================
-  
-  // Helper to pad badge numbers to 5 digits with leading zeros
-  const padBadgeNumber = (badge: string): string => {
-    // Remove any non-digit characters and pad to 5 digits
-    const digitsOnly = badge.replace(/\D/g, '');
-    return digitsOnly.padStart(5, '0');
-  };
+  // BADGE AUTH METHODS
+  // =============================================================================
   
   const lookupBadge = async (badgeNumber: string): Promise<BadgeLookupResult> => {
     try {
-      const paddedBadge = padBadgeNumber(badgeNumber);
       const { data, error } = await supabase.functions.invoke('badge-auth', {
-        body: { action: 'lookup', badgeNumber: paddedBadge },
+        body: { action: 'lookup', badgeNumber }
       });
-
+      
       if (error) {
         return { exists: false, error: error.message };
       }
-
-      return data as BadgeLookupResult;
-    } catch (error: any) {
-      return { exists: false, error: error.message || 'Failed to lookup badge' };
+      
+      return data;
+    } catch (err) {
+      console.error('Badge lookup error:', err);
+      return { exists: false, error: 'Failed to lookup badge' };
     }
   };
 
-const signUpWithBadge = async (badgeNumber: string) => {
+  const signUpWithBadge = async (badgeNumber: string) => {
     try {
-      const paddedBadge = padBadgeNumber(badgeNumber);
       const { data, error } = await supabase.functions.invoke('badge-auth', {
-        body: { action: 'signup-request', badgeNumber: paddedBadge },
+        body: { action: 'signup', badgeNumber }
       });
-
+      
       if (error) {
         return { error: { message: error.message } };
       }
-
-      if (data.error) {
+      
+      if (data?.error) {
         return { error: { message: data.error } };
       }
-
-      return { error: null, supervisorEmail: data.supervisorEmail };
-    } catch (error: any) {
-      return { error: { message: error.message || 'Failed to request badge signup' } };
+      
+      return { error: null, supervisorEmail: data?.supervisorEmail };
+    } catch (err) {
+      console.error('Badge signup error:', err);
+      return { error: { message: 'Failed to start badge signup' } };
     }
   };
 
-const verifyBadgeSignup = async (badgeNumber: string, otp: string, pin: string) => {
+  const verifyBadgeSignup = async (badgeNumber: string, otp: string, pin: string) => {
     try {
-      const paddedBadge = padBadgeNumber(badgeNumber);
       const { data, error } = await supabase.functions.invoke('badge-auth', {
-        body: { action: 'signup-verify', badgeNumber: paddedBadge, otp, pin },
+        body: { action: 'verify-signup', badgeNumber, otp, pin }
       });
-
+      
       if (error) {
         return { error: { message: error.message } };
       }
-
-      if (data.error) {
+      
+      if (data?.error) {
         return { error: { message: data.error } };
       }
-
+      
       // If we got a session back, set it
-      if (data.session) {
-        await supabase.auth.setSession(data.session);
-        return { error: null, session: data.session };
+      if (data?.session) {
+        await supabase.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token
+        });
       }
+      
+      return { error: null, session: data?.session };
+    } catch (err) {
+      console.error('Badge verify signup error:', err);
+      return { error: { message: 'Failed to verify badge signup' } };
+    }
+  };
 
+  const signInWithBadge = async (badgeNumber: string, pin: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('badge-auth', {
+        body: { action: 'signin', badgeNumber, pin }
+      });
+      
+      if (error) {
+        return { error: { message: error.message } };
+      }
+      
+      if (data?.error) {
+        return { error: { message: data.error }, requiresPinChange: data?.requiresPinChange };
+      }
+      
+      // If we got a session back, set it
+      if (data?.session) {
+        await supabase.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token
+        });
+      }
+      
+      return { error: null, requiresPinChange: data?.requiresPinChange };
+    } catch (err) {
+      console.error('Badge signin error:', err);
+      return { error: { message: 'Failed to sign in with badge' } };
+    }
+  };
+
+  const resetBadgePin = async (badgeNumber: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('badge-auth', {
+        body: { action: 'reset-pin', badgeNumber }
+      });
+      
+      if (error) {
+        return { error: { message: error.message } };
+      }
+      
+      if (data?.error) {
+        return { error: { message: data.error } };
+      }
+      
+      return { error: null, supervisorEmail: data?.supervisorEmail };
+    } catch (err) {
+      console.error('Badge reset pin error:', err);
+      return { error: { message: 'Failed to request PIN reset' } };
+    }
+  };
+
+  const verifyBadgePinReset = async (badgeNumber: string, otp: string, newPin: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('badge-auth', {
+        body: { action: 'verify-reset', badgeNumber, otp, newPin }
+      });
+      
+      if (error) {
+        return { error: { message: error.message } };
+      }
+      
+      if (data?.error) {
+        return { error: { message: data.error } };
+      }
+      
       return { error: null };
-    } catch (error: any) {
-      return { error: { message: error.message || 'Failed to verify badge signup' } };
+    } catch (err) {
+      console.error('Badge verify reset error:', err);
+      return { error: { message: 'Failed to verify PIN reset' } };
     }
   };
 
-const signInWithBadge = async (badgeNumber: string, pin: string) => {
+  const quickSignUpWithBadge = async (badgeNumber: string, pin: string) => {
     try {
-      const paddedBadge = padBadgeNumber(badgeNumber);
       const { data, error } = await supabase.functions.invoke('badge-auth', {
-        body: { action: 'login', badgeNumber: paddedBadge, pin },
+        body: { action: 'quick-signup', badgeNumber, pin }
       });
-
+      
       if (error) {
         return { error: { message: error.message } };
       }
-
-      if (data.error) {
-        return { error: { message: data.error } };
+      
+      if (data?.error) {
+        return { error: { message: data.error }, requiresPinChange: data?.requiresPinChange };
       }
-
-      // If we got a magic link, verify it to get a session
-      if (data.magicLink) {
-        // Extract the token from the magic link URL
-        const url = new URL(data.magicLink);
-        const token = url.searchParams.get('token');
-        const type = url.searchParams.get('type');
-
-        if (token && type === 'magiclink') {
-          const { error: verifyError } = await supabase.auth.verifyOtp({
-            token_hash: token,
-            type: 'magiclink',
-          });
-
-          if (verifyError) {
-            return { error: { message: verifyError.message } };
-          }
-        }
+      
+      // If we got a session back, set it
+      if (data?.session) {
+        await supabase.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token
+        });
       }
-
-      return { error: null, requiresPinChange: data.requiresPinChange };
-    } catch (error: any) {
-      return { error: { message: error.message || 'Failed to sign in with badge' } };
-    }
-  };
-
-const resetBadgePin = async (badgeNumber: string) => {
-    try {
-      const paddedBadge = padBadgeNumber(badgeNumber);
-      const { data, error } = await supabase.functions.invoke('badge-auth', {
-        body: { action: 'reset-request', badgeNumber: paddedBadge },
-      });
-
-      if (error) {
-        return { error: { message: error.message } };
-      }
-
-      if (data.error) {
-        return { error: { message: data.error } };
-      }
-
-      return { error: null, supervisorEmail: data.supervisorEmail };
-    } catch (error: any) {
-      return { error: { message: error.message || 'Failed to request PIN reset' } };
-    }
-  };
-
-const verifyBadgePinReset = async (badgeNumber: string, otp: string, newPin: string) => {
-    try {
-      const paddedBadge = padBadgeNumber(badgeNumber);
-      const { data, error } = await supabase.functions.invoke('badge-auth', {
-        body: { action: 'reset-verify', badgeNumber: paddedBadge, otp, pin: newPin },
-      });
-
-      if (error) {
-        return { error: { message: error.message } };
-      }
-
-      if (data.error) {
-        return { error: { message: data.error } };
-      }
-
-      return { error: null };
-    } catch (error: any) {
-      return { error: { message: error.message || 'Failed to reset PIN' } };
-    }
-  };
-
-  // =============================================================================
-  // QR CODE SIGNUP FLOW METHODS
-  // =============================================================================
-
-const quickSignUpWithBadge = async (badgeNumber: string, pin: string) => {
-    try {
-      const paddedBadge = padBadgeNumber(badgeNumber);
-      const { data, error } = await supabase.functions.invoke('badge-auth', {
-        body: { action: 'quick-signup', badgeNumber: paddedBadge, pin },
-      });
-
-      if (error) {
-        return { error: { message: error.message } };
-      }
-
-      if (data.error) {
-        return { error: { message: data.error } };
-      }
-
-      // If we got a magic link, verify it to get a session
-      if (data.magicLink) {
-        const url = new URL(data.magicLink);
-        const token = url.searchParams.get('token');
-        const type = url.searchParams.get('type');
-
-        if (token && type === 'magiclink') {
-          const { error: verifyError } = await supabase.auth.verifyOtp({
-            token_hash: token,
-            type: 'magiclink',
-          });
-
-          if (verifyError) {
-            return { error: { message: verifyError.message } };
-          }
-        }
-      }
-
+      
       return { 
         error: null, 
-        requiresPinChange: data.requiresPinChange,
-        employeeName: data.employeeName,
+        requiresPinChange: data?.requiresPinChange,
+        employeeName: data?.employeeName 
       };
-    } catch (error: any) {
-      return { error: { message: error.message || 'Failed to create account' } };
+    } catch (err) {
+      console.error('Quick badge signup error:', err);
+      return { error: { message: 'Failed to sign up with badge' } };
     }
   };
 
-const changeBadgePin = async (badgeNumber: string, currentPin: string, newPin: string) => {
+  const changeBadgePin = async (badgeNumber: string, currentPin: string, newPin: string) => {
     try {
-      const paddedBadge = padBadgeNumber(badgeNumber);
       const { data, error } = await supabase.functions.invoke('badge-auth', {
-        body: { action: 'change-pin', badgeNumber: paddedBadge, pin: currentPin, newPin },
+        body: { action: 'change-pin', badgeNumber, currentPin, newPin }
       });
-
+      
       if (error) {
         return { error: { message: error.message } };
       }
-
-      if (data.error) {
+      
+      if (data?.error) {
         return { error: { message: data.error } };
       }
-
+      
       return { error: null };
-    } catch (error: any) {
-      return { error: { message: error.message || 'Failed to change PIN' } };
+    } catch (err) {
+      console.error('Change badge PIN error:', err);
+      return { error: { message: 'Failed to change PIN' } };
     }
   };
 
+  // =============================================================================
+  // CONTEXT VALUE
+  // =============================================================================
+  
   const value = {
     user,
     session,
@@ -1054,7 +889,6 @@ const changeBadgePin = async (badgeNumber: string, currentPin: string, newPin: s
     signInWithBadge,
     resetBadgePin,
     verifyBadgePinReset,
-    // QR code signup flow
     quickSignUpWithBadge,
     changeBadgePin,
   };
@@ -1062,7 +896,6 @@ const changeBadgePin = async (badgeNumber: string, currentPin: string, newPin: s
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-// Hook for components to get auth context
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
