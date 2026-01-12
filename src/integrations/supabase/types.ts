@@ -6462,6 +6462,7 @@ export type Database = {
       }
       is_admin_level: { Args: { _user_id: string }; Returns: boolean }
       is_demo_user: { Args: { user_email: string }; Returns: boolean }
+      is_hr_admin: { Args: { _user_id: string }; Returns: boolean }
       is_in_management_chain: {
         Args: { _target_employee_id: string; _viewer_employee_id: string }
         Returns: boolean
@@ -6520,6 +6521,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      match_user_id_by_email: { Args: { p_email: string }; Returns: string }
       process_employee_census: {
         Args: never
         Returns: {
