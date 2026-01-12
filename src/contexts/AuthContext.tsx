@@ -7,18 +7,16 @@ import { Database } from "@/integrations/supabase/types";
 
 // =============================================================================
 // AUTH REDIRECT ORIGIN HELPER
-// Ensures all OAuth/email redirect URLs point to a production buntinggpt origin.
-// If on a non-production host (lovable preview), defaults to https://buntinggpt.com.
+// ALWAYS use canonical production origin for OAuth/email redirects.
+// This ensures consistent behavior regardless of www/non-www or subdomain access.
 // =============================================================================
+const CANONICAL_AUTH_ORIGIN = 'https://buntinggpt.com';
+
 const getAuthRedirectOrigin = (): string => {
-  if (typeof window === 'undefined') return 'https://buntinggpt.com';
-  const hostname = window.location.hostname;
-  if (isProductionHost(hostname)) {
-    return window.location.origin;
-  }
-  // Non-production (preview/dev) - always redirect to canonical production
-  console.warn('[Auth] Non-production host detected, using https://buntinggpt.com for auth redirects');
-  return 'https://buntinggpt.com';
+  // Always return canonical production origin - never use window.location.origin
+  // This prevents redirect URL mismatches with OAuth provider allowlists
+  console.log('[Auth] Using canonical auth origin:', CANONICAL_AUTH_ORIGIN);
+  return CANONICAL_AUTH_ORIGIN;
 };
 
 type EmployeeLocation = Database["public"]["Enums"]["employee_location"];
@@ -532,11 +530,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: { message: 'Only Bunting email addresses are allowed to register.' } };
     }
 
+    const redirectTo = `${getAuthRedirectOrigin()}/auth`;
+    console.log('[Auth] signUp redirectTo:', redirectTo);
+    
     const { error } = await supabase.auth.signUp({ 
       email, 
       password,
       options: {
-        emailRedirectTo: getAuthRedirectOrigin()
+        emailRedirectTo: redirectTo
       }
     });
     
@@ -552,11 +553,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: { message: 'Only Bunting email addresses are allowed to register.' } };
     }
 
+    const redirectTo = `${getAuthRedirectOrigin()}/auth`;
+    console.log('[Auth] signUpWithEmailOnly redirectTo:', redirectTo);
+    
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
         shouldCreateUser: true,
-        emailRedirectTo: getAuthRedirectOrigin()
+        emailRedirectTo: redirectTo
       }
     });
     
@@ -578,22 +582,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signInWithMicrosoft = async () => {
-    const redirectOrigin = getAuthRedirectOrigin();
+    // Always redirect to /auth on canonical origin to avoid protected route issues
+    const redirectTo = `${getAuthRedirectOrigin()}/auth`;
     console.log('[AuthContext] Starting Microsoft OAuth sign-in...');
-    console.log('[AuthContext] Redirect origin:', redirectOrigin);
+    console.log('[AuthContext] Redirect URL:', redirectTo);
     
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'azure',
       options: {
-        scopes: 'openid profile email',
-        redirectTo: redirectOrigin
+        // Include offline_access for reliable refresh tokens
+        scopes: 'openid profile email offline_access',
+        redirectTo: redirectTo
       }
     });
     
     if (error) {
       console.error('[AuthContext] Microsoft sign-in error:', error.message);
     } else {
-      console.log('[AuthContext] OAuth initiated - browser should redirect...');
+      console.log('[AuthContext] OAuth initiated - browser should redirect to:', redirectTo);
     }
     
     return { error };
