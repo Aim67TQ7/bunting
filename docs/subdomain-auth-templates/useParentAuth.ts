@@ -83,14 +83,34 @@ export function useParentAuth(): ParentAuthState & { requestAuth: () => void } {
 
       console.log('[useParentAuth] Received message:', data.type, 'from:', event.origin);
 
-      // Handle both new and legacy message formats
-      if (data.type === 'BUNTINGGPT_AUTH_TOKEN' || data.type === 'PROVIDE_TOKEN') {
-        // Support both camelCase and snake_case
-        const accessToken = data.accessToken || data.access_token;
+      // Handle all auth message formats: AUTH_TOKEN (new), BUNTINGGPT_AUTH_TOKEN, PROVIDE_TOKEN (legacy)
+      if (data.type === 'AUTH_TOKEN' || data.type === 'BUNTINGGPT_AUTH_TOKEN' || data.type === 'PROVIDE_TOKEN') {
+        // Support multiple token payload formats:
+        // - { token, refreshToken } - new AUTH_TOKEN format from Iframe.tsx
+        // - { accessToken, refreshToken } - camelCase format
+        // - { access_token, refresh_token } - snake_case format
+        const accessToken = data.token || data.accessToken || data.access_token;
         const refreshToken = data.refreshToken || data.refresh_token;
 
-        if (!accessToken || !refreshToken) {
-          console.error('[useParentAuth] Missing tokens in message');
+        // If we only got an access token (no refresh token), try to use shared cookie session
+        if (accessToken && !refreshToken) {
+          console.log('[useParentAuth] Got access token only, checking for cookie session...');
+          const { data: sessionData } = await supabase.auth.getSession();
+          if (sessionData.session?.user) {
+            console.log('[useParentAuth] Found existing cookie session!');
+            setAuthReceived(true);
+            setIsLoading(false);
+            setError(null);
+            setUser({ id: sessionData.session.user.id, email: sessionData.session.user.email || '' });
+            return;
+          }
+          // No refresh token and no cookie session - can't establish full session
+          console.warn('[useParentAuth] No refresh token provided and no cookie session');
+          // Try to continue anyway - the access token might work for API calls
+        }
+
+        if (!accessToken) {
+          console.error('[useParentAuth] Missing access token in message');
           return;
         }
 
@@ -102,8 +122,8 @@ export function useParentAuth(): ParentAuthState & { requestAuth: () => void } {
           return;
         }
 
-        // Validate refresh token has substance (it's opaque, NOT a JWT!)
-        if (refreshToken.length < 20) {
+        // If we have a refresh token, validate it has substance (it's opaque, NOT a JWT!)
+        if (refreshToken && refreshToken.length < 20) {
           console.error('[useParentAuth] Refresh token appears truncated:', refreshToken.length);
           setError('Refresh token too short');
           setIsLoading(false);
@@ -112,32 +132,45 @@ export function useParentAuth(): ParentAuthState & { requestAuth: () => void } {
 
         console.log('[useParentAuth] Setting session with tokens:', {
           accessTokenLength: accessToken.length,
-          refreshTokenLength: refreshToken.length
+          refreshTokenLength: refreshToken?.length || 0,
+          hasRefreshToken: !!refreshToken
         });
 
         try {
-          const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken
-          });
+          // If we have both tokens, set full session
+          if (refreshToken) {
+            const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken
+            });
 
-          if (sessionError) {
-            console.error('[useParentAuth] setSession error:', sessionError);
-            setError(sessionError.message);
+            if (sessionError) {
+              console.error('[useParentAuth] setSession error:', sessionError);
+              setError(sessionError.message);
+              setIsLoading(false);
+              return;
+            }
+
+            console.log('[useParentAuth] Session established successfully!');
+            setAuthReceived(true);
             setIsLoading(false);
-            return;
-          }
+            setError(null);
 
-          console.log('[useParentAuth] Session established successfully!');
-          setAuthReceived(true);
-          setIsLoading(false);
-          setError(null);
-
-          // Set user from message or session
-          if (data.user) {
-            setUser(data.user);
-          } else if (sessionData.user) {
-            setUser({ id: sessionData.user.id, email: sessionData.user.email || '' });
+            // Set user from message or session
+            if (data.user) {
+              setUser(data.user);
+            } else if (sessionData.user) {
+              setUser({ id: sessionData.user.id, email: sessionData.user.email || '' });
+            }
+          } else {
+            // No refresh token - just use the user info from the message
+            console.log('[useParentAuth] No refresh token, using message user data');
+            if (data.user) {
+              setUser(data.user);
+              setAuthReceived(true);
+              setIsLoading(false);
+              setError(null);
+            }
           }
 
           // Acknowledge receipt (optional)

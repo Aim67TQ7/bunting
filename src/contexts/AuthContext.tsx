@@ -317,21 +317,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // ==========================================================================
     // LISTEN FOR CHILD APPS REQUESTING AUTH
     // ==========================================================================
-    // SYNCHRONOUS handler - uses cached token, no await needed!
-    const handleAuthRequest = (event: MessageEvent) => {
+    // Handler for auth requests from embedded subdomain apps
+    const handleAuthRequest = async (event: MessageEvent) => {
       // Validate origin is one of your subdomains
       if (!event.origin.endsWith('.buntinggpt.com') && event.origin !== 'https://buntinggpt.com') {
         return;
       }
       
-      if (event.data?.type === 'REQUEST_AUTH') {
-        console.log('[Auth] Received REQUEST_AUTH from:', event.origin);
-        if (cachedAccessToken && event.source) {
-          (event.source as Window).postMessage({
-            type: 'AUTH_TOKEN',
-            token: cachedAccessToken
-          }, event.origin);
-          console.log('[Auth] Responded with AUTH_TOKEN to:', event.origin);
+      // Handle both message types
+      if (event.data?.type === 'REQUEST_AUTH' || event.data?.type === 'BUNTINGGPT_AUTH_REQUEST') {
+        console.log('[Auth] Received auth request from:', event.origin, 'type:', event.data.type);
+        
+        // Try to send full session with refresh token
+        try {
+          const { data: { session: currentSession } } = await supabase.auth.getSession();
+          if (currentSession?.access_token && event.source) {
+            (event.source as Window).postMessage({
+              type: 'AUTH_TOKEN',
+              token: currentSession.access_token,
+              refreshToken: currentSession.refresh_token || null,
+              user: currentSession.user ? { id: currentSession.user.id, email: currentSession.user.email } : null
+            }, event.origin);
+            console.log('[Auth] Responded with AUTH_TOKEN (refresh:', !!currentSession.refresh_token, ') to:', event.origin);
+          } else if (cachedAccessToken && event.source) {
+            // Fallback to cached access token
+            (event.source as Window).postMessage({
+              type: 'AUTH_TOKEN',
+              token: cachedAccessToken
+            }, event.origin);
+            console.log('[Auth] Responded with cached AUTH_TOKEN to:', event.origin);
+          }
+        } catch (e) {
+          // Fallback to cached token if getSession fails
+          if (cachedAccessToken && event.source) {
+            (event.source as Window).postMessage({
+              type: 'AUTH_TOKEN',
+              token: cachedAccessToken
+            }, event.origin);
+            console.log('[Auth] Responded with cached AUTH_TOKEN (fallback) to:', event.origin);
+          }
         }
       }
     };

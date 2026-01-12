@@ -44,7 +44,7 @@ const Iframe = () => {
   
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  // Send AUTH_TOKEN to buntinggpt subdomain iframes
+  // Send AUTH_TOKEN to buntinggpt subdomain iframes - includes both access and refresh tokens
   const sendAuthToken = async () => {
     const iframe = iframeRef.current;
     if (!iframe?.contentWindow || !url) return;
@@ -57,12 +57,23 @@ const Iframe = () => {
     
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session?.access_token) {
+      if (session?.access_token && session?.refresh_token) {
+        // Send both tokens so subdomain can establish full session
         iframe.contentWindow.postMessage({
           type: 'AUTH_TOKEN',
-          token: session.access_token
+          token: session.access_token,
+          refreshToken: session.refresh_token,
+          user: session.user ? { id: session.user.id, email: session.user.email } : null
         }, iframeOrigin);
-        console.log('[Iframe] Sent AUTH_TOKEN to:', iframeOrigin);
+        console.log('[Iframe] Sent AUTH_TOKEN with refresh token to:', iframeOrigin);
+      } else if (session?.access_token) {
+        // Fallback: send access token only (subdomain will try cookie session)
+        iframe.contentWindow.postMessage({
+          type: 'AUTH_TOKEN',
+          token: session.access_token,
+          user: session.user ? { id: session.user.id, email: session.user.email } : null
+        }, iframeOrigin);
+        console.log('[Iframe] Sent AUTH_TOKEN (no refresh) to:', iframeOrigin);
       } else {
         console.log('[Iframe] No session available for AUTH_TOKEN');
       }
@@ -177,7 +188,7 @@ const Iframe = () => {
       if (!iframe?.contentWindow) return;
 
       // Handle REQUEST_AUTH from buntinggpt subdomain apps
-      if (data.type === 'REQUEST_AUTH') {
+      if (data.type === 'REQUEST_AUTH' || data.type === 'BUNTINGGPT_AUTH_REQUEST') {
         const iframeOrigin = getOriginFromUrl(url);
         if (iframeOrigin && event.origin.endsWith('.buntinggpt.com')) {
           try {
@@ -185,9 +196,11 @@ const Iframe = () => {
             if (session?.access_token) {
               iframe.contentWindow.postMessage({
                 type: 'AUTH_TOKEN',
-                token: session.access_token
+                token: session.access_token,
+                refreshToken: session.refresh_token || null,
+                user: session.user ? { id: session.user.id, email: session.user.email } : null
               }, event.origin);
-              console.log('[Iframe] Responded to REQUEST_AUTH with AUTH_TOKEN');
+              console.log('[Iframe] Responded to REQUEST_AUTH with AUTH_TOKEN (refresh:', !!session.refresh_token, ')');
             }
           } catch (e) {
             console.warn('[Iframe] Failed to respond to REQUEST_AUTH:', e);
