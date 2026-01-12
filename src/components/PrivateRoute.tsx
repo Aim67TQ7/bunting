@@ -3,13 +3,14 @@ import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { isDemoMode } from "@/utils/demoMode";
+import { isProductionHost } from "@/integrations/supabase/client";
 
 interface PrivateRouteProps {
   children: ReactNode;
 }
 
-// Check if we're on the production domain
-const isProductionDomain = typeof window !== 'undefined' && window.location.hostname.endsWith('.buntinggpt.com');
+// Check if we're on the production domain (now uses canonical helper)
+const isProductionDomain = typeof window !== 'undefined' && isProductionHost(window.location.hostname);
 
 export default function PrivateRoute({ children }: PrivateRouteProps) {
   const { user, isLoading, session, sessionChecked } = useAuth();

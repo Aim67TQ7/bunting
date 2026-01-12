@@ -8,8 +8,19 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
+// =============================================================================
+// PRODUCTION HOST DETECTION
+// Canonical helper: treats buntinggpt.com, www.buntinggpt.com, and all
+// *.buntinggpt.com subdomains as production hosts.
+// =============================================================================
+export const isProductionHost = (hostname: string): boolean => {
+  return hostname === 'buntinggpt.com' || 
+         hostname === 'www.buntinggpt.com' || 
+         hostname.endsWith('.buntinggpt.com');
+};
+
 // Check if we're on the production domain
-const isProductionDomain = typeof window !== 'undefined' && window.location.hostname.endsWith('.buntinggpt.com');
+const isProductionDomain = typeof window !== 'undefined' && isProductionHost(window.location.hostname);
 
 // Log storage mode for debugging
 if (typeof window !== 'undefined') {
