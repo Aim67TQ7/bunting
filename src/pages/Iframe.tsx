@@ -14,6 +14,25 @@ const normalizeUrl = (raw: string): string => {
   return trimmed;
 };
 
+// Check if URL is a buntinggpt subdomain (for auth token broadcasting)
+const isBuntingGptSubdomain = (url: string): boolean => {
+  try {
+    const hostname = new URL(url).hostname;
+    return hostname.endsWith('.buntinggpt.com');
+  } catch {
+    return false;
+  }
+};
+
+// Get origin from URL safely
+const getOriginFromUrl = (url: string): string | null => {
+  try {
+    return new URL(url).origin;
+  } catch {
+    return null;
+  }
+};
+
 const Iframe = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -24,6 +43,33 @@ const Iframe = () => {
   const [licenseValue, setLicenseValue] = useState<string | null>(null);
   
   const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  // Send AUTH_TOKEN to buntinggpt subdomain iframes
+  const sendAuthToken = async () => {
+    const iframe = iframeRef.current;
+    if (!iframe?.contentWindow || !url) return;
+    
+    // Only send auth to buntinggpt subdomains
+    if (!isBuntingGptSubdomain(url)) return;
+    
+    const iframeOrigin = getOriginFromUrl(url);
+    if (!iframeOrigin) return;
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        iframe.contentWindow.postMessage({
+          type: 'AUTH_TOKEN',
+          token: session.access_token
+        }, iframeOrigin);
+        console.log('[Iframe] Sent AUTH_TOKEN to:', iframeOrigin);
+      } else {
+        console.log('[Iframe] No session available for AUTH_TOKEN');
+      }
+    } catch (e) {
+      console.warn('[Iframe] Failed to send AUTH_TOKEN:', e);
+    }
+  };
 
   // Load URL and fetch legacy tokens from database
   useEffect(() => {
@@ -83,15 +129,18 @@ const Iframe = () => {
     loadUrlData();
   }, [location]);
 
-  // Send legacy token/license when iframe loads (for non-buntinggpt apps)
+  // Send legacy token/license AND AUTH_TOKEN when iframe loads
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe || !url) return;
 
-    const handleLoad = () => {
+    const handleLoad = async () => {
       console.log('[Iframe] Iframe loaded:', url);
       
-      // Send legacy token if available
+      // Send AUTH_TOKEN for buntinggpt subdomain apps
+      await sendAuthToken();
+      
+      // Send legacy token if available (for non-buntinggpt apps)
       if (legacyToken && iframe.contentWindow) {
         iframe.contentWindow.postMessage({
           type: 'PROVIDE_TOKEN',
@@ -118,15 +167,36 @@ const Iframe = () => {
     return () => iframe.removeEventListener('load', handleLoad);
   }, [url, legacyToken, licenseValue]);
 
-  // Listen for legacy token/license requests from iframe
+  // Listen for legacy token/license requests AND REQUEST_AUTH from iframe
   useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
+    const handleMessage = async (event: MessageEvent) => {
       const data = event.data;
       if (!data?.type) return;
 
       const iframe = iframeRef.current;
       if (!iframe?.contentWindow) return;
 
+      // Handle REQUEST_AUTH from buntinggpt subdomain apps
+      if (data.type === 'REQUEST_AUTH') {
+        const iframeOrigin = getOriginFromUrl(url);
+        if (iframeOrigin && event.origin.endsWith('.buntinggpt.com')) {
+          try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.access_token) {
+              iframe.contentWindow.postMessage({
+                type: 'AUTH_TOKEN',
+                token: session.access_token
+              }, event.origin);
+              console.log('[Iframe] Responded to REQUEST_AUTH with AUTH_TOKEN');
+            }
+          } catch (e) {
+            console.warn('[Iframe] Failed to respond to REQUEST_AUTH:', e);
+          }
+        }
+        return;
+      }
+
+      // Handle legacy token requests
       if (data.type === 'REQUEST_TOKEN' && legacyToken) {
         iframe.contentWindow.postMessage({
           type: 'PROVIDE_TOKEN',
@@ -147,7 +217,7 @@ const Iframe = () => {
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [legacyToken, licenseValue]);
+  }, [legacyToken, licenseValue, url]);
 
   return (
     <div className="flex h-screen w-full overflow-hidden">
