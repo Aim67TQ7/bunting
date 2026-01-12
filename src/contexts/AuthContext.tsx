@@ -1,9 +1,25 @@
 import { createContext, useContext, ReactNode, useState, useEffect } from 'react';
 import { Session } from '@supabase/supabase-js';
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, isProductionHost } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { isDemoMode, getDemoEmail, disableDemoMode } from "@/utils/demoMode";
 import { Database } from "@/integrations/supabase/types";
+
+// =============================================================================
+// AUTH REDIRECT ORIGIN HELPER
+// Ensures all OAuth/email redirect URLs point to a production buntinggpt origin.
+// If on a non-production host (lovable preview), defaults to https://buntinggpt.com.
+// =============================================================================
+const getAuthRedirectOrigin = (): string => {
+  if (typeof window === 'undefined') return 'https://buntinggpt.com';
+  const hostname = window.location.hostname;
+  if (isProductionHost(hostname)) {
+    return window.location.origin;
+  }
+  // Non-production (preview/dev) - always redirect to canonical production
+  console.warn('[Auth] Non-production host detected, using https://buntinggpt.com for auth redirects');
+  return 'https://buntinggpt.com';
+};
 
 type EmployeeLocation = Database["public"]["Enums"]["employee_location"];
 type JobLevel = Database["public"]["Enums"]["job_level"];
@@ -520,7 +536,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email, 
       password,
       options: {
-        emailRedirectTo: window.location.origin
+        emailRedirectTo: getAuthRedirectOrigin()
       }
     });
     
@@ -540,7 +556,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email,
       options: {
         shouldCreateUser: true,
-        emailRedirectTo: window.location.origin
+        emailRedirectTo: getAuthRedirectOrigin()
       }
     });
     
@@ -562,14 +578,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signInWithMicrosoft = async () => {
+    const redirectOrigin = getAuthRedirectOrigin();
     console.log('[AuthContext] Starting Microsoft OAuth sign-in...');
-    console.log('[AuthContext] Current origin:', window.location.origin);
+    console.log('[AuthContext] Redirect origin:', redirectOrigin);
     
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'azure',
       options: {
         scopes: 'openid profile email',
-        redirectTo: window.location.origin
+        redirectTo: redirectOrigin
       }
     });
     
@@ -608,7 +625,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const resetPassword = async (email: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`
+      redirectTo: `${getAuthRedirectOrigin()}/reset-password`
     });
     
     if (error) {
