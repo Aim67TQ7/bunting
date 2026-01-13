@@ -41,8 +41,34 @@ const Iframe = () => {
   const [title, setTitle] = useState<string>("");
   const [legacyToken, setLegacyToken] = useState<string | null>(null);
   const [licenseValue, setLicenseValue] = useState<string | null>(null);
+  const [employeeId, setEmployeeId] = useState<string | null>(null);
   
   const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  // Fetch employee_id for the current user
+  useEffect(() => {
+    const fetchEmployeeId = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user?.id) return;
+
+        const { data: employee } = await supabase
+          .from('employees')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (employee?.id) {
+          setEmployeeId(employee.id);
+          console.log('[Iframe] Employee ID fetched:', employee.id);
+        }
+      } catch (error) {
+        console.warn('[Iframe] Error fetching employee ID:', error);
+      }
+    };
+
+    fetchEmployeeId();
+  }, []);
 
   // Send AUTH_TOKEN to buntinggpt subdomain iframes - includes both access and refresh tokens
   const sendAuthToken = async () => {
@@ -253,12 +279,22 @@ const Iframe = () => {
             <iframe
               ref={iframeRef}
               src={(() => {
-                // Get token from URL params and append to iframe src
+                // Get token from URL params and append to iframe src with employee_id
                 const params = new URLSearchParams(location.search);
                 const tokenParam = params.get("token");
-                if (!tokenParam) return url;
-                const separator = url.includes('?') ? '&' : '?';
-                return `${url}${separator}token=${tokenParam}`;
+                
+                let finalUrl = url;
+                const queryParams: string[] = [];
+                
+                if (tokenParam) queryParams.push(`token=${tokenParam}`);
+                if (employeeId) queryParams.push(`employee_id=${employeeId}`);
+                
+                if (queryParams.length > 0) {
+                  const separator = finalUrl.includes('?') ? '&' : '?';
+                  finalUrl = `${finalUrl}${separator}${queryParams.join('&')}`;
+                }
+                
+                return finalUrl;
               })()}
               className="w-full h-full border-none"
               title={title || "Embedded content"}
