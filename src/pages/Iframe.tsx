@@ -252,7 +252,14 @@ const Iframe = () => {
           {url ? (
             <iframe
               ref={iframeRef}
-              src={url}
+              src={(() => {
+                // Get token from URL params and append to iframe src
+                const params = new URLSearchParams(location.search);
+                const tokenParam = params.get("token");
+                if (!tokenParam) return url;
+                const separator = url.includes('?') ? '&' : '?';
+                return `${url}${separator}token=${tokenParam}`;
+              })()}
               className="w-full h-full border-none"
               title={title || "Embedded content"}
               sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-downloads allow-presentation allow-top-navigation-by-user-activation allow-popups-to-escape-sandbox"

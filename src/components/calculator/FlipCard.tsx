@@ -19,6 +19,7 @@ interface FlipCardProps {
   id?: string;
   sourceTable?: string;
   license?: string | null;
+  token?: string | null;
 }
 
 export const FlipCard = ({
@@ -30,7 +31,8 @@ export const FlipCard = ({
   icon,
   id,
   sourceTable,
-  license
+  license,
+  token
 }: FlipCardProps) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const navigate = useNavigate();
@@ -62,7 +64,8 @@ export const FlipCard = ({
         url: url,
         title: title,
         ...(id && { id }),
-        ...(sourceTable && { sourceTable })
+        ...(sourceTable && { sourceTable }),
+        ...(token && { token })
       });
       navigate(`/iframe?${params.toString()}`);
     }

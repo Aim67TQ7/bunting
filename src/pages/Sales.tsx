@@ -17,6 +17,7 @@ interface SalesItem {
   video_url?: string | null;
   coming_soon?: boolean | null;
   license?: string | null;
+  token?: string | null;
 }
 
 const Sales = () => {
@@ -93,6 +94,7 @@ const Sales = () => {
                       id={item.id}
                       sourceTable="app_items"
                       license={item.license}
+                      token={item.token}
                     />
                   </div>
                 </div>
