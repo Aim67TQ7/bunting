@@ -41,33 +41,33 @@ const Iframe = () => {
   const [title, setTitle] = useState<string>("");
   const [legacyToken, setLegacyToken] = useState<string | null>(null);
   const [licenseValue, setLicenseValue] = useState<string | null>(null);
-  const [employeeId, setEmployeeId] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  // Fetch employee_id for the current user
+  // Fetch user_id for URL params - uses auth user_id if linked, falls back to employee.id
   useEffect(() => {
-    const fetchEmployeeId = async () => {
+    const fetchUserId = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user?.id) return;
 
         const { data: employee } = await supabase
           .from('employees')
-          .select('id')
+          .select('id, user_id')
           .eq('user_id', user.id)
           .maybeSingle();
 
-        if (employee?.id) {
-          setEmployeeId(employee.id);
-          console.log('[Iframe] Employee ID fetched:', employee.id);
-        }
+        // Priority: employee.user_id > employee.id > auth user.id
+        const resolvedId = employee?.user_id || employee?.id || user.id;
+        setUserId(resolvedId);
+        console.log('[Iframe] User ID resolved:', resolvedId);
       } catch (error) {
-        console.warn('[Iframe] Error fetching employee ID:', error);
+        console.warn('[Iframe] Error fetching user ID:', error);
       }
     };
 
-    fetchEmployeeId();
+    fetchUserId();
   }, []);
 
   // Send AUTH_TOKEN to buntinggpt subdomain iframes - includes both access and refresh tokens
@@ -279,7 +279,7 @@ const Iframe = () => {
             <iframe
               ref={iframeRef}
               src={(() => {
-                // Get token from URL params and append to iframe src with employee_id
+                // Get token from URL params and append to iframe src with user_id
                 const params = new URLSearchParams(location.search);
                 const tokenParam = params.get("token");
                 
@@ -287,7 +287,7 @@ const Iframe = () => {
                 const queryParams: string[] = [];
                 
                 if (tokenParam) queryParams.push(`token=${tokenParam}`);
-                if (employeeId) queryParams.push(`employee_id=${employeeId}`);
+                if (userId) queryParams.push(`user_id=${userId}`);
                 
                 if (queryParams.length > 0) {
                   const separator = finalUrl.includes('?') ? '&' : '?';
