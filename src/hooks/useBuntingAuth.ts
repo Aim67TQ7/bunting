@@ -104,6 +104,8 @@ export function useBuntingAuth(options: UseBuntingAuthOptions = {}): UseBuntingA
     isLoading: true,
     isAuthenticated: false,
   });
+  
+  const [initialCheckDone, setInitialCheckDone] = useState(false);
 
   // Redirect to the central login hub
   const login = useCallback(() => {
@@ -113,7 +115,9 @@ export function useBuntingAuth(options: UseBuntingAuthOptions = {}): UseBuntingA
   }, [returnUrl]);
 
   // Sign out and redirect to logout page
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    // Clear local session first
+    await supabase.auth.signOut();
     const logoutUrl = `${AUTH_HUB_URL}/logout`;
     window.location.href = logoutUrl;
   }, []);
@@ -123,13 +127,18 @@ export function useBuntingAuth(options: UseBuntingAuthOptions = {}): UseBuntingA
     if (!isAllowedDomain()) {
       console.warn('[BuntingAuth] This hook only works on *.buntinggpt.com domains');
       setState(prev => ({ ...prev, isLoading: false }));
+      setInitialCheckDone(true);
       return;
     }
+
+    let isMounted = true;
 
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        console.log('[BuntingAuth] Auth state changed:', event);
+        if (!isMounted) return;
+        
+        console.log('[BuntingAuth] Auth state changed:', event, 'user:', session?.user?.email || 'none');
         
         const newState: BuntingAuthState = {
           user: session?.user ?? null,
@@ -139,10 +148,14 @@ export function useBuntingAuth(options: UseBuntingAuthOptions = {}): UseBuntingA
         };
         
         setState(newState);
-        onAuthChange?.(newState);
+        
+        // Only trigger callback for meaningful events (not initial session which we handle separately)
+        if (event !== 'INITIAL_SESSION') {
+          onAuthChange?.(newState);
+        }
 
         // Redirect to login if auth is required and user is not authenticated
-        if (requireAuth && !session?.user && event !== 'INITIAL_SESSION') {
+        if (requireAuth && !session?.user && event === 'SIGNED_OUT') {
           login();
         }
       }
@@ -150,9 +163,13 @@ export function useBuntingAuth(options: UseBuntingAuthOptions = {}): UseBuntingA
 
     // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (!isMounted) return;
+      
       if (error) {
         console.error('[BuntingAuth] Error getting session:', error);
       }
+
+      console.log('[BuntingAuth] Initial session check:', session?.user?.email || 'no session');
 
       const newState: BuntingAuthState = {
         user: session?.user ?? null,
@@ -162,6 +179,9 @@ export function useBuntingAuth(options: UseBuntingAuthOptions = {}): UseBuntingA
       };
       
       setState(newState);
+      setInitialCheckDone(true);
+      
+      // Call onAuthChange after initial check
       onAuthChange?.(newState);
 
       // Redirect to login if auth is required and no session
@@ -171,9 +191,11 @@ export function useBuntingAuth(options: UseBuntingAuthOptions = {}): UseBuntingA
     });
 
     return () => {
+      isMounted = false;
       subscription.unsubscribe();
     };
-  }, [requireAuth, login, onAuthChange]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requireAuth, returnUrl]); // Intentionally exclude onAuthChange to prevent re-subscription
 
   // Derived user info
   const displayName = state.user?.user_metadata?.full_name 
@@ -185,6 +207,7 @@ export function useBuntingAuth(options: UseBuntingAuthOptions = {}): UseBuntingA
 
   return {
     ...state,
+    isLoading: state.isLoading || !initialCheckDone,
     login,
     logout,
     displayName,

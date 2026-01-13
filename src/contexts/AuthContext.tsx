@@ -201,36 +201,51 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isSettingUpRecords, setIsSettingUpRecords] = useState(false);
   const [sessionChecked, setSessionChecked] = useState(false);
+  const [recordsSetupDone, setRecordsSetupDone] = useState(false);
   
   // Use the centralized Bunting auth hook
   const buntingAuth = useBuntingAuth({
     requireAuth: false, // Let PrivateRoute handle redirects
-    onAuthChange: async (state) => {
-      // Update token cache and broadcast to iframes
-      if (state.session?.access_token) {
-        updateCachedToken(state.session.access_token);
-        broadcastAuth();
-      } else {
-        updateCachedToken(null);
-        broadcastAuth();
-      }
-      
-      // Ensure user records exist for new users
-      if (state.user && state.isAuthenticated) {
-        setIsSettingUpRecords(true);
+  });
+
+  // Handle auth state changes - broadcast tokens and set up user records
+  useEffect(() => {
+    // Don't process until initial load is complete
+    if (buntingAuth.isLoading) return;
+    
+    console.log('[AuthContext] Auth state update:', buntingAuth.user?.email || 'no user', 'loading:', buntingAuth.isLoading);
+    
+    // Update token cache and broadcast to iframes
+    if (buntingAuth.session?.access_token) {
+      updateCachedToken(buntingAuth.session.access_token);
+      broadcastAuth();
+    } else {
+      updateCachedToken(null);
+      broadcastAuth();
+    }
+    
+    // Mark session as checked once we have a definitive answer
+    setSessionChecked(true);
+    
+    // Ensure user records exist for authenticated users
+    if (buntingAuth.user && buntingAuth.isAuthenticated && !recordsSetupDone) {
+      setIsSettingUpRecords(true);
+      (async () => {
         try {
-          if (state.user.email) {
-            await ensureEmployeeLink(state.user.id, state.user.email);
+          if (buntingAuth.user?.email) {
+            await ensureEmployeeLink(buntingAuth.user.id, buntingAuth.user.email);
           }
-          await ensureUserRecordsExist(state.user);
+          await ensureUserRecordsExist(buntingAuth.user!);
         } finally {
           setIsSettingUpRecords(false);
+          setRecordsSetupDone(true);
         }
-      }
-      
-      setSessionChecked(true);
+      })();
+    } else if (!buntingAuth.user) {
+      // Reset for next login
+      setRecordsSetupDone(false);
     }
-  });
+  }, [buntingAuth.isLoading, buntingAuth.user, buntingAuth.isAuthenticated, buntingAuth.session, recordsSetupDone]);
 
   // Demo mode support
   const effectiveUser = isDemoMode() && !buntingAuth.user 
