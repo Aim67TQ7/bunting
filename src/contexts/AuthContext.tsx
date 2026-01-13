@@ -1,40 +1,29 @@
-import { createContext, useContext, ReactNode, useState, useEffect } from 'react';
-import { Session } from '@supabase/supabase-js';
-import { supabase, isProductionHost } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
+import { createContext, useContext, ReactNode, useEffect, useState } from 'react';
+import { User, Session } from '@supabase/supabase-js';
+import { supabase } from "@/integrations/supabase/client";
+import { useBuntingAuth } from '@/hooks/useBuntingAuth';
 import { isDemoMode, getDemoEmail, disableDemoMode } from "@/utils/demoMode";
 import { Database } from "@/integrations/supabase/types";
 
 // =============================================================================
-// AUTH REDIRECT ORIGIN HELPER
-// ALWAYS use canonical production origin for OAuth/email redirects.
-// This ensures consistent behavior regardless of www/non-www or subdomain access.
+// TYPE DEFINITIONS
 // =============================================================================
-const CANONICAL_AUTH_ORIGIN = 'https://buntinggpt.com';
-
-const getAuthRedirectOrigin = (): string => {
-  // Always return canonical production origin - never use window.location.origin
-  // This prevents redirect URL mismatches with OAuth provider allowlists
-  console.log('[Auth] Using canonical auth origin:', CANONICAL_AUTH_ORIGIN);
-  return CANONICAL_AUTH_ORIGIN;
-};
-
 type EmployeeLocation = Database["public"]["Enums"]["employee_location"];
 type JobLevel = Database["public"]["Enums"]["job_level"];
 
 const VALID_LOCATIONS: EmployeeLocation[] = ["Newton", "DuBois", "Redditch", "Berkhamsted", "Home-Office"];
 const VALID_JOB_LEVELS: JobLevel[] = ["Admin", "Employee", "Executive", "Lead", "Manager", "Supervisor"];
 
+const AUTH_HUB_URL = 'https://login.buntinggpt.com';
+
 // =============================================================================
-// CACHED SESSION FOR INSTANT AUTH BROADCAST - No async calls needed!
+// CACHED SESSION FOR INSTANT AUTH BROADCAST TO IFRAMES
 // =============================================================================
 let cachedAccessToken: string | null = null;
 
-// SYNCHRONOUS broadcast - uses cached token, no await needed
 const broadcastAuth = () => {
   console.log('[Auth] Broadcasting to all iframes, token exists:', !!cachedAccessToken);
   
-  // Find all iframes and send token immediately
   document.querySelectorAll('iframe').forEach(iframe => {
     const iframeEl = iframe as HTMLIFrameElement;
     if (iframeEl.contentWindow && iframeEl.src) {
@@ -52,101 +41,18 @@ const broadcastAuth = () => {
   });
 };
 
-// Update the cached token - call this whenever session changes
 const updateCachedToken = (token: string | null) => {
   cachedAccessToken = token;
   console.log('[Auth] Token cache updated, exists:', !!token);
 };
 
 // =============================================================================
-// AUTH CONTEXT TYPE
+// HELPER FUNCTIONS FOR USER RECORD MANAGEMENT
 // =============================================================================
-interface BadgeLookupResult {
-  exists: boolean;
-  hasAccount?: boolean;
-  employeeName?: string;
-  supervisorEmail?: string;
-  error?: string;
-  requiresPinChange?: boolean;
-}
-
-interface AuthContextType {
-  user: any;
-  session: any;
-  isLoading: boolean;
-  sessionChecked: boolean;
-  isSettingUpRecords: boolean;
-  signUp: (email: string, password: string) => Promise<{ error: any | null }>;
-  signUpWithEmailOnly: (email: string) => Promise<{ error: any | null }>;
-  signIn: (email: string, password: string) => Promise<{ error: any | null }>;
-  signInWithMicrosoft: () => Promise<{ error: any | null }>;
-  signOut: () => Promise<void>;
-  resetPassword: (email: string) => Promise<{ error: any | null }>;
-  verifyOtpAndUpdatePassword: (email: string, token: string, password: string) => Promise<{ error: any | null }>;
-  verifyOtpAndCreateAccount: (email: string, token: string, password: string) => Promise<{ error: any | null }>;
-  updatePassword: (password: string) => Promise<{ error: any | null }>;
-  // Badge auth methods
-  lookupBadge: (badgeNumber: string) => Promise<BadgeLookupResult>;
-  signUpWithBadge: (badgeNumber: string) => Promise<{ error: any | null; supervisorEmail?: string }>;
-  verifyBadgeSignup: (badgeNumber: string, otp: string, pin: string) => Promise<{ error: any | null; session?: any }>;
-  signInWithBadge: (badgeNumber: string, pin: string) => Promise<{ error: any | null; requiresPinChange?: boolean }>;
-  resetBadgePin: (badgeNumber: string) => Promise<{ error: any | null; supervisorEmail?: string }>;
-  verifyBadgePinReset: (badgeNumber: string, otp: string, newPin: string) => Promise<{ error: any | null }>;
-  // QR code signup flow
-  quickSignUpWithBadge: (badgeNumber: string, pin: string) => Promise<{ error: any | null; requiresPinChange?: boolean; employeeName?: string }>;
-  changeBadgePin: (badgeNumber: string, currentPin: string, newPin: string) => Promise<{ error: any | null }>;
-}
-
-// Create context with default values
-const AuthContext = createContext<AuthContextType>({
-  user: null,
-  session: null,
-  isLoading: true,
-  sessionChecked: false,
-  isSettingUpRecords: false,
-  signUp: async () => ({ error: null }),
-  signUpWithEmailOnly: async () => ({ error: null }),
-  signIn: async () => ({ error: null }),
-  signInWithMicrosoft: async () => ({ error: null }),
-  signOut: async () => {},
-  resetPassword: async () => ({ error: null }),
-  verifyOtpAndUpdatePassword: async () => ({ error: null }),
-  verifyOtpAndCreateAccount: async () => ({ error: null }),
-  updatePassword: async () => ({ error: null }),
-  // Badge auth defaults
-  lookupBadge: async () => ({ exists: false }),
-  signUpWithBadge: async () => ({ error: null }),
-  verifyBadgeSignup: async () => ({ error: null }),
-  signInWithBadge: async () => ({ error: null }),
-  resetBadgePin: async () => ({ error: null }),
-  verifyBadgePinReset: async () => ({ error: null }),
-  // QR code signup flow
-  quickSignUpWithBadge: async () => ({ error: null }),
-  changeBadgePin: async () => ({ error: null }),
-});
-
-// Helper function to validate email domain
-const isValidBuntingEmail = (email: string): boolean => {
-  return email.endsWith('@buntingmagnetics.com') || email.endsWith('@buntinggpt.com');
-};
-
-// Helper to detect if we're returning from OAuth callback
-const hasOAuthCallbackParams = (): boolean => {
-  if (typeof window === 'undefined') return false;
-  const hash = window.location.hash;
-  const search = window.location.search;
-  return hash.includes('access_token') || 
-         hash.includes('error') ||
-         search.includes('code=') ||
-         search.includes('error=');
-};
-
-// Helper function to link auth user to employees table via email
 const ensureEmployeeLink = async (userId: string, userEmail: string) => {
   if (!userId || !userEmail) return;
   
   try {
-    // Check if user is already linked to an employee
     const { data: existingLink } = await supabase
       .from('employees')
       .select('id')
@@ -158,7 +64,6 @@ const ensureEmployeeLink = async (userId: string, userEmail: string) => {
       return;
     }
     
-    // Try to find employee by email and link them
     const { data: employee, error } = await supabase
       .from('employees')
       .select('id, user_id')
@@ -171,7 +76,6 @@ const ensureEmployeeLink = async (userId: string, userEmail: string) => {
     }
     
     if (employee && !employee.user_id) {
-      // Found an unlinked employee with matching email - link them
       const { error: updateError } = await supabase
         .from('employees')
         .update({ user_id: userId })
@@ -182,16 +86,13 @@ const ensureEmployeeLink = async (userId: string, userEmail: string) => {
       } else {
         console.log('[AuthContext] Successfully linked user to employee record');
       }
-    } else if (!employee) {
-      console.log('[AuthContext] No employee record found for email:', userEmail);
     }
   } catch (err) {
     console.warn('[AuthContext] ensureEmployeeLink error:', err);
   }
 };
 
-// Helper function to ensure profiles and emps records exist for OAuth users
-const ensureUserRecordsExist = async (user: { id: string; email?: string; user_metadata?: any }) => {
+const ensureUserRecordsExist = async (user: User) => {
   if (!user?.id) return;
   
   const userId = user.id;
@@ -211,20 +112,9 @@ const ensureUserRecordsExist = async (user: { id: string; email?: string; user_m
       .maybeSingle();
     
     if (!existingProfile) {
-      console.log('[AuthContext] Creating missing profiles record');
       const firstName = fullName.split(' ')[0] || email.split('@')[0];
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: userId,
-          first_name: firstName
-        });
-      
-      if (profileError) {
-        console.warn('[AuthContext] Failed to create profiles record:', profileError.message);
-      } else {
-        console.log('[AuthContext] Created profiles record for:', email);
-      }
+      await supabase.from('profiles').insert({ id: userId, first_name: firstName });
+      console.log('[AuthContext] Created profiles record');
     }
     
     // Check/create emps record
@@ -235,45 +125,31 @@ const ensureUserRecordsExist = async (user: { id: string; email?: string; user_m
       .maybeSingle();
     
     if (!existingEmp) {
-      console.log('[AuthContext] Creating missing emps record');
-      
-      // Try to get data from employees table by email for location/job info
       const { data: employeeData } = await supabase
         .from('employees')
         .select('location, job_level, department, job_title')
         .eq('user_email', email)
         .maybeSingle();
       
-      // Validate location against emps enum values
       const rawLocation = employeeData?.location;
       const validLocation: EmployeeLocation | null = 
         rawLocation && VALID_LOCATIONS.includes(rawLocation as EmployeeLocation) 
-          ? (rawLocation as EmployeeLocation) 
-          : null;
+          ? (rawLocation as EmployeeLocation) : null;
       
-      // Validate job_level against emps enum values
       const rawJobLevel = employeeData?.job_level;
       const validJobLevel: JobLevel | null = 
         rawJobLevel && VALID_JOB_LEVELS.includes(rawJobLevel as JobLevel) 
-          ? (rawJobLevel as JobLevel) 
-          : null;
+          ? (rawJobLevel as JobLevel) : null;
       
-      const { error: empError } = await supabase
-        .from('emps')
-        .insert({
-          user_id: userId,
-          display_name: fullName,
-          location: validLocation,
-          job_level: validJobLevel,
-          department: employeeData?.department || null,
-          job_title: employeeData?.job_title || null
-        });
-      
-      if (empError) {
-        console.warn('[AuthContext] Failed to create emps record:', empError.message);
-      } else {
-        console.log('[AuthContext] Created emps record for:', email);
-      }
+      await supabase.from('emps').insert({
+        user_id: userId,
+        display_name: fullName,
+        location: validLocation,
+        job_level: validJobLevel,
+        department: employeeData?.department || null,
+        job_title: employeeData?.job_title || null
+      });
+      console.log('[AuthContext] Created emps record');
     }
     
     // Check/create user_preferences record
@@ -284,51 +160,95 @@ const ensureUserRecordsExist = async (user: { id: string; email?: string; user_m
       .maybeSingle();
     
     if (!existingPrefs) {
-      console.log('[AuthContext] Creating missing user_preferences record');
-      const { error: prefsError } = await supabase
-        .from('user_preferences')
-        .insert({
-          user_id: userId
-        });
-      
-      if (prefsError) {
-        console.warn('[AuthContext] Failed to create user_preferences record:', prefsError.message);
-      } else {
-        console.log('[AuthContext] Created user_preferences record for:', email);
-      }
+      await supabase.from('user_preferences').insert({ user_id: userId });
+      console.log('[AuthContext] Created user_preferences record');
     }
   } catch (err) {
     console.warn('[AuthContext] ensureUserRecordsExist error:', err);
   }
 };
 
-// Provider component that wraps app
+// =============================================================================
+// AUTH CONTEXT TYPE (Simplified - auth methods redirect to login hub)
+// =============================================================================
+interface AuthContextType {
+  user: User | null;
+  session: Session | null;
+  isLoading: boolean;
+  sessionChecked: boolean;
+  isSettingUpRecords: boolean;
+  /** Redirect to login hub */
+  login: () => void;
+  /** Sign out via login hub */
+  signOut: () => void;
+  /** @deprecated Use login() instead - redirects to login hub */
+  signIn: (email: string, password: string) => Promise<{ error: any | null }>;
+  /** @deprecated Use login() instead - redirects to login hub */
+  signUp: (email: string, password: string) => Promise<{ error: any | null }>;
+  /** @deprecated Use login() instead - redirects to login hub */
+  signInWithMicrosoft: () => Promise<{ error: any | null }>;
+  /** @deprecated Handled by login hub */
+  resetPassword: (email: string) => Promise<{ error: any | null }>;
+  /** @deprecated Handled by login hub */
+  updatePassword: (password: string) => Promise<{ error: any | null }>;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// =============================================================================
+// AUTH PROVIDER - Uses useBuntingAuth + iframe broadcasting
+// =============================================================================
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [session, setSession] = useState<any>(null);
-  const [sessionChecked, setSessionChecked] = useState(false);
   const [isSettingUpRecords, setIsSettingUpRecords] = useState(false);
+  const [sessionChecked, setSessionChecked] = useState(false);
+  
+  // Use the centralized Bunting auth hook
+  const buntingAuth = useBuntingAuth({
+    requireAuth: false, // Let PrivateRoute handle redirects
+    onAuthChange: async (state) => {
+      // Update token cache and broadcast to iframes
+      if (state.session?.access_token) {
+        updateCachedToken(state.session.access_token);
+        broadcastAuth();
+      } else {
+        updateCachedToken(null);
+        broadcastAuth();
+      }
+      
+      // Ensure user records exist for new users
+      if (state.user && state.isAuthenticated) {
+        setIsSettingUpRecords(true);
+        try {
+          if (state.user.email) {
+            await ensureEmployeeLink(state.user.id, state.user.email);
+          }
+          await ensureUserRecordsExist(state.user);
+        } finally {
+          setIsSettingUpRecords(false);
+        }
+      }
+      
+      setSessionChecked(true);
+    }
+  });
 
+  // Demo mode support
+  const effectiveUser = isDemoMode() && !buntingAuth.user 
+    ? { id: 'demo', email: getDemoEmail() || 'demo@buntingmagnetics.com' } as User
+    : buntingAuth.user;
+
+  // ==========================================================================
+  // IFRAME AUTH REQUEST LISTENER
+  // ==========================================================================
   useEffect(() => {
-    let mounted = true;
-    let oauthTimeout: NodeJS.Timeout | null = null;
-
-    // ==========================================================================
-    // LISTEN FOR CHILD APPS REQUESTING AUTH
-    // ==========================================================================
-    // Handler for auth requests from embedded subdomain apps
     const handleAuthRequest = async (event: MessageEvent) => {
-      // Validate origin is one of your subdomains
       if (!event.origin.endsWith('.buntinggpt.com') && event.origin !== 'https://buntinggpt.com') {
         return;
       }
       
-      // Handle both message types
       if (event.data?.type === 'REQUEST_AUTH' || event.data?.type === 'BUNTINGGPT_AUTH_REQUEST') {
-        console.log('[Auth] Received auth request from:', event.origin, 'type:', event.data.type);
+        console.log('[Auth] Received auth request from:', event.origin);
         
-        // Try to send full session with refresh token
         try {
           const { data: { session: currentSession } } = await supabase.auth.getSession();
           if (currentSession?.access_token && event.source) {
@@ -338,23 +258,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               refreshToken: currentSession.refresh_token || null,
               user: currentSession.user ? { id: currentSession.user.id, email: currentSession.user.email } : null
             }, event.origin);
-            console.log('[Auth] Responded with AUTH_TOKEN (refresh:', !!currentSession.refresh_token, ') to:', event.origin);
           } else if (cachedAccessToken && event.source) {
-            // Fallback to cached access token
             (event.source as Window).postMessage({
               type: 'AUTH_TOKEN',
               token: cachedAccessToken
             }, event.origin);
-            console.log('[Auth] Responded with cached AUTH_TOKEN to:', event.origin);
           }
         } catch (e) {
-          // Fallback to cached token if getSession fails
           if (cachedAccessToken && event.source) {
             (event.source as Window).postMessage({
               type: 'AUTH_TOKEN',
               token: cachedAccessToken
             }, event.origin);
-            console.log('[Auth] Responded with cached AUTH_TOKEN (fallback) to:', event.origin);
           }
         }
       }
@@ -362,7 +277,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     window.addEventListener('message', handleAuthRequest);
 
-    // Observe DOM for new iframes and add load listeners
+    // Observe DOM for new iframes
     const handleIframeLoad = () => broadcastAuth();
     
     const addLoadListenerToIframe = (iframe: HTMLIFrameElement) => {
@@ -370,20 +285,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       iframe.addEventListener('load', handleIframeLoad);
     };
     
-    // Add listeners to existing iframes
     document.querySelectorAll('iframe').forEach(iframe => {
       addLoadListenerToIframe(iframe as HTMLIFrameElement);
     });
     
-    // Watch for new iframes - also broadcast immediately if we have cached token
     const observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
         mutation.addedNodes.forEach((node) => {
           if (node.nodeName === 'IFRAME') {
             addLoadListenerToIframe(node as HTMLIFrameElement);
-            // Broadcast immediately if we already have a token cached
             if (cachedAccessToken) {
-              setTimeout(broadcastAuth, 0); // Next tick to let iframe initialize
+              setTimeout(broadcastAuth, 0);
             }
           }
         });
@@ -391,566 +303,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     observer.observe(document.body, { childList: true, subtree: true });
 
-    // ==========================================================================
-    // AUTH STATE CHANGE HANDLER
-    // ==========================================================================
-    const handleAuthStateChange = async (event: string, currentSession: Session | null) => {
-      console.log('Auth state change:', event, currentSession?.user?.email);
-      
-      if (!mounted) return;
-
-      // Clear OAuth timeout if we got an auth event
-      if (oauthTimeout) {
-        clearTimeout(oauthTimeout);
-        oauthTimeout = null;
-      }
-      
-      if (event === 'SIGNED_OUT') {
-        setSession(null);
-        setUser(null);
-        // Clear cached token and broadcast logout
-        updateCachedToken(null);
-        broadcastAuth();
-        // Support demo mode fallback after sign out
-        if (isDemoMode()) {
-          setUser({ id: 'demo', email: getDemoEmail() || 'demo@buntingmagnetics.com' });
-        }
-      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        if (currentSession) {
-          // Update cache and broadcast immediately (synchronous!)
-          updateCachedToken(currentSession.access_token);
-          broadcastAuth();
-          
-          // On SIGNED_IN, ensure user records exist BEFORE updating state
-          if (event === 'SIGNED_IN' && currentSession.user) {
-            setIsSettingUpRecords(true);
-            try {
-              const userEmail = currentSession.user.email;
-              if (userEmail) {
-                console.log('[AuthContext] Awaiting ensureEmployeeLink...');
-                await ensureEmployeeLink(currentSession.user.id, userEmail);
-              }
-              console.log('[AuthContext] Awaiting ensureUserRecordsExist...');
-              await ensureUserRecordsExist(currentSession.user);
-              console.log('[AuthContext] User records setup complete');
-            } finally {
-              setIsSettingUpRecords(false);
-            }
-          }
-        }
-        
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
-        
-        // Clean URL after OAuth callback
-        if (hasOAuthCallbackParams()) {
-          window.history.replaceState({}, '', window.location.pathname);
-        }
-        
-        setSessionChecked(true);
-        setIsLoading(false);
-      } else if (event === 'USER_UPDATED') {
-        setUser(currentSession?.user ?? null);
-      } else if (event === 'INITIAL_SESSION') {
-        if (currentSession) {
-          setSession(currentSession);
-          setUser(currentSession.user);
-          // Update cache and broadcast IMMEDIATELY - no delay!
-          updateCachedToken(currentSession.access_token);
-          broadcastAuth();
-        } else if (isDemoMode()) {
-          setUser({ id: 'demo', email: getDemoEmail() || 'demo@buntingmagnetics.com' });
-        }
-        
-        if (!hasOAuthCallbackParams()) {
-          setSessionChecked(true);
-          setIsLoading(false);
-        }
-      } else if (!currentSession && isDemoMode()) {
-        setUser({ id: 'demo', email: getDemoEmail() || 'demo@buntingmagnetics.com' });
-      }
-      
-      if (event !== 'INITIAL_SESSION' && !hasOAuthCallbackParams()) {
-        setIsLoading(false);
-      }
-    };
-
-    // Set up authentication state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, currentSession) => {
-        handleAuthStateChange(event, currentSession);
-      }
-    );
-
-    // Check for existing session
-    const initializeAuth = async () => {
-      if (hasOAuthCallbackParams()) {
-        console.log('[AuthContext] OAuth params detected, waiting for auth callback...');
-        oauthTimeout = setTimeout(() => {
-          console.log('[AuthContext] OAuth timeout - falling back to getSession');
-          if (mounted) {
-            checkExistingSession();
-          }
-        }, 5000);
-        return;
-      }
-      
-      await checkExistingSession();
-    };
-
-    const checkExistingSession = async () => {
-      try {
-        console.log('[AuthContext] Checking existing session...');
-        const { data: { session: existingSession }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('[AuthContext] Error getting session:', error);
-          if (mounted) {
-            setIsLoading(false);
-            setSessionChecked(true);
-          }
-          return;
-        }
-
-        if (!mounted) return;
-
-        if (existingSession) {
-          setSession(existingSession);
-          setUser(existingSession.user);
-          // Broadcast on initial load
-          setTimeout(broadcastAuth, 100);
-        } else if (isDemoMode()) {
-          setUser({ id: 'demo', email: getDemoEmail() || 'demo@buntingmagnetics.com' });
-        }
-        
-        setIsLoading(false);
-        setSessionChecked(true);
-      } catch (error) {
-        console.error('[AuthContext] Exception getting session:', error);
-        if (mounted) {
-          setIsLoading(false);
-          setSessionChecked(true);
-        }
-      }
-    };
-
-    initializeAuth();
-
     return () => {
-      mounted = false;
-      if (oauthTimeout) clearTimeout(oauthTimeout);
-      subscription.unsubscribe();
       window.removeEventListener('message', handleAuthRequest);
       observer.disconnect();
     };
   }, []);
 
-  // =============================================================================
-  // AUTH METHODS
-  // =============================================================================
-  
-  const signUp = async (email: string, password: string) => {
-    if (!isValidBuntingEmail(email)) {
-      return { error: { message: 'Only Bunting email addresses are allowed to register.' } };
-    }
-
-    const redirectTo = `${getAuthRedirectOrigin()}/auth`;
-    console.log('[Auth] signUp redirectTo:', redirectTo);
-    
-    const { error } = await supabase.auth.signUp({ 
-      email, 
-      password,
-      options: {
-        emailRedirectTo: redirectTo
-      }
-    });
-    
-    if (error) {
-      console.error('Sign up error:', error.message);
-    }
-    
-    return { error };
-  };
-
-  const signUpWithEmailOnly = async (email: string) => {
-    if (!isValidBuntingEmail(email)) {
-      return { error: { message: 'Only Bunting email addresses are allowed to register.' } };
-    }
-
-    const redirectTo = `${getAuthRedirectOrigin()}/auth`;
-    console.log('[Auth] signUpWithEmailOnly redirectTo:', redirectTo);
-    
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        shouldCreateUser: true,
-        emailRedirectTo: redirectTo
-      }
-    });
-    
-    if (error) {
-      console.error('Email-only sign up error:', error.message);
-    }
-    
-    return { error };
-  };
-
-  const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    
-    if (error) {
-      console.error('Sign in error:', error.message);
-    }
-    
-    return { error };
-  };
-
-  const signInWithMicrosoft = async () => {
-    // Always redirect to /auth on canonical origin to avoid protected route issues
-    const redirectTo = `${getAuthRedirectOrigin()}/auth`;
-    console.log('[AuthContext] Starting Microsoft OAuth sign-in...');
-    console.log('[AuthContext] Redirect URL:', redirectTo);
-    
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'azure',
-      options: {
-        // Include offline_access for reliable refresh tokens
-        scopes: 'openid profile email offline_access',
-        redirectTo: redirectTo
-      }
-    });
-    
-    if (error) {
-      console.error('[AuthContext] Microsoft sign-in error:', error.message);
-    } else {
-      console.log('[AuthContext] OAuth initiated - browser should redirect to:', redirectTo);
-    }
-    
-    return { error };
-  };
-
-  const signOut = async () => {
-    console.log('[AuthContext] Signing out...');
-    
-    // Disable demo mode when signing out
+  // ==========================================================================
+  // DEPRECATED AUTH METHODS (redirect to login hub)
+  // ==========================================================================
+  const signOut = () => {
     if (isDemoMode()) {
       disableDemoMode();
     }
-    
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error('Sign out error:', error.message);
-      toast({
-        title: "Sign out failed",
-        description: error.message,
-        variant: "destructive"
-      });
-    } else {
-      setUser(null);
-      setSession(null);
-      // Broadcast logout
-      broadcastAuth();
-    }
+    buntingAuth.logout();
   };
 
-  const resetPassword = async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${getAuthRedirectOrigin()}/reset-password`
-    });
-    
-    if (error) {
-      console.error('Reset password error:', error.message);
-    }
-    
-    return { error };
+  const deprecatedRedirect = () => {
+    buntingAuth.login();
+    return Promise.resolve({ error: null });
   };
 
-  const verifyOtpAndUpdatePassword = async (email: string, token: string, password: string) => {
-    // First verify the OTP
-    const { error: verifyError } = await supabase.auth.verifyOtp({
-      email,
-      token,
-      type: 'recovery'
-    });
-    
-    if (verifyError) {
-      console.error('OTP verification error:', verifyError.message);
-      return { error: verifyError };
-    }
-
-    // Then update the password
-    const { error: updateError } = await supabase.auth.updateUser({ password });
-    
-    if (updateError) {
-      console.error('Password update error:', updateError.message);
-    }
-    
-    return { error: updateError };
-  };
-
-  const verifyOtpAndCreateAccount = async (email: string, token: string, password: string) => {
-    // First verify the OTP to establish a session
-    const { data, error: verifyError } = await supabase.auth.verifyOtp({
-      email,
-      token,
-      type: 'signup'
-    });
-    
-    if (verifyError) {
-      console.error('OTP verification error:', verifyError.message);
-      return { error: verifyError };
-    }
-
-    // Then update the user with a password
-    const { error: updateError } = await supabase.auth.updateUser({ password });
-    
-    if (updateError) {
-      console.error('Password update error:', updateError.message);
-      return { error: updateError };
-    }
-
-    // Ensure user records exist
-    if (data?.user) {
-      await ensureUserRecordsExist(data.user);
-    }
-    
-    return { error: null };
-  };
-
-  const updatePassword = async (password: string) => {
-    const { error } = await supabase.auth.updateUser({ password });
-    
-    if (error) {
-      console.error('Update password error:', error.message);
-    }
-    
-    return { error };
-  };
-
-  // =============================================================================
-  // BADGE AUTH METHODS
-  // =============================================================================
-  
-  const lookupBadge = async (badgeNumber: string): Promise<BadgeLookupResult> => {
-    try {
-      const { data, error } = await supabase.functions.invoke('badge-auth', {
-        body: { action: 'lookup', badgeNumber }
-      });
-      
-      if (error) {
-        return { exists: false, error: error.message };
-      }
-      
-      return data;
-    } catch (err) {
-      console.error('Badge lookup error:', err);
-      return { exists: false, error: 'Failed to lookup badge' };
-    }
-  };
-
-  const signUpWithBadge = async (badgeNumber: string) => {
-    try {
-      const { data, error } = await supabase.functions.invoke('badge-auth', {
-        body: { action: 'signup', badgeNumber }
-      });
-      
-      if (error) {
-        return { error: { message: error.message } };
-      }
-      
-      if (data?.error) {
-        return { error: { message: data.error } };
-      }
-      
-      return { error: null, supervisorEmail: data?.supervisorEmail };
-    } catch (err) {
-      console.error('Badge signup error:', err);
-      return { error: { message: 'Failed to start badge signup' } };
-    }
-  };
-
-  const verifyBadgeSignup = async (badgeNumber: string, otp: string, pin: string) => {
-    try {
-      const { data, error } = await supabase.functions.invoke('badge-auth', {
-        body: { action: 'verify-signup', badgeNumber, otp, pin }
-      });
-      
-      if (error) {
-        return { error: { message: error.message } };
-      }
-      
-      if (data?.error) {
-        return { error: { message: data.error } };
-      }
-      
-      // If we got a session back, set it
-      if (data?.session) {
-        await supabase.auth.setSession({
-          access_token: data.session.access_token,
-          refresh_token: data.session.refresh_token
-        });
-      }
-      
-      return { error: null, session: data?.session };
-    } catch (err) {
-      console.error('Badge verify signup error:', err);
-      return { error: { message: 'Failed to verify badge signup' } };
-    }
-  };
-
-  const signInWithBadge = async (badgeNumber: string, pin: string) => {
-    try {
-      const { data, error } = await supabase.functions.invoke('badge-auth', {
-        body: { action: 'signin', badgeNumber, pin }
-      });
-      
-      if (error) {
-        return { error: { message: error.message } };
-      }
-      
-      if (data?.error) {
-        return { error: { message: data.error }, requiresPinChange: data?.requiresPinChange };
-      }
-      
-      // If we got a session back, set it
-      if (data?.session) {
-        await supabase.auth.setSession({
-          access_token: data.session.access_token,
-          refresh_token: data.session.refresh_token
-        });
-      }
-      
-      return { error: null, requiresPinChange: data?.requiresPinChange };
-    } catch (err) {
-      console.error('Badge signin error:', err);
-      return { error: { message: 'Failed to sign in with badge' } };
-    }
-  };
-
-  const resetBadgePin = async (badgeNumber: string) => {
-    try {
-      const { data, error } = await supabase.functions.invoke('badge-auth', {
-        body: { action: 'reset-pin', badgeNumber }
-      });
-      
-      if (error) {
-        return { error: { message: error.message } };
-      }
-      
-      if (data?.error) {
-        return { error: { message: data.error } };
-      }
-      
-      return { error: null, supervisorEmail: data?.supervisorEmail };
-    } catch (err) {
-      console.error('Badge reset pin error:', err);
-      return { error: { message: 'Failed to request PIN reset' } };
-    }
-  };
-
-  const verifyBadgePinReset = async (badgeNumber: string, otp: string, newPin: string) => {
-    try {
-      const { data, error } = await supabase.functions.invoke('badge-auth', {
-        body: { action: 'verify-reset', badgeNumber, otp, newPin }
-      });
-      
-      if (error) {
-        return { error: { message: error.message } };
-      }
-      
-      if (data?.error) {
-        return { error: { message: data.error } };
-      }
-      
-      return { error: null };
-    } catch (err) {
-      console.error('Badge verify reset error:', err);
-      return { error: { message: 'Failed to verify PIN reset' } };
-    }
-  };
-
-  const quickSignUpWithBadge = async (badgeNumber: string, pin: string) => {
-    try {
-      const { data, error } = await supabase.functions.invoke('badge-auth', {
-        body: { action: 'quick-signup', badgeNumber, pin }
-      });
-      
-      if (error) {
-        return { error: { message: error.message } };
-      }
-      
-      if (data?.error) {
-        return { error: { message: data.error }, requiresPinChange: data?.requiresPinChange };
-      }
-      
-      // If we got a session back, set it
-      if (data?.session) {
-        await supabase.auth.setSession({
-          access_token: data.session.access_token,
-          refresh_token: data.session.refresh_token
-        });
-      }
-      
-      return { 
-        error: null, 
-        requiresPinChange: data?.requiresPinChange,
-        employeeName: data?.employeeName 
-      };
-    } catch (err) {
-      console.error('Quick badge signup error:', err);
-      return { error: { message: 'Failed to sign up with badge' } };
-    }
-  };
-
-  const changeBadgePin = async (badgeNumber: string, currentPin: string, newPin: string) => {
-    try {
-      const { data, error } = await supabase.functions.invoke('badge-auth', {
-        body: { action: 'change-pin', badgeNumber, currentPin, newPin }
-      });
-      
-      if (error) {
-        return { error: { message: error.message } };
-      }
-      
-      if (data?.error) {
-        return { error: { message: data.error } };
-      }
-      
-      return { error: null };
-    } catch (err) {
-      console.error('Change badge PIN error:', err);
-      return { error: { message: 'Failed to change PIN' } };
-    }
-  };
-
-  // =============================================================================
+  // ==========================================================================
   // CONTEXT VALUE
-  // =============================================================================
-  
-  const value = {
-    user,
-    session,
-    isLoading,
+  // ==========================================================================
+  const value: AuthContextType = {
+    user: effectiveUser,
+    session: buntingAuth.session,
+    isLoading: buntingAuth.isLoading,
     sessionChecked,
     isSettingUpRecords,
-    signUp,
-    signUpWithEmailOnly,
-    signIn,
-    signInWithMicrosoft,
+    login: buntingAuth.login,
     signOut,
-    resetPassword,
-    verifyOtpAndUpdatePassword,
-    verifyOtpAndCreateAccount,
-    updatePassword,
-    // Badge auth
-    lookupBadge,
-    signUpWithBadge,
-    verifyBadgeSignup,
-    signInWithBadge,
-    resetBadgePin,
-    verifyBadgePinReset,
-    quickSignUpWithBadge,
-    changeBadgePin,
+    // Deprecated - redirect to login hub
+    signIn: deprecatedRedirect,
+    signUp: deprecatedRedirect,
+    signInWithMicrosoft: deprecatedRedirect,
+    resetPassword: deprecatedRedirect,
+    updatePassword: deprecatedRedirect,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
