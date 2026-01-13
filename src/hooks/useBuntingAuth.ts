@@ -71,6 +71,38 @@ const isAllowedDomain = (): boolean => {
 };
 
 /**
+ * Detect if current URL contains OAuth callback parameters
+ */
+const hasOAuthCallbackParams = (): boolean => {
+  const hash = window.location.hash;
+  const search = window.location.search;
+  
+  // Check for OAuth tokens in hash (implicit flow)
+  if (hash.includes('access_token=') || hash.includes('error=')) {
+    return true;
+  }
+  
+  // Check for OAuth code in search params (PKCE flow)
+  if (search.includes('code=') || search.includes('error=')) {
+    return true;
+  }
+  
+  return false;
+};
+
+/**
+ * Clean OAuth parameters from URL after processing
+ */
+const cleanOAuthParamsFromUrl = (): void => {
+  const url = new URL(window.location.href);
+  url.hash = '';
+  url.searchParams.delete('code');
+  url.searchParams.delete('error');
+  url.searchParams.delete('error_description');
+  window.history.replaceState({}, '', url.toString());
+};
+
+/**
  * Bunting Authentication Hook
  * 
  * Provides authentication state and methods for apps in the *.buntinggpt.com domain.
@@ -132,6 +164,7 @@ export function useBuntingAuth(options: UseBuntingAuthOptions = {}): UseBuntingA
     }
 
     let isMounted = true;
+    const isOAuthCallback = hasOAuthCallbackParams();
 
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -149,6 +182,11 @@ export function useBuntingAuth(options: UseBuntingAuthOptions = {}): UseBuntingA
         
         setState(newState);
         
+        // Clean URL after successful sign in from OAuth
+        if (event === 'SIGNED_IN' && isOAuthCallback) {
+          cleanOAuthParamsFromUrl();
+        }
+        
         // Only trigger callback for meaningful events (not initial session which we handle separately)
         if (event !== 'INITIAL_SESSION') {
           onAuthChange?.(newState);
@@ -161,8 +199,61 @@ export function useBuntingAuth(options: UseBuntingAuthOptions = {}): UseBuntingA
       }
     );
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
+    // Handle OAuth callback with PKCE code exchange
+    const handleOAuthCallback = async () => {
+      if (!isOAuthCallback) return false;
+      
+      const urlParams = new URLSearchParams(window.location.search);
+      const code = urlParams.get('code');
+      const error = urlParams.get('error');
+      
+      if (error) {
+        console.error('[BuntingAuth] OAuth error:', error, urlParams.get('error_description'));
+        cleanOAuthParamsFromUrl();
+        return false;
+      }
+      
+      if (code) {
+        console.log('[BuntingAuth] OAuth code detected, exchanging for session...');
+        try {
+          const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+          
+          if (exchangeError) {
+            console.error('[BuntingAuth] Code exchange error:', exchangeError);
+            cleanOAuthParamsFromUrl();
+            return false;
+          }
+          
+          if (data.session) {
+            console.log('[BuntingAuth] Session established from code exchange:', data.session.user?.email);
+            // State will be updated via onAuthStateChange listener
+            return true;
+          }
+        } catch (err) {
+          console.error('[BuntingAuth] Code exchange exception:', err);
+          cleanOAuthParamsFromUrl();
+          return false;
+        }
+      }
+      
+      return false;
+    };
+
+    // Initialize auth
+    const initAuth = async () => {
+      // First, handle OAuth callback if present
+      if (isOAuthCallback) {
+        const handled = await handleOAuthCallback();
+        if (handled) {
+          // Session established via code exchange, wait for onAuthStateChange
+          setInitialCheckDone(true);
+          return;
+        }
+      }
+      
+      // Normal session check
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
       if (!isMounted) return;
       
       if (error) {
@@ -188,7 +279,9 @@ export function useBuntingAuth(options: UseBuntingAuthOptions = {}): UseBuntingA
       if (requireAuth && !session?.user) {
         login();
       }
-    });
+    };
+    
+    initAuth();
 
     return () => {
       isMounted = false;
