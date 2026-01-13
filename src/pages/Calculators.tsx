@@ -13,6 +13,7 @@ interface CalculatorItem {
   icon_path?: string;
   video_url?: string;
   license?: string;
+  token?: string;
 }
 
 const Calculators = () => {
@@ -66,6 +67,7 @@ const Calculators = () => {
                 id={calc.id}
                 sourceTable="app_items"
                 license={calc.license}
+                token={calc.token}
               />
             ))}
           </div>

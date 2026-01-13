@@ -19,6 +19,7 @@ interface ApplicationItem {
   icon_path?: string | null;
   video_url?: string | null;
   coming_soon?: boolean | null;
+  token?: string | null;
 }
 
 const Apps = () => {
@@ -114,6 +115,7 @@ const Apps = () => {
                     iconPath={app.icon_path}
                     id={app.id}
                     sourceTable="app_items"
+                    token={app.token}
                   />
                 </div>
               </div>
