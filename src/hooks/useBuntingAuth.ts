@@ -2,25 +2,13 @@
  * Bunting Auth Hook - Reusable authentication for *.buntinggpt.com apps
  * 
  * USAGE:
- * 1. Copy this file to your app's hooks folder
- * 2. Create a Supabase client with the same config (see below)
- * 3. Use the hook in your app's root or protected routes
+ * 1. Import this hook in your app's root or protected routes
+ * 2. The Supabase client uses cookie storage on production (*.buntinggpt.com)
+ *    and localStorage in development (localhost)
  * 
- * REQUIRED SUPABASE CLIENT CONFIG:
- * ```typescript
- * import { createClient } from '@supabase/supabase-js';
- * 
- * const SUPABASE_URL = "https://qzwxisdfwswsrbzvpzlo.supabase.co";
- * const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...";
- * 
- * export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
- *   auth: {
- *     storage: localStorage,
- *     persistSession: true,
- *     autoRefreshToken: true,
- *   }
- * });
- * ```
+ * NOTE: The Supabase client in @/integrations/supabase/client already has
+ * cookie-based storage with 3KB chunking for cross-subdomain session sharing.
+ * See src/integrations/supabase/client.ts for implementation details.
  */
 
 import { useEffect, useState, useCallback } from 'react';
@@ -200,8 +188,8 @@ export function useBuntingAuth(options: UseBuntingAuthOptions = {}): UseBuntingA
     );
 
     // Handle OAuth callback with PKCE code exchange
-    const handleOAuthCallback = async () => {
-      if (!isOAuthCallback) return false;
+    const handleOAuthCallback = async (): Promise<Session | null> => {
+      if (!isOAuthCallback) return null;
       
       const urlParams = new URLSearchParams(window.location.search);
       const code = urlParams.get('code');
@@ -210,7 +198,7 @@ export function useBuntingAuth(options: UseBuntingAuthOptions = {}): UseBuntingA
       if (error) {
         console.error('[BuntingAuth] OAuth error:', error, urlParams.get('error_description'));
         cleanOAuthParamsFromUrl();
-        return false;
+        return null;
       }
       
       if (code) {
@@ -221,38 +209,52 @@ export function useBuntingAuth(options: UseBuntingAuthOptions = {}): UseBuntingA
           if (exchangeError) {
             console.error('[BuntingAuth] Code exchange error:', exchangeError);
             cleanOAuthParamsFromUrl();
-            return false;
+            return null;
           }
           
           if (data.session) {
             console.log('[BuntingAuth] Session established from code exchange:', data.session.user?.email);
-            // State will be updated via onAuthStateChange listener
-            return true;
+            cleanOAuthParamsFromUrl();
+            return data.session;
           }
         } catch (err) {
           console.error('[BuntingAuth] Code exchange exception:', err);
           cleanOAuthParamsFromUrl();
-          return false;
+          return null;
         }
       }
       
-      return false;
+      return null;
     };
 
     // Initialize auth
     const initAuth = async () => {
+      let session: Session | null = null;
+      
       // First, handle OAuth callback if present
       if (isOAuthCallback) {
-        const handled = await handleOAuthCallback();
-        if (handled) {
-          // Session established via code exchange, wait for onAuthStateChange
-          setInitialCheckDone(true);
+        session = await handleOAuthCallback();
+        if (session) {
+          console.log('[BuntingAuth] Session from OAuth callback:', session.user?.email);
+          // Update state immediately with the session we got from code exchange
+          if (isMounted) {
+            const newState: BuntingAuthState = {
+              user: session.user ?? null,
+              session,
+              isLoading: false,
+              isAuthenticated: !!session.user,
+            };
+            setState(newState);
+            setInitialCheckDone(true);
+            onAuthChange?.(newState);
+          }
           return;
         }
       }
       
-      // Normal session check
-      const { data: { session }, error } = await supabase.auth.getSession();
+      // Normal session check (no OAuth callback or callback failed)
+      const { data, error } = await supabase.auth.getSession();
+      session = data.session;
       
       if (!isMounted) return;
       
