@@ -2,11 +2,9 @@
 import React from "react";
 import { isDemoMode, disableDemoMode } from "@/utils/demoMode";
 import { X } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
 export function DemoModeBadge() {
-  const navigate = useNavigate();
   const { signOut } = useAuth();
 
   if (!isDemoMode()) return null;
@@ -15,8 +13,10 @@ export function DemoModeBadge() {
     try {
       disableDemoMode();
       await signOut(); // safe even if no session
-    } catch {}
-    navigate("/auth", { replace: true });
+    } catch {
+      // ignore
+    }
+    // signOut() redirects to the centralized login hub
   };
 
   return (

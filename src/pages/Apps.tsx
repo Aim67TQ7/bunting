@@ -8,7 +8,6 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 
 interface ApplicationItem {
@@ -26,30 +25,29 @@ const Apps = () => {
   const [applications, setApplications] = useState<ApplicationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { user } = useAuth();
-  const navigate = useNavigate();
+  const { user, login } = useAuth();
 
   useEffect(() => {
     async function fetchApplications() {
       try {
         setLoading(true);
         setError(null);
-        
+
         // Wait for session to be ready
         const { data: { session } } = await supabase.auth.getSession();
         console.log("Apps fetch - session:", session ? "authenticated" : "anonymous");
-        
+
         const { data, error } = await (supabase as any)
           .from("app_items")
           .select("*")
           .eq("is_active", true)
           .eq("category", "application")
           .order("name", { ascending: true });
-        
+
         if (error) {
           throw error;
         }
-        
+
         console.log("Apps fetched:", data?.length || 0, "items");
         setApplications(data || []);
       } catch (error) {
@@ -66,7 +64,8 @@ const Apps = () => {
   }, [user]); // Refetch when user changes
 
   const handleRedirectToLogin = () => {
-    navigate("/auth", { state: { returnUrl: "/apps" } });
+    // Centralized SSO only (no local /auth page)
+    login();
   };
 
   return (
