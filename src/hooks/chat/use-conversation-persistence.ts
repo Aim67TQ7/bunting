@@ -6,7 +6,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Message } from '@/types/chat';
 import { useAuth } from '@/contexts/AuthContext';
 import { encryptConversationContent, decryptConversationContent } from '@/utils/encryption';
-import { useNavigate } from 'react-router-dom';
 
 // Helper function to prepare message for JSON storage
 const prepareMessagesForStorage = (messages: Message[]) => {
@@ -39,13 +38,12 @@ const isAuthError = (error: any): boolean => {
 export function useConversationPersistence() {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
-  const navigate = useNavigate();
 
   // Handle auth errors by refreshing session or redirecting
   const handleAuthError = useCallback(async () => {
     // Try to refresh the session first
     const { data: { session }, error } = await supabase.auth.refreshSession();
-    
+
     if (error || !session) {
       toast({
         title: "Session expired",
@@ -53,11 +51,10 @@ export function useConversationPersistence() {
         variant: "destructive"
       });
       await signOut();
-      navigate('/auth');
       return false;
     }
     return true; // Session was refreshed successfully
-  }, [toast, signOut, navigate]);
+  }, [toast, signOut]);
 
   const saveConversation = useCallback(
     async (messages: Message[], topic: string, conversationId: string | null, isNew = false) => {

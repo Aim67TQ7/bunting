@@ -118,7 +118,7 @@ useEffect(() => {
 
   const handleSignOutClick = async () => {
     await signOut();
-    navigate("/auth");
+    // signOut() redirects to the centralized login hub
   };
 
   // Extract email username for display, but prefer profile first_name or call_name
