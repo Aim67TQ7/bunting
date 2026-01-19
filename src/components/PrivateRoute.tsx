@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { isDemoMode } from "@/utils/demoMode";
 
-const AUTH_HUB_URL = 'https://login.buntinggpt.com';
+const AUTH_HUB_URL = 'https://gate.buntinggpt.com';
 
 interface PrivateRouteProps {
   children: ReactNode;

@@ -14,7 +14,7 @@ type JobLevel = Database["public"]["Enums"]["job_level"];
 const VALID_LOCATIONS: EmployeeLocation[] = ["Newton", "DuBois", "Redditch", "Berkhamsted", "Home-Office"];
 const VALID_JOB_LEVELS: JobLevel[] = ["Admin", "Employee", "Executive", "Lead", "Manager", "Supervisor"];
 
-const AUTH_HUB_URL = 'https://login.buntinggpt.com';
+const AUTH_HUB_URL = 'https://gate.buntinggpt.com';
 
 // =============================================================================
 // CACHED SESSION FOR INSTANT AUTH BROADCAST TO IFRAMES
