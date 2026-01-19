@@ -27,48 +27,56 @@ if (typeof window !== 'undefined') {
   console.log('Supabase auth storage mode:', isProductionDomain ? 'cookie (production)' : 'localStorage (dev)');
 }
 
-// Cookie chunk size (3KB is safe margin below 4KB browser limit)
-const COOKIE_CHUNK_SIZE = 3000;
+// Cookie configuration matching gate.buntinggpt.com specification
+const COOKIE_NAME = 'bunting-auth-token';
+const CHUNK_THRESHOLD = 3800; // Split if session > 3800 bytes
+const CHUNK_SIZE = 3800;
+const MAX_AGE = 31536000; // 1 year
 
-// Custom cookie storage that splits large values across multiple cookies
-// Uses pattern: {key}_chunk_0, {key}_chunk_1, etc.
-//
-// CRITICAL: We chunk the *encoded* value. When reading we must concatenate all
-// encoded chunks first, then decode once, otherwise percent-encoded sequences
-// can be corrupted at chunk boundaries.
+// Custom cookie storage following gate.buntinggpt.com chunking protocol:
+// - Small session (< 3800 bytes): Single `bunting-auth-token` cookie
+// - Large session (> 3800 bytes): Split into `bunting-auth-token.0`, `.1`, etc. + `.count`
 const cookieStorage = {
   getItem: (key: string): string | null => {
     try {
-      const cookies = document.cookie.split('; ');
-      const chunks: { index: number; value: string }[] = [];
+      const cookies = document.cookie.split('; ').reduce((acc, cookie) => {
+        const [k, ...v] = cookie.split('=');
+        acc[k] = v.join('=');
+        return acc;
+      }, {} as Record<string, string>);
 
-      for (const cookie of cookies) {
-        const [cookieKey, ...valueParts] = cookie.split('=');
-        const cookieValue = valueParts.join('='); // Handle values with '='
-
-        if (cookieKey.startsWith(`${key}_chunk_`)) {
-          const indexStr = cookieKey.substring(`${key}_chunk_`.length);
-          const index = parseInt(indexStr, 10);
-          if (!isNaN(index)) {
-            // IMPORTANT: keep it encoded; decode only after concatenation
-            chunks.push({ index, value: cookieValue });
+      // Check for chunked storage first (has .count cookie)
+      const countCookie = cookies[`${COOKIE_NAME}.count`];
+      if (countCookie) {
+        const count = parseInt(countCookie, 10);
+        if (!isNaN(count) && count > 0) {
+          const chunks: string[] = [];
+          for (let i = 0; i < count; i++) {
+            const chunk = cookies[`${COOKIE_NAME}.${i}`];
+            if (chunk) {
+              chunks.push(chunk);
+            } else {
+              console.warn(`Missing chunk ${i} of ${count}`);
+              return null;
+            }
           }
+          const encoded = chunks.join('');
+          const decoded = decodeURIComponent(encoded);
+          console.log(`Cookie read [${key}]: reassembled ${count} chunks (${decoded.length} chars)`);
+          return decoded || null;
         }
       }
 
-      if (chunks.length === 0) {
-        console.log(`Cookie read [${key}]: not found`);
-        return null;
+      // Fall back to single cookie
+      const single = cookies[COOKIE_NAME];
+      if (single) {
+        const decoded = decodeURIComponent(single);
+        console.log(`Cookie read [${key}]: single cookie (${decoded.length} chars)`);
+        return decoded || null;
       }
 
-      chunks.sort((a, b) => a.index - b.index);
-      const encodedFullValue = chunks.map((c) => c.value).join('');
-      const decoded = decodeURIComponent(encodedFullValue);
-
-      console.log(
-        `Cookie read [${key}]: found (${decoded.length} chars from ${chunks.length} chunks)`
-      );
-      return decoded || null;
+      console.log(`Cookie read [${key}]: not found`);
+      return null;
     } catch (e) {
       console.error('Cookie read error:', e);
       return null;
@@ -77,27 +85,33 @@ const cookieStorage = {
 
   setItem: (key: string, value: string): void => {
     try {
-      // First, clear existing chunks
+      // First, clear any existing cookies
       cookieStorage.removeItem(key);
 
-      // Encode first, then chunk the encoded payload to prevent boundary corruption
-      const encodedValue = encodeURIComponent(value);
+      const encoded = encodeURIComponent(value);
+      const cookieOptions = `path=/; domain=.buntinggpt.com; max-age=${MAX_AGE}; SameSite=Lax; Secure`;
 
-      const chunks: string[] = [];
-      for (let i = 0; i < encodedValue.length; i += COOKIE_CHUNK_SIZE) {
-        chunks.push(encodedValue.substring(i, i + COOKIE_CHUNK_SIZE));
+      if (encoded.length <= CHUNK_THRESHOLD) {
+        // Small session: single cookie
+        document.cookie = `${COOKIE_NAME}=${encoded}; ${cookieOptions}`;
+        console.log(`Cookie set [${key}]: single cookie (${value.length} chars)`);
+      } else {
+        // Large session: split into chunks
+        const chunks: string[] = [];
+        for (let i = 0; i < encoded.length; i += CHUNK_SIZE) {
+          chunks.push(encoded.substring(i, i + CHUNK_SIZE));
+        }
+
+        // Write each chunk
+        chunks.forEach((chunk, index) => {
+          document.cookie = `${COOKIE_NAME}.${index}=${chunk}; ${cookieOptions}`;
+        });
+
+        // Write the count
+        document.cookie = `${COOKIE_NAME}.count=${chunks.length}; ${cookieOptions}`;
+
+        console.log(`Cookie set [${key}]: ${chunks.length} chunks (${value.length} chars)`);
       }
-
-      const maxAge = 60 * 60 * 24 * 7; // 7 days
-
-      chunks.forEach((chunk, index) => {
-        const chunkKey = `${key}_chunk_${index}`;
-
-        // IMPORTANT: chunk is already encoded
-        document.cookie = `${chunkKey}=${chunk}; path=/; domain=.buntinggpt.com; max-age=${maxAge}; SameSite=Lax; Secure`;
-      });
-
-      console.log(`Cookie set [${key}]: ${value.length} chars (${chunks.length} chunks)`);
     } catch (e) {
       console.error('Cookie write error:', e);
     }
@@ -105,22 +119,24 @@ const cookieStorage = {
 
   removeItem: (key: string): void => {
     try {
-      const cookies = document.cookie.split('; ');
-      let removedCount = 0;
+      const expireOptions = 'path=/; domain=.buntinggpt.com; max-age=0';
+      let removed = 0;
 
-      for (const cookie of cookies) {
-        const [cookieKey] = cookie.split('=');
+      // Remove single cookie
+      document.cookie = `${COOKIE_NAME}=; ${expireOptions}`;
+      removed++;
 
-        if (cookieKey.startsWith(`${key}_chunk_`)) {
-          // Remove with same domain that was used to set it
-          document.cookie = `${cookieKey}=; path=/; domain=.buntinggpt.com; max-age=0`;
-          removedCount++;
-        }
+      // Remove all possible chunks (check up to 20 chunks)
+      for (let i = 0; i < 20; i++) {
+        document.cookie = `${COOKIE_NAME}.${i}=; ${expireOptions}`;
+        removed++;
       }
 
-      if (removedCount > 0) {
-        console.log(`Cookie removed [${key}]: ${removedCount} chunks`);
-      }
+      // Remove count cookie
+      document.cookie = `${COOKIE_NAME}.count=; ${expireOptions}`;
+      removed++;
+
+      console.log(`Cookie removed [${key}]: cleared all bunting-auth-token cookies`);
     } catch (e) {
       console.error('Cookie remove error:', e);
     }
