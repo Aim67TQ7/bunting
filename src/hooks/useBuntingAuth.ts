@@ -16,7 +16,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
 // Configuration - Update these for your environment
-const AUTH_HUB_URL = 'https://login.buntinggpt.com';
+const AUTH_HUB_URL = 'https://gate.buntinggpt.com';
 const ALLOWED_DOMAINS = ['.buntinggpt.com', 'localhost'];
 
 interface BuntingAuthState {

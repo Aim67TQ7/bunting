@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-const AUTH_HUB_URL = 'https://login.buntinggpt.com';
+const AUTH_HUB_URL = 'https://gate.buntinggpt.com';
 
 /**
  * Auth Page - Redirects to centralized login hub

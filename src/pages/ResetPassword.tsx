@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-const AUTH_HUB_URL = 'https://login.buntinggpt.com';
+const AUTH_HUB_URL = 'https://gate.buntinggpt.com';
 
 /**
  * Reset Password Page - Redirects to centralized login hub
