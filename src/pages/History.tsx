@@ -355,7 +355,7 @@ const History = () => {
                 )}
                 Retry
               </Button>
-              <Button onClick={() => window.location.href = "https://login.buntinggpt.com?return_url=" + encodeURIComponent(window.location.href)}>
+              <Button onClick={() => window.location.href = "https://gate.buntinggpt.com?return_url=" + encodeURIComponent(window.location.href)}>
                 Sign in again
               </Button>
             </div>

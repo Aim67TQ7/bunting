@@ -13,7 +13,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, purgeAllAuthCookies } from '@/integrations/supabase/client';
 
 // Configuration - Update these for your environment
 const AUTH_HUB_URL = 'https://gate.buntinggpt.com';
@@ -136,7 +136,9 @@ export function useBuntingAuth(options: UseBuntingAuthOptions = {}): UseBuntingA
 
   // Sign out and redirect to logout page
   const logout = useCallback(async () => {
-    // Clear local session first
+    // Purge all auth cookies to ensure clean state
+    purgeAllAuthCookies();
+    // Clear local session
     await supabase.auth.signOut();
     const logoutUrl = `${AUTH_HUB_URL}/logout`;
     window.location.href = logoutUrl;
