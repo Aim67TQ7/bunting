@@ -1,6 +1,6 @@
 import { createContext, useContext, ReactNode, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, purgeAllAuthCookies } from "@/integrations/supabase/client";
 import { useBuntingAuth } from '@/hooks/useBuntingAuth';
 import { isDemoMode, getDemoEmail, disableDemoMode } from "@/utils/demoMode";
 import { Database } from "@/integrations/supabase/types";
@@ -331,6 +331,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (isDemoMode()) {
       disableDemoMode();
     }
+    purgeAllAuthCookies();
     buntingAuth.logout();
   };
 
