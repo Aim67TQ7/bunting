@@ -23,6 +23,8 @@ import AdminAppItems from "./pages/AdminAppItems";
 import AdminKnowledge from "./pages/AdminKnowledge";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
+import Privacy from "./pages/Privacy";
+import Terms from "./pages/Terms";
 import PrivateRoute from "./components/PrivateRoute";
 import DemoModeBadge from "./components/DemoModeBadge";
 
@@ -51,6 +53,8 @@ function App() {
                 <Route path="/baq-mto" element={<BaqMto />} />
                 <Route path="/admin/knowledge" element={<AdminKnowledge />} />
                 <Route path="/admin/app-items" element={<AdminAppItems />} />
+                <Route path="/privacy" element={<Privacy />} />
+                <Route path="/terms" element={<Terms />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
               <DemoModeBadge />
