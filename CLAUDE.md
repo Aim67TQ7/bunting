@@ -2,19 +2,20 @@
 
 **Audited:** 2026-02-26
 **Bucket:** [SALVAGE]
+**Status:** Retired
 
 ## What This Was
-Bunting Magnetics tool — likely a single-purpose app for a specific Bunting workflow
+Bunting Magnetics AI assistant — version or variant
 
 ## Job To Be Done
-Bunting-specific: General purpose / unclear
+BuntingGPT interface
 
 ## Agent Replacement
 N/A
 
 ## What To Extract
-Bunting business logic, ERP patterns
+Engineering formulas, product catalog schemas
 
 ## Claude's Notes
-- Bunting-specific — check if ORC handles this before final archive.
-- Salvage value identified: Bunting business logic, ERP patterns
+- Bunting-specific tool. Check ORC skills before final archive.
+- Salvage value: Engineering formulas, product catalog schemas
